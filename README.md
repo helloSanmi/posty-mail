@@ -5,6 +5,8 @@
 A self-hosted email campaign tool. React + Vite frontend, Express + Prisma/Postgres
 backend, Brevo for transactional sends and click tracking.
 
+![Posty dashboard](docs/screenshot.png)
+
 ---
 
 ## Quick start (local dev)
