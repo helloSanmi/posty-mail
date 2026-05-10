@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Contact {
+  email     String   @id
+  firstname String?
+  lastname  String?
+  consent   String?
+  region    String?
+  data      Json?
+  savedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Audience {
+  id            String   @id @default(uuid())
+  name          String
+  contactEmails String[]
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
+
+model Template {
+  id        String   @id
+  name      String
+  subject   String
+  html      String
+  text      String
+  logoUrl   String?
+  data      Json?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model Campaign {
+  id        String   @id
+  name      String
+  status    String
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Draft {
+  id        String   @id
+  name      String?
+  data      Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model Unsubscribe {
+  email          String   @id
+  reason         String?
+  unsubscribedAt DateTime @default(now())
+}
+
+model Event {
+  id         String   @id @default(uuid())
+  // Stable id from the upstream provider (Brevo's `uuid` field on each
+  // event). Used to dedup when both a webhook AND the catch-up sync see
+  // the same event. Postgres allows multiple NULLs in a unique index, so
+  // legacy rows without an externalId can coexist.
+  externalId String?  @unique
+  provider   String
+  payload    Json
+  receivedAt DateTime @default(now())
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id                      String   @id @default(uuid())
+  email                   String   @unique
+  passwordHash            String
+  name                    String?
+  role                    String   @default("admin")
+  notificationsLastSeenAt DateTime?
+  // When the user clicks "Clear" in the notifications panel. Items received
+  // before this point are hidden from their view (the underlying Event rows
+  // are kept for audit / analytics — this is just per-user filtering).
+  notificationsClearedAt  DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model CampaignSend {
+  campaignId      String
+  email           String
+  status          String   @default("pending")
+  brevoMessageId  String?
+  errorMessage    String?
+  attempts        Int      @default(0)
+  sentAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@id([campaignId, email])
+  @@index([campaignId])
+}
+
+model Segment {
+  id        String   @id @default(uuid())
+  name      String
+  filter    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Asset {
+  id          String   @id @default(uuid())
+  fileName    String
+  url         String
+  contentType String
+  bytes       Int
+  kind        String   @default("logo")
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([kind])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userEmail  String?
+  action     String
+  resource   String
+  resourceId String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([resource, resourceId])
+  @@index([userId])
+  @@index([createdAt])
+}

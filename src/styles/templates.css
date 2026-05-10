@@ -1,0 +1,470 @@
+.template-shell {
+  align-items: start;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.template-list-panel, .template-control-panel {
+  align-self: start;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  position: sticky;
+  top: 112px;
+}
+
+.template-list-panel {
+  padding: 14px;
+}
+
+.template-main {
+  grid-column: 2;
+}
+
+/* Sticky bar that pins the Edit / Preview pill to the top of the viewport so
+   it's always reachable while scrolling through a long HTML field. The bar
+   itself spans the full width with the page background, otherwise editor
+   content would scroll into view through the empty space beside the pill.
+   `top` matches the topbar's min-height so there's no gap above the bar where
+   editor content could peek through. `z-index` sits BELOW the topbar's
+   stacking context (z:3) so the notification panel, which renders inside the
+   topbar, still appears above this bar when it's open. */
+.template-tabs-bar {
+  background: var(--bg);
+  margin-bottom: 14px;
+  padding: 8px 0;
+  position: sticky;
+  top: 64px;
+  z-index: 2;
+}
+.template-tabs {
+  background: #eef2f6;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+}
+
+.template-tabs button {
+  background: transparent;
+  border: 0;
+}
+
+.template-tabs button.active {
+  background: #fff;
+  color: var(--blue);
+}
+
+.template-list-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.template-list-header span {
+  color: var(--muted);
+  display: block;
+  font-size: .82rem;
+  margin-top: 2px;
+}
+
+.template-select-label {
+  margin: 16px 0 0;
+}
+
+.template-select-summary {
+  color: var(--muted);
+  font-size: .86rem;
+  line-height: 1.4;
+  margin-top: 10px;
+}
+
+.asset-row, .preview-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
+.preview-toolbar select { width: auto; min-width: 130px; }
+
+.template-control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: none;
+  position: static;
+}
+
+.template-control-panel label { margin-bottom: 0; }
+
+.template-edit-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 720px) {
+  .template-edit-grid { grid-template-columns: 1fr; }
+}
+
+.template-field { display: grid; gap: 7px; }
+.template-field-label { color: #4b5563; font-weight: 500; }
+
+.template-actions {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 16px;
+}
+
+.asset-row {
+  margin-bottom: 14px;
+}
+
+.logo-uploader {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  padding: 8px 10px;
+}
+.logo-uploader input { display: none; }
+.logo-thumb {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  height: 34px;
+  object-fit: contain;
+  width: 82px;
+}
+
+.html-field { display: grid; gap: 7px; }
+.html-field-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+.html-field-tools {
+  display: flex;
+  gap: 6px;
+}
+.html-field-hint {
+  font-size: 0.78rem;
+  margin-top: -2px;
+}
+.html-field-hint code {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  font-size: 0.95em;
+  padding: 1px 4px;
+}
+.template-assets {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  overflow: hidden;
+}
+.template-asset-group + .template-asset-group {
+  border-top: 1px solid var(--line);
+}
+.template-asset-header {
+  align-items: center;
+  background: #fbfcfd;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  font-size: 0.74rem;
+  gap: 6px;
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+  text-transform: uppercase;
+}
+.template-asset-title { color: #4b5563; font-weight: 500; }
+
+.template-asset-list {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  list-style: none;
+  margin: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.template-asset-list li {
+  align-items: center;
+  border-radius: 6px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  min-height: 0;
+  padding: 4px 8px;
+}
+.template-asset-list li:hover { background: #f1f5fb; }
+.template-asset-thumb {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  display: flex;
+  flex-shrink: 0;
+  height: 24px;
+  justify-content: center;
+  overflow: hidden;
+  width: 24px;
+}
+.template-asset-thumb.is-link {
+  background: #eef4ff;
+  border-color: #cfe0fb;
+  color: var(--blue);
+}
+.template-asset-thumb img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+.template-asset-info { display: grid; gap: 0; min-width: 0; }
+.template-asset-info strong {
+  font-size: 0.84rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.template-asset-info .muted {
+  font-size: 0.74rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.template-asset-actions {
+  align-items: center;
+  display: flex;
+  gap: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.template-asset-list li:hover .template-asset-actions,
+.template-asset-list li:focus-within .template-asset-actions {
+  opacity: 1;
+}
+.template-asset-actions .row-action { height: 24px; width: 24px; }
+/* The entire row is the click target (replace image / edit link) — the only
+   nested button is the destructive Delete which calls stopPropagation(). */
+.template-asset-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.template-asset-row:focus-visible {
+  background: #eef4ff;
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+.template-link-placeholder {
+  color: #9a3412 !important;
+  font-weight: 500;
+}
+
+/* Edit link modal */
+.edit-link-actions {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.edit-link-actions-right { display: flex; gap: 8px; }
+.edit-link-presets { display: flex; gap: 8px; margin-top: 6px; }
+.edit-link-presets .text-button { font-size: 0.82rem; }
+.edit-link-test {
+  align-items: center;
+  color: var(--blue);
+  display: inline-flex;
+  font-size: 0.84rem;
+  gap: 4px;
+  margin-top: -4px;
+  text-decoration: none;
+}
+.edit-link-test:hover { text-decoration: underline; }
+
+/* Logo picker modal */
+.logo-picker-card {
+  display: grid;
+  gap: 14px;
+  max-height: min(80vh, 720px);
+  max-width: 760px;
+  overflow: auto;
+  padding: 22px;
+}
+.logo-picker-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.logo-picker-header h2 { margin: 0; }
+.logo-picker-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+.upload-button {
+  align-items: center;
+  background: var(--blue);
+  border: 1px solid var(--blue);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 500;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 14px;
+}
+.upload-button input { display: none; }
+
+.logo-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.logo-grid li {
+  position: relative;
+}
+.logo-tile {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+.logo-tile:hover {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(36, 89, 154, 0.12);
+}
+.logo-tile img {
+  background: #f5f7f9;
+  border-radius: 8px;
+  height: 90px;
+  object-fit: contain;
+  width: 100%;
+}
+.logo-meta { display: grid; gap: 2px; min-width: 0; }
+.logo-name { font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.logo-delete {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  min-height: 0;
+  opacity: 0;
+  padding: 0;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  width: 26px;
+}
+.logo-delete:hover,
+.logo-delete:focus-visible {
+  background: #fef2f2;
+  color: #9f1d1d;
+}
+.logo-grid li:hover .logo-delete,
+.logo-grid li:focus-within .logo-delete { opacity: 1; }
+.code-editor {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  min-height: 320px;
+}
+
+.template-control-panel textarea:not(.code-editor) {
+  min-height: 120px;
+}
+
+.plain-text-details {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.plain-text-details > summary {
+  cursor: pointer;
+  font-weight: 500;
+  list-style: none;
+  padding: 4px 0;
+}
+.plain-text-details > summary::-webkit-details-marker { display: none; }
+.plain-text-details > summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 6px;
+  transition: transform 0.15s;
+}
+.plain-text-details[open] > summary::before {
+  transform: rotate(90deg);
+}
+.plain-text-details > textarea { margin-top: 8px; }
+.plain-text-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.email-preview {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-height: 520px;
+}
+.preview-header { justify-content: space-between; }
+.preview-subject {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  padding: 10px;
+}
+.segmented-control {
+  background: #f3f6fa;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: flex;
+  padding: 3px;
+}
+.segmented-control button { background: transparent; border: 0; min-height: 30px; }
+.segmented-control button.active { background: #fff; color: var(--blue); }
+.email-device {
+  background: #eef2f6;
+  border-radius: 12px;
+  display: grid;
+  height: 520px;
+  min-height: 420px;
+  overflow: auto;
+  padding: 18px;
+  place-items: start center;
+}
+.message-frame {
+  background: #fff;
+  border: 0;
+  border-radius: 10px;
+  height: 100%;
+  max-width: 980px;
+  width: 100%;
+}
+.email-device.tablet .message-frame { max-width: 700px; }
+.email-device.mobile .message-frame { max-width: 390px; }
+
+@media (max-width: 1180px) {
+  .template-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .template-list-panel,
+  .template-main {
+    grid-column: auto;
+  }
+}

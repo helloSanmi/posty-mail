@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Campaign Suite">
+  <rect width="64" height="64" rx="14" fill="#edf4ff"/>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="#d6e5fb" stroke-width="2"/>
+  <path d="M32 10l3.8 13.2L49 27l-13.2 3.8L32 44l-3.8-13.2L15 27l13.2-3.8L32 10z" fill="none" stroke="#24599a" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M48 38l1.7 5.8L55 46l-5.3 2.2L48 54l-1.7-5.8L41 46l5.3-2.2L48 38z" fill="none" stroke="#24599a" stroke-width="3" stroke-linejoin="round"/>
+</svg>

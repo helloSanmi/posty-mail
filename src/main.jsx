@@ -1,0 +1,170 @@
+import { useCallback, useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
+import { AppShell } from './components/AppShell';
+import { UiProvider, useUi } from './components/UiProvider';
+import { AuthProvider, useAuth } from './auth/AuthContext';
+import { defaultTemplates } from './templates/defaultTemplates';
+import { getSavedContacts } from './services/brevoApi';
+import { DashboardPage } from './pages/DashboardPage';
+import { ContactsPage } from './pages/ContactsPage';
+import { TemplatesPage } from './pages/TemplatesPage';
+import { BuilderPage } from './pages/BuilderPage';
+import { CampaignsPage } from './pages/CampaignsPage';
+import { CampaignDetailPage } from './pages/CampaignDetailPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { AdminPage } from './pages/AdminPage';
+import { LoginPage } from './pages/LoginPage';
+import './styles.css';
+
+function RequireAuth({ children }) {
+  const { token, user, bootstrapping } = useAuth();
+  const location = useLocation();
+
+  if (bootstrapping) {
+    return <div className="auth-shell"><p className="status-line">Loading…</p></div>;
+  }
+
+  if (!token || !user) {
+    const search = location.pathname !== '/'
+      ? `?redirect=${encodeURIComponent(location.pathname)}`
+      : '';
+    return <Navigate to={`/login${search}`} replace />;
+  }
+
+  return children;
+}
+
+function ProtectedShell() {
+  const navigate = useNavigate();
+  const { notify } = useUi();
+  const [contacts, setContacts] = useState([]);
+  const [invalidRows, setInvalidRows] = useState([]);
+  const [template, setTemplate] = useState(defaultTemplates[0]);
+  const [refreshTick, setRefreshTick] = useState(0);
+  // Bump refreshTick to force a re-fetch of the saved contacts list. Every
+  // page that mutates contacts or that needs an up-to-date audience count
+  // (e.g., the campaign builder) calls this so the parent state never goes
+  // stale after a CSV import / contact add on a different route.
+  const refreshContacts = useCallback(() => setRefreshTick((value) => value + 1), []);
+
+  useEffect(() => {
+    getSavedContacts()
+      .then((saved) => {
+        setContacts(saved);
+        setInvalidRows([]);
+      })
+      .catch(() => {});
+  }, [refreshTick]);
+
+  const audienceProps = {
+    contacts,
+    invalidRows,
+    onParsed: ({ valid, invalid }) => {
+      setContacts(valid);
+      setInvalidRows(invalid);
+    },
+    refreshContacts,
+    notify,
+  };
+
+  const goTo = useCallback((target) => {
+    const map = {
+      dashboard: '/',
+      contacts: '/contacts',
+      templates: '/templates',
+      builder: '/builder',
+      analytics: '/analytics',
+      integrations: '/settings',
+    };
+    navigate(map[target] || target);
+  }, [navigate]);
+
+  return (
+    <AppShell>
+      <Routes>
+        <Route
+          index
+          element={
+            <DashboardPage
+              contacts={contacts}
+              template={template}
+              setPage={goTo}
+            />
+          }
+        />
+        <Route path="/contacts" element={<ContactsPage {...audienceProps} />} />
+        <Route
+          path="/templates"
+          element={
+            <TemplatesPage
+              template={template}
+              setTemplate={setTemplate}
+              contacts={contacts}
+              notify={notify}
+            />
+          }
+        />
+        <Route
+          path="/builder"
+          element={
+            <BuilderPage
+              contacts={contacts}
+              template={template}
+              setTemplate={setTemplate}
+              setPage={goTo}
+              notify={notify}
+              refreshContacts={refreshContacts}
+              onCampaignScheduled={refreshContacts}
+            />
+          }
+        />
+        <Route path="/campaigns" element={<CampaignsPage notify={notify} />} />
+        <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
+        <Route path="/analytics" element={<AnalyticsPage key={refreshTick} />} />
+        <Route path="/settings" element={<SettingsPage notify={notify} />} />
+        <Route path="/admin" element={<AdminPage notify={notify} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AppShell>
+  );
+}
+
+function App() {
+  const navigate = useNavigate();
+  const handleUnauthorized = useCallback(() => {
+    navigate('/login', { replace: true });
+  }, [navigate]);
+
+  return (
+    <AuthProvider>
+      <UiProvider onUnauthorized={handleUnauthorized}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/*"
+            element={
+              <RequireAuth>
+                <ProtectedShell />
+              </RequireAuth>
+            }
+          />
+        </Routes>
+      </UiProvider>
+    </AuthProvider>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>,
+);

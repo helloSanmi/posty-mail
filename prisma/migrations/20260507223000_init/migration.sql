@@ -1,0 +1,74 @@
+CREATE TABLE IF NOT EXISTS "Contact" (
+  "email" TEXT NOT NULL,
+  "firstname" TEXT,
+  "lastname" TEXT,
+  "consent" TEXT,
+  "region" TEXT,
+  "data" JSONB,
+  "savedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Contact_pkey" PRIMARY KEY ("email")
+);
+
+CREATE TABLE IF NOT EXISTS "Audience" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "contactEmails" TEXT[],
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Audience_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Template" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "subject" TEXT NOT NULL,
+  "html" TEXT NOT NULL,
+  "text" TEXT NOT NULL,
+  "logoUrl" TEXT,
+  "data" JSONB,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Template_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Campaign" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "status" TEXT NOT NULL,
+  "data" JSONB NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Campaign_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Draft" (
+  "id" TEXT NOT NULL,
+  "name" TEXT,
+  "data" JSONB NOT NULL,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Draft_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Unsubscribe" (
+  "email" TEXT NOT NULL,
+  "reason" TEXT,
+  "unsubscribedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Unsubscribe_pkey" PRIMARY KEY ("email")
+);
+
+CREATE TABLE IF NOT EXISTS "Event" (
+  "id" TEXT NOT NULL,
+  "provider" TEXT NOT NULL,
+  "payload" JSONB NOT NULL,
+  "receivedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Event_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Setting" (
+  "key" TEXT NOT NULL,
+  "value" JSONB NOT NULL,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Setting_pkey" PRIMARY KEY ("key")
+);
