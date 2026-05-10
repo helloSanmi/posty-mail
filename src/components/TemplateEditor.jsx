@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState } from 'react';
-import { Image, Link2, MailMinus, MousePointerClick, RefreshCw, Trash2 } from 'lucide-react';
+import { Copy, Image, Link2, MailMinus, MousePointerClick, RefreshCw, Trash2 } from 'lucide-react';
 import { EditLinkModal } from './EditLinkModal';
 import { InsertButtonModal } from './InsertButtonModal';
 import { LogoPicker } from './LogoPicker';
@@ -15,6 +15,7 @@ export function TemplateEditor({
   notify,
   canDelete,
   onDelete,
+  onDuplicate,
 }) {
   // picker = null | { mode: 'insert' } | { mode: 'replace', index: number }
   const [picker, setPicker] = useState(null);
@@ -316,6 +317,11 @@ export function TemplateEditor({
 
       <div className="template-actions">
         {saveStatus && <span className="muted">{saveStatus}</span>}
+        {onDuplicate && (
+          <button type="button" onClick={onDuplicate} title="Make a copy of this template">
+            <Copy size={14} aria-hidden="true" /> Duplicate
+          </button>
+        )}
         {canDelete && (
           <button type="button" className="danger" onClick={onDelete}>
             Delete template

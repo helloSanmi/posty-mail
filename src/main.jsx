@@ -163,8 +163,17 @@ function App() {
   );
 }
 
+// Opt into the v7 router behaviors explicitly. On react-router-dom@7 these
+// are the defaults — passing them here is defensive: it silences any
+// "future-flag will become default" dev warnings from older transitive
+// installs, and documents the behaviors we rely on.
 createRoot(document.getElementById('root')).render(
-  <BrowserRouter>
+  <BrowserRouter
+    future={{
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+    }}
+  >
     <App />
   </BrowserRouter>,
 );

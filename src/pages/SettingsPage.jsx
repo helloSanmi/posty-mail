@@ -1,8 +1,9 @@
 import { useEffect, useId, useState } from 'react';
-import { CheckCircle2, MailX, PlugZap, RotateCcw, ShieldOff } from 'lucide-react';
+import { CheckCircle2, Key, MailX, PlugZap, RotateCcw, ShieldOff } from 'lucide-react';
 import {
   addUnsubscribe,
   getBounceSync,
+  getHealth,
   getUnsubscribes,
   restoreUnsubscribe,
   saveWebhookIntegration,
@@ -22,6 +23,8 @@ export function SettingsPage({ notify }) {
   const [unsubscribeEmail, setUnsubscribeEmail] = useState('');
   const [unsubscribes, setUnsubscribes] = useState([]);
   const [bounceSync, setBounceSyncState] = useState(false);
+  // null = still loading; true / false = answer from /api/health
+  const [brevoConfigured, setBrevoConfigured] = useState(null);
   const webhookId = useId();
   const unsubId = useId();
   const bounceSyncId = useId();
@@ -29,6 +32,9 @@ export function SettingsPage({ notify }) {
   useEffect(() => {
     getUnsubscribes().then(setUnsubscribes).catch(() => {});
     getBounceSync().then((data) => setBounceSyncState(data.enabled)).catch(() => {});
+    getHealth()
+      .then((data) => setBrevoConfigured(Boolean(data?.brevoConfigured)))
+      .catch(() => setBrevoConfigured(false));
   }, []);
 
   async function handleBounceSyncToggle(enabled) {
@@ -112,36 +118,66 @@ export function SettingsPage({ notify }) {
 
         <div className="settings-content">
           {active === 'connections' && (
-            <section className="surface settings-card">
-              <div className="settings-card-head">
-                <div>
-                  <h3>Outbound webhook</h3>
-                  <p className="muted">
-                    Send <code>campaign.completed</code> and <code>contact.unsubscribed</code> events
-                    to your own endpoint (Zapier, Slack incoming webhook, your CRM…).
-                  </p>
+            <>
+              <section className="surface settings-card">
+                <div className="settings-card-head">
+                  <div>
+                    <h3><Key size={16} aria-hidden="true" /> Brevo API key</h3>
+                    <p className="muted">
+                      Set <code>BREVO_API_KEY</code> in your backend <code>.env</code> to
+                      actually deliver email. Without it, every send is a dry-run (logged,
+                      not delivered).
+                    </p>
+                  </div>
+                  {brevoConfigured === null ? (
+                    <span className="pill muted">Checking…</span>
+                  ) : (
+                    <StatusPill
+                      ok={brevoConfigured}
+                      okLabel="Configured"
+                      emptyLabel="Not configured"
+                    />
+                  )}
                 </div>
-                <StatusPill ok={webhookSaved} okLabel="Configured" emptyLabel="Not configured" />
-              </div>
-              <div className="inline-form">
-                <label htmlFor={webhookId} className="visually-hidden">Webhook URL</label>
-                <input
-                  id={webhookId}
-                  type="url"
-                  placeholder="https://hooks.zapier.com/..."
-                  value={webhookUrl}
-                  onChange={(event) => { setWebhookUrl(event.target.value); setWebhookSaved(false); }}
-                />
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={saveWebhook}
-                  disabled={!webhookUrl}
-                >
-                  Save webhook
-                </button>
-              </div>
-            </section>
+                {brevoConfigured === false && (
+                  <small className="muted">
+                    Add <code>BREVO_API_KEY=xkeysib-…</code> to <code>.env</code> and
+                    restart the backend. Your sends will keep being dry-runs until then.
+                  </small>
+                )}
+              </section>
+
+              <section className="surface settings-card">
+                <div className="settings-card-head">
+                  <div>
+                    <h3>Outbound webhook</h3>
+                    <p className="muted">
+                      Send <code>campaign.completed</code> and <code>contact.unsubscribed</code> events
+                      to your own endpoint (Zapier, Slack incoming webhook, your CRM…).
+                    </p>
+                  </div>
+                  <StatusPill ok={webhookSaved} okLabel="Configured" emptyLabel="Not configured" />
+                </div>
+                <div className="inline-form">
+                  <label htmlFor={webhookId} className="visually-hidden">Webhook URL</label>
+                  <input
+                    id={webhookId}
+                    type="url"
+                    placeholder="https://hooks.zapier.com/..."
+                    value={webhookUrl}
+                    onChange={(event) => { setWebhookUrl(event.target.value); setWebhookSaved(false); }}
+                  />
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={saveWebhook}
+                    disabled={!webhookUrl}
+                  >
+                    Save webhook
+                  </button>
+                </div>
+              </section>
+            </>
           )}
 
           {active === 'email' && (

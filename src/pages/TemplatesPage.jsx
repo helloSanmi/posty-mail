@@ -119,6 +119,23 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
     if (selected?.id?.startsWith('custom-')) setDeleteTarget(selected);
   }
 
+  // Make a copy of the current template. The copy gets a new `custom-*` id
+  // and a "(copy)" suffix on the name. It's loaded into the editor but NOT
+  // saved server-side until the user clicks Save — gives them a chance to
+  // tweak the name first and prevents accidental duplicates on misclicks.
+  function duplicateTemplate() {
+    const base = templateOptions.find((item) => item.id === selectedTemplateId) || template;
+    const copy = {
+      ...base,
+      id: `custom-${crypto.randomUUID()}`,
+      name: `${base.name || 'Untitled template'} (copy)`,
+    };
+    setTemplate(copy);
+    writeSelectedTemplateId(copy.id);
+    setSaveStatus('');
+    notify('Duplicated — review and click Save to keep it');
+  }
+
   return (
     <div className="page-stack template-page">
       <section className="template-shell">
@@ -156,6 +173,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
               notify={notify}
               canDelete={selectedTemplateId.startsWith('custom-')}
               onDelete={requestDeleteTemplate}
+              onDuplicate={duplicateTemplate}
             />
           ) : (
             <EmailPreview

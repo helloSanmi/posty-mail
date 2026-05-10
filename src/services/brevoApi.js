@@ -1,5 +1,13 @@
 import { apiClient } from './apiClient';
 
+// Lightweight, public-ish read used by the Settings page to confirm Brevo is
+// actually configured on the backend. The endpoint is unauthenticated and
+// returns `{ ok, databaseConnected, brevoConfigured }`.
+export async function getHealth() {
+  const { data } = await apiClient.get('/api/health');
+  return data;
+}
+
 export async function saveContactsLocally(contacts) {
   const { data } = await apiClient.post('/api/contacts/import', { contacts });
   return data;
