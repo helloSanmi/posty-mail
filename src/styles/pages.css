@@ -418,12 +418,18 @@
   gap: 12px;
   justify-content: space-between;
 }
-.sender-view-line {
+.sender-view-identity {
+  display: grid;
+  gap: 2px;
   min-width: 0;
+}
+.sender-view-identity strong,
+.sender-view-identity .muted {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.sender-view-identity .muted { font-size: 0.86rem; }
 .sender-form-grid {
   display: grid;
   gap: 12px;

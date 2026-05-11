@@ -216,20 +216,31 @@ export function SettingsPage({ notify }) {
                 <div className="settings-card-head">
                   <div>
                     <h3><AtSign size={16} aria-hidden="true" /> Sender</h3>
-                    <p className="muted">The &quot;From&quot; name and address on every send.</p>
+                    <p className="muted">How emails appear in your recipients&apos; inboxes.</p>
                   </div>
-                  {senderSource === 'database' && !senderEditing && (
-                    <span className="pill green">Saved</span>
+                  {!senderEditing && (
+                    <StatusPill
+                      ok={senderSource === 'database'}
+                      okLabel="Configured"
+                      emptyLabel="Not configured"
+                    />
                   )}
                 </div>
 
                 {!senderEditing ? (
                   <div className="sender-view">
-                    <span className="sender-view-line">
-                      {senderEffective?.name
-                        ? <><strong>{senderEffective.name}</strong> <span className="muted">&lt;{senderEffective.email}&gt;</span></>
-                        : <span className="muted">Not configured yet</span>}
-                    </span>
+                    <div className="sender-view-identity">
+                      {senderEffective?.name || senderEffective?.email ? (
+                        <>
+                          <strong>{senderEffective.name || senderEffective.email}</strong>
+                          {senderEffective.name && (
+                            <span className="muted">{senderEffective.email}</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="muted">No sender configured yet.</span>
+                      )}
+                    </div>
                     <button type="button" onClick={() => setSenderEditing(true)}>
                       <Pencil size={13} aria-hidden="true" /> Edit
                     </button>
