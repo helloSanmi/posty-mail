@@ -57,11 +57,14 @@
   place-items: center;
   width: 38px;
 }
+/* The Posty logomark is its own self-contained shape — sized smaller than
+   the old icon-in-a-tile (which was 38px tile + 18px sparkle inside). At
+   ~30px the mark reads as the right visual weight next to the wordmark. */
 .brand-mark {
   display: block;
   flex-shrink: 0;
-  height: 38px;
-  width: 38px;
+  height: 30px;
+  width: 30px;
 }
 
 .brand strong, .brand span { display: block; }

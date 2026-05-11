@@ -1,5 +1,5 @@
 <p align="left">
-  <img src="docs/posty-logo.png" alt="Posty" height="56">
+  <img src="docs/posty-logo.png" alt="Posty" height="40">
 </p>
 
 > Send a little something.

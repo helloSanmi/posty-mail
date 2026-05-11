@@ -17,6 +17,11 @@ import { textFromHtml } from '../utils/textFromHtml';
 // Pointer to the last-viewed template id. Survives page refreshes so the user
 // lands back where they were instead of always seeing the first template.
 const SELECTED_TEMPLATE_KEY = 'campaign-templates:selectedId';
+// Set of built-in template ids the user has chosen to hide. Built-ins are
+// hard-coded source — they can't be removed from disk — but the user can
+// drop them out of the picker via this localStorage entry. Server-side
+// custom templates use real DELETE through the API.
+const HIDDEN_BUILTINS_KEY = 'campaign-templates:hiddenBuiltins';
 
 export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   const [previewDevice, setPreviewDevice] = useState('desktop');
@@ -25,7 +30,9 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const templateOptions = [...defaultTemplates, ...savedTemplates];
+  const [hiddenBuiltins, setHiddenBuiltins] = useState(() => readHiddenBuiltins());
+  const visibleDefaults = defaultTemplates.filter((t) => !hiddenBuiltins.has(t.id));
+  const templateOptions = [...visibleDefaults, ...savedTemplates];
   const selectedTemplateId = template.id || templateOptions[0]?.id || '';
   const previewData = buildPreviewData(contacts, template.logoUrl);
   const subject = renderTemplate(template.subject, previewData);
@@ -98,16 +105,33 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   }
 
   async function removeTemplate(templateId) {
+    // Two delete paths: server-side row for custom templates, client-side
+    // "hidden" flag for built-ins (which are hard-coded — can't actually be
+    // removed from disk, only filtered out of the picker per-browser).
+    const isBuiltin = !templateId.startsWith('custom-');
     try {
-      await deleteTemplate(templateId);
-      setSavedTemplates((items) => items.filter((item) => item.id !== templateId));
+      if (isBuiltin) {
+        const next = new Set(hiddenBuiltins);
+        next.add(templateId);
+        setHiddenBuiltins(next);
+        writeHiddenBuiltins(next);
+        notify('Template hidden — restore from your local storage if you change your mind');
+      } else {
+        await deleteTemplate(templateId);
+        setSavedTemplates((items) => items.filter((item) => item.id !== templateId));
+        notify('Template deleted');
+      }
       if (template.id === templateId) {
-        setTemplate(defaultTemplates[0]);
+        // Pick the first still-visible template as the new selection.
+        const fallback = [
+          ...defaultTemplates.filter((t) => !(isBuiltin ? new Set(hiddenBuiltins).add(templateId) : hiddenBuiltins).has(t.id)),
+          ...savedTemplates.filter((t) => t.id !== templateId),
+        ][0];
+        if (fallback) setTemplate(fallback);
         // Clear the pointer so a refresh after delete doesn't try to restore
         // a now-missing template id.
         clearSelectedTemplateId();
       }
-      notify('Template deleted');
     } catch (error) {
       const message = getError(error, 'Delete failed');
       notify(message, 'error');
@@ -116,7 +140,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
 
   function requestDeleteTemplate() {
     const selected = templateOptions.find((item) => item.id === selectedTemplateId);
-    if (selected?.id?.startsWith('custom-')) setDeleteTarget(selected);
+    if (selected) setDeleteTarget(selected);
   }
 
   // Make a copy of the current template. The copy gets a new `custom-*` id
@@ -171,7 +195,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
               onSave={handleSaveTemplate}
               saveStatus={saveStatus}
               notify={notify}
-              canDelete={selectedTemplateId.startsWith('custom-')}
+              canDelete={Boolean(selectedTemplateId)}
               onDelete={requestDeleteTemplate}
               onDuplicate={duplicateTemplate}
             />
@@ -187,19 +211,26 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
           )}
         </section>
       </section>
-      {deleteTarget && (
-        <ConfirmDialog
-          title={`Delete "${deleteTarget.name || 'Untitled template'}"?`}
-          message="This removes the template from this app. Campaigns already sent are not changed."
-          confirmLabel="Delete"
-          confirmVariant="danger"
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={async () => {
-            await removeTemplate(deleteTarget.id);
-            setDeleteTarget(null);
-          }}
-        />
-      )}
+      {deleteTarget && (() => {
+        const isBuiltin = !deleteTarget.id.startsWith('custom-');
+        return (
+          <ConfirmDialog
+            title={isBuiltin
+              ? `Hide "${deleteTarget.name}" from this list?`
+              : `Delete "${deleteTarget.name || 'Untitled template'}"?`}
+            message={isBuiltin
+              ? 'Built-in templates ship with the app — hiding it here just removes it from your dropdown. Campaigns already using it keep working.'
+              : 'This removes the template from this app. Campaigns already sent are not changed.'}
+            confirmLabel={isBuiltin ? 'Hide' : 'Delete'}
+            confirmVariant="danger"
+            onCancel={() => setDeleteTarget(null)}
+            onConfirm={async () => {
+              await removeTemplate(deleteTarget.id);
+              setDeleteTarget(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -242,6 +273,21 @@ function writeSelectedTemplateId(id) {
 function clearSelectedTemplateId() {
   if (typeof window === 'undefined') return;
   try { window.localStorage.removeItem(SELECTED_TEMPLATE_KEY); } catch { /* ignore */ }
+}
+
+function readHiddenBuiltins() {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(HIDDEN_BUILTINS_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch { return new Set(); }
+}
+
+function writeHiddenBuiltins(set) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(HIDDEN_BUILTINS_KEY, JSON.stringify([...set]));
+  } catch { /* private mode / quota */ }
 }
 
 const fallbackLogo = `data:image/svg+xml;utf8,${encodeURIComponent(
