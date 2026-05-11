@@ -146,17 +146,21 @@ export function EditUserModal({ user, isSelf, onSave, onResetPassword, onCancel 
           </button>
         </div>
 
-        <div className="edit-contact-grid">
-          <label htmlFor={nameId}>
-            Name
+        <div className="edit-contact-grid user-modal-grid">
+          <div className="form-field">
+            <label htmlFor={nameId}>Name</label>
             <input
               id={nameId}
               value={draft.name}
               onChange={(event) => setDraft({ ...draft, name: event.target.value })}
             />
-          </label>
-          <label htmlFor={roleId}>
-            Role
+            {/* Empty hint slot keeps the Name column's bottom edge aligned
+                with Role's, which carries the "can't change own role" hint
+                when editing yourself. */}
+            <small className="muted user-modal-hint" aria-hidden="true">&nbsp;</small>
+          </div>
+          <div className="form-field">
+            <label htmlFor={roleId}>Role</label>
             <select
               id={roleId}
               value={draft.role}
@@ -165,13 +169,16 @@ export function EditUserModal({ user, isSelf, onSave, onResetPassword, onCancel 
             >
               {ROLES.map((role) => <option key={role} value={role}>{role}</option>)}
             </select>
-            {isSelf && <small className="muted">You can&apos;t change your own role.</small>}
-          </label>
+            <small className="muted user-modal-hint">
+              {isSelf ? "You can't change your own role." : ' '}
+            </small>
+          </div>
         </div>
 
-        <label htmlFor={passwordId} className="user-modal-password-field">
-          New password
-          <span className="muted"> · leave blank to keep current</span>
+        <div className="form-field user-modal-password-field">
+          <label htmlFor={passwordId}>
+            New password <span className="muted">(leave blank to keep current)</span>
+          </label>
           <input
             id={passwordId}
             type="password"
@@ -187,7 +194,7 @@ export function EditUserModal({ user, isSelf, onSave, onResetPassword, onCancel 
               Password must be at least 8 characters.
             </small>
           )}
-        </label>
+        </div>
 
         <div className="modal-actions">
           <button ref={cancelRef} type="button" onClick={onCancel}>Cancel</button>

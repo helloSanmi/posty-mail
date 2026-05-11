@@ -137,6 +137,24 @@ export async function fetchTransactionalEvents({ startDate, endDate, maxEvents =
   return collected.slice(0, maxEvents);
 }
 
+// Brevo's account-level list of verified senders. Drives the UI dropdown so
+// admins can only pick from addresses that will actually deliver. Returns
+// `[]` in dry-run mode so the UI degrades to a free-text input.
+export async function fetchVerifiedSenders() {
+  if (!hasBrevoKey()) return [];
+  const body = await brevoFetch('/senders');
+  const senders = Array.isArray(body?.senders) ? body.senders : [];
+  return senders.map((sender) => ({
+    id: sender.id,
+    email: sender.email,
+    name: sender.name,
+    // `active` is true once Brevo has verified the address (DNS records ok
+    // or the verification email was clicked). Inactive senders can't be used
+    // even though they're on the list — UI should disable / warn on these.
+    active: sender.active === true || sender.active === 'true',
+  }));
+}
+
 export async function fetchMetrics(campaignId) {
   if (!hasBrevoKey()) {
     return {

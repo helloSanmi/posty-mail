@@ -231,7 +231,11 @@ export function createCampaignPayload(body) {
     template: body.template,
     variants,
     compliance: body.compliance || { requireOptIn: true, gdprMode: true },
-    sender: {
+    // Sender is resolved by the caller (see /api/campaigns/schedule and
+    // /api/campaigns/test-email) so we don't have to make this whole helper
+    // async. Falls back to env vars when the caller hasn't supplied one — keeps
+    // legacy code paths and tests working without a DB read.
+    sender: body.sender || {
       email: process.env.BREVO_SENDER_EMAIL || 'campaigns@example.com',
       name: process.env.BREVO_SENDER_NAME || 'Campaign Team',
     },

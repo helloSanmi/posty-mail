@@ -1,4 +1,4 @@
-import { sendTestEmail } from '../lib/brevoClient.js';
+import { fetchVerifiedSenders, sendTestEmail } from '../lib/brevoClient.js';
 import {
   getCampaign,
   listCampaigns,
@@ -15,6 +15,7 @@ import { recordAudit } from '../lib/audit.js';
 import { sanitizeEmailHtml, sanitizeSubject } from '../lib/sanitize.js';
 import { createCampaignPayload, scheduleCampaignJob } from '../lib/scheduler.js';
 import { findUnreachableImageUrls } from '../lib/urlReachability.js';
+import { readSenderSetting, resolveSender, writeSenderSetting } from '../lib/sender.js';
 
 // Brevo's webhook event names come in variants. Use these to classify them
 // once, in one place, so metrics counts don't silently drop opens/clicks just
@@ -98,6 +99,10 @@ export function registerCampaignRoutes(app) {
           html: variant.html != null ? sanitizeEmailHtml(variant.html) : null,
         })),
       };
+      // Resolve sender at request time so any UI-saved value wins over env.
+      // Passed into createCampaignPayload as `sender` to keep the scheduler
+      // helper synchronous.
+      safeBody.sender = await resolveSender();
       const campaign = createCampaignPayload(safeBody);
       await upsertCampaign(campaign);
       scheduleCampaignJob(campaign, upsertCampaign);
@@ -454,7 +459,7 @@ export function registerCampaignRoutes(app) {
       const renderedHtml = merge(template.html, previewContact);
       const result = await sendTestEmail({
         toEmail,
-        sender: getSender(),
+        sender: await resolveSender(),
         subject: merge(template.subject, previewContact),
         htmlContent: renderedHtml,
         textContent: merge(template.text, previewContact),
@@ -475,6 +480,56 @@ export function registerCampaignRoutes(app) {
       res.json({ sent: true, dryRun: !process.env.BREVO_API_KEY, result, warnings });
     }),
   );
+
+  // Sender identity for outgoing campaigns. Stored in the Setting table so
+  // admins can edit via the UI instead of touching env vars. resolveSender()
+  // reads this first, falls back to env, then to a placeholder.
+  app.get('/api/settings/sender', asyncRoute(async (_req, res) => {
+    const resolved = await resolveSender();
+    const stored = await readSenderSetting();
+    res.json({
+      // What sends actually use right now (after merging stored + env + defaults)
+      effective: resolved,
+      // Whether the value comes from the DB or the env fallback. Helps the UI
+      // tell the user "you have an env override active".
+      source: stored?.email ? 'database' : (process.env.BREVO_SENDER_EMAIL ? 'env' : 'default'),
+      // The raw stored override, so the UI can pre-fill the form with what's
+      // actually editable (not the env fallback).
+      stored: stored || null,
+    });
+  }));
+
+  app.post(
+    '/api/settings/sender',
+    validate(z.object({
+      email: z.string().email().max(200),
+      name: z.string().min(1).max(120),
+    })),
+    asyncRoute(async (req, res) => {
+      const previous = await readSenderSetting();
+      const saved = await writeSenderSetting(req.body);
+      await recordAudit(req, 'setting.sender.update', 'setting', 'campaign.sender', {
+        previous: previous ? { email: previous.email, name: previous.name } : null,
+        next: { email: saved.email, name: saved.name },
+      });
+      res.json({ ok: true, ...saved });
+    }),
+  );
+
+  // Verified senders pulled live from Brevo. Drives the UI dropdown so admins
+  // pick from addresses that will actually deliver — instead of free-typing
+  // an unverified one and getting cryptic 400s from Brevo at send time.
+  // Returns `[]` in dry-run mode (no API key); UI falls back to free text.
+  app.get('/api/settings/sender/verified', asyncRoute(async (_req, res) => {
+    try {
+      const senders = await fetchVerifiedSenders();
+      res.json({ senders, dryRun: !process.env.BREVO_API_KEY });
+    } catch (error) {
+      // Surface the Brevo error message but don't 500 — the UI will degrade
+      // to free-text input and the admin can still save.
+      res.json({ senders: [], dryRun: !process.env.BREVO_API_KEY, error: error.message });
+    }
+  }));
 }
 
 export async function restoreCampaignJobs() {
@@ -497,10 +552,4 @@ function merge(template, contact) {
     .replace(/\{\{\s*unsubscribeUrl\s*\}\}/g, contact.unsubscribeUrl);
 }
 
-function getSender() {
-  return {
-    email: process.env.BREVO_SENDER_EMAIL || 'campaigns@example.com',
-    name: process.env.BREVO_SENDER_NAME || 'Campaign Team',
-  };
-}
 

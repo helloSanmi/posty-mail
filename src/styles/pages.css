@@ -410,6 +410,20 @@
 }
 .settings-count { flex-shrink: 0; }
 
+/* Sender identity card — kept to two fields + a save button. */
+.sender-form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+.sender-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+@media (max-width: 640px) {
+  .sender-form-grid { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 720px) {
   .settings-shell { grid-template-columns: 1fr; }
   .settings-nav { grid-auto-flow: column; grid-auto-columns: 1fr; }
@@ -1242,6 +1256,10 @@
 /* User modals (Add / Edit) */
 .user-modal { max-width: 520px; }
 .user-modal-password-field { margin: 0; }
+.user-modal-grid { align-items: start; }
+/* Reserve a hint row under every top-row field so Name and Role bottom-align
+   even when only Role has the "can't change own role" message. */
+.user-modal-hint { min-height: 1.1em; line-height: 1.35; }
 
 /* Insert button modal */
 .insert-button-styles { display: grid; gap: 8px; }

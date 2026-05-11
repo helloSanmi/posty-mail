@@ -1,11 +1,14 @@
 import { useEffect, useId, useState } from 'react';
-import { CheckCircle2, Key, MailX, PlugZap, RotateCcw, ShieldOff } from 'lucide-react';
+import { AtSign, CheckCircle2, Key, MailX, PlugZap, RotateCcw, ShieldOff } from 'lucide-react';
 import {
   addUnsubscribe,
   getBounceSync,
   getHealth,
+  getSenderSetting,
   getUnsubscribes,
+  getVerifiedSenders,
   restoreUnsubscribe,
+  saveSenderSetting,
   saveWebhookIntegration,
   setBounceSync,
 } from '../services/brevoApi';
@@ -25,9 +28,17 @@ export function SettingsPage({ notify }) {
   const [bounceSync, setBounceSyncState] = useState(false);
   // null = still loading; true / false = answer from /api/health
   const [brevoConfigured, setBrevoConfigured] = useState(null);
+  // Sender identity (From email + name) stored in Setting table.
+  const [senderForm, setSenderForm] = useState({ email: '', name: '' });
+  const [senderEffective, setSenderEffective] = useState(null);
+  const [senderSource, setSenderSource] = useState(null); // 'database' | 'env' | 'default'
+  const [verifiedSenders, setVerifiedSenders] = useState([]);
+  const [senderSaving, setSenderSaving] = useState(false);
   const webhookId = useId();
   const unsubId = useId();
   const bounceSyncId = useId();
+  const senderEmailId = useId();
+  const senderNameId = useId();
 
   useEffect(() => {
     getUnsubscribes().then(setUnsubscribes).catch(() => {});
@@ -35,7 +46,53 @@ export function SettingsPage({ notify }) {
     getHealth()
       .then((data) => setBrevoConfigured(Boolean(data?.brevoConfigured)))
       .catch(() => setBrevoConfigured(false));
+    getSenderSetting()
+      .then((data) => {
+        setSenderEffective(data.effective);
+        setSenderSource(data.source);
+        // Pre-fill the form with the effective values so the admin sees what
+        // sends actually use right now — not just the (possibly empty) stored
+        // override. Saving will then persist into the DB explicitly.
+        setSenderForm({
+          email: data.stored?.email || data.effective?.email || '',
+          name: data.stored?.name || data.effective?.name || '',
+        });
+      })
+      .catch(() => {});
+    getVerifiedSenders()
+      .then((data) => setVerifiedSenders(data?.senders || []))
+      .catch(() => {});
   }, []);
+
+  const senderDirty = senderEffective
+    && (senderForm.email.trim() !== (senderEffective.email || '')
+      || senderForm.name.trim() !== (senderEffective.name || ''));
+  const senderEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderForm.email.trim());
+  const senderCanSave = senderDirty && senderEmailValid && senderForm.name.trim().length > 0;
+
+  async function saveSender() {
+    setSenderSaving(true);
+    try {
+      const saved = await saveSenderSetting({
+        email: senderForm.email.trim(),
+        name: senderForm.name.trim(),
+      });
+      setSenderEffective({ email: saved.email, name: saved.name });
+      setSenderSource('database');
+      notify('Sender updated — applies to next send');
+    } catch (error) {
+      notify(error.response?.data?.error || 'Could not save sender', 'error');
+    } finally {
+      setSenderSaving(false);
+    }
+  }
+
+  function pickVerifiedSender(value) {
+    if (!value) return;
+    const match = verifiedSenders.find((s) => s.email === value);
+    if (!match) return;
+    setSenderForm({ email: match.email, name: match.name || senderForm.name });
+  }
 
   async function handleBounceSyncToggle(enabled) {
     try {
@@ -145,6 +202,70 @@ export function SettingsPage({ notify }) {
                     restart the backend. Your sends will keep being dry-runs until then.
                   </small>
                 )}
+              </section>
+
+              <section className="surface settings-card">
+                <div className="settings-card-head">
+                  <div>
+                    <h3><AtSign size={16} aria-hidden="true" /> Sender</h3>
+                    <p className="muted">The &quot;From&quot; name and address on every send.</p>
+                  </div>
+                  {senderSource === 'database' && (
+                    <span className="pill green">Saved</span>
+                  )}
+                </div>
+
+                <div className="sender-form-grid">
+                  <label htmlFor={senderNameId}>
+                    From name
+                    <input
+                      id={senderNameId}
+                      value={senderForm.name}
+                      onChange={(event) => setSenderForm({ ...senderForm, name: event.target.value })}
+                      placeholder="Nest Analytics"
+                    />
+                  </label>
+                  <label htmlFor={senderEmailId}>
+                    From email
+                    {verifiedSenders.length > 0 ? (
+                      <select
+                        id={senderEmailId}
+                        value={senderForm.email}
+                        onChange={(event) => pickVerifiedSender(event.target.value)}
+                      >
+                        {!verifiedSenders.find((s) => s.email === senderForm.email) && (
+                          <option value={senderForm.email}>
+                            {senderForm.email || 'Pick a verified sender…'}
+                          </option>
+                        )}
+                        {verifiedSenders.map((s) => (
+                          <option key={s.email} value={s.email} disabled={!s.active}>
+                            {s.email}{!s.active ? ' (not verified)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        id={senderEmailId}
+                        type="email"
+                        value={senderForm.email}
+                        onChange={(event) => setSenderForm({ ...senderForm, email: event.target.value })}
+                        placeholder="hello@yourdomain.com"
+                      />
+                    )}
+                  </label>
+                </div>
+
+                <div className="sender-actions">
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={saveSender}
+                    disabled={!senderCanSave || senderSaving}
+                  >
+                    {senderSaving ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
               </section>
 
               <section className="surface settings-card">

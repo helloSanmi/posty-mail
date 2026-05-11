@@ -8,6 +8,21 @@ export async function getHealth() {
   return data;
 }
 
+export async function getSenderSetting() {
+  const { data } = await apiClient.get('/api/settings/sender');
+  return data;
+}
+
+export async function saveSenderSetting({ email, name }) {
+  const { data } = await apiClient.post('/api/settings/sender', { email, name });
+  return data;
+}
+
+export async function getVerifiedSenders() {
+  const { data } = await apiClient.get('/api/settings/sender/verified');
+  return data;
+}
+
 export async function saveContactsLocally(contacts) {
   const { data } = await apiClient.post('/api/contacts/import', { contacts });
   return data;
