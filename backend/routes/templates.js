@@ -19,9 +19,51 @@ const templateSchema = z.object({
   logoUrl: z.string().optional(),
 }).passthrough();
 
+const HIDDEN_BUILTINS_KEY = 'templates.hiddenBuiltins';
+
+async function readHiddenBuiltins() {
+  const setting = await prisma.setting.findUnique({ where: { key: HIDDEN_BUILTINS_KEY } });
+  return Array.isArray(setting?.value) ? setting.value : [];
+}
+
+async function writeHiddenBuiltins(ids) {
+  const value = [...new Set(ids)];
+  await prisma.setting.upsert({
+    where: { key: HIDDEN_BUILTINS_KEY },
+    create: { key: HIDDEN_BUILTINS_KEY, value },
+    update: { value },
+  });
+  return value;
+}
+
 export function registerTemplateRoutes(app) {
   app.get('/api/templates', asyncRoute(async (_req, res) => {
     res.json(await listTemplates());
+  }));
+
+  // List of built-in template ids the admin has hidden. Built-ins ship as
+  // code (defaultTemplates.js) so we can't actually delete them — instead
+  // their ids land in a Setting row, and every client filters them out.
+  // Server-side state, not localStorage — so hides persist across browsers
+  // and machines once an admin has decided not to use a starter.
+  app.get('/api/templates/hidden-builtins', asyncRoute(async (_req, res) => {
+    res.json(await readHiddenBuiltins());
+  }));
+
+  // Restore a previously-hidden built-in. Mostly for completeness and the
+  // future "Restore hidden templates" UI; admins can also clear the whole
+  // Setting row manually if they want everything back.
+  app.delete('/api/templates/hidden-builtins/:id', asyncRoute(async (req, res) => {
+    const id = decodeURIComponent(req.params.id);
+    const current = await readHiddenBuiltins();
+    if (!current.includes(id)) {
+      res.json({ restored: 0, hiddenBuiltins: current });
+      return;
+    }
+    const next = current.filter((x) => x !== id);
+    await writeHiddenBuiltins(next);
+    await recordAudit(req, 'template.unhide', 'template', id);
+    res.json({ restored: 1, hiddenBuiltins: next });
   }));
 
   app.post(
@@ -61,8 +103,19 @@ export function registerTemplateRoutes(app) {
   app.delete('/api/templates/:id', asyncRoute(async (req, res) => {
     const id = decodeURIComponent(req.params.id);
 
+    // Built-in templates live in code (defaultTemplates.js) so a real DELETE
+    // would do nothing — we can't strip them from disk. Instead, record the
+    // admin's intent in the Setting table; every list-fetch filters them
+    // out. Survives cache clears, syncs across devices, audit-logged.
     if (!id.startsWith('custom-')) {
-      res.status(400).json({ error: 'Built-in templates cannot be deleted' });
+      const current = await readHiddenBuiltins();
+      if (!current.includes(id)) {
+        const next = await writeHiddenBuiltins([...current, id]);
+        await recordAudit(req, 'template.hide', 'template', id);
+        res.json({ hidden: 1, id, hiddenBuiltins: next });
+        return;
+      }
+      res.json({ hidden: 0, id, hiddenBuiltins: current });
       return;
     }
 

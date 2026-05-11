@@ -256,6 +256,16 @@ export async function deleteTemplate(templateId) {
   return data;
 }
 
+export async function getHiddenBuiltinTemplates() {
+  const { data } = await apiClient.get('/api/templates/hidden-builtins');
+  return data;
+}
+
+export async function restoreBuiltinTemplate(templateId) {
+  const { data } = await apiClient.delete(`/api/templates/hidden-builtins/${encodeURIComponent(templateId)}`);
+  return data;
+}
+
 export async function getUnsubscribes() {
   const { data } = await apiClient.get('/api/unsubscribes');
   return data;

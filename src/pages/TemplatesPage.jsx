@@ -7,6 +7,7 @@ import { defaultTemplates } from '../templates/defaultTemplates';
 import { renderTemplate } from '../../shared/campaignUtils.js';
 import {
   deleteTemplate,
+  getHiddenBuiltinTemplates,
   getSavedTemplates,
   saveTemplate,
 } from '../services/brevoApi';
@@ -17,11 +18,6 @@ import { textFromHtml } from '../utils/textFromHtml';
 // Pointer to the last-viewed template id. Survives page refreshes so the user
 // lands back where they were instead of always seeing the first template.
 const SELECTED_TEMPLATE_KEY = 'campaign-templates:selectedId';
-// Set of built-in template ids the user has chosen to hide. Built-ins are
-// hard-coded source — they can't be removed from disk — but the user can
-// drop them out of the picker via this localStorage entry. Server-side
-// custom templates use real DELETE through the API.
-const HIDDEN_BUILTINS_KEY = 'campaign-templates:hiddenBuiltins';
 
 export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   const [previewDevice, setPreviewDevice] = useState('desktop');
@@ -30,7 +26,9 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [hiddenBuiltins, setHiddenBuiltins] = useState(() => readHiddenBuiltins());
+  // Server-side list of built-in ids the admin has chosen to hide. Empty
+  // by default; populated on mount via getHiddenBuiltinTemplates().
+  const [hiddenBuiltins, setHiddenBuiltins] = useState(new Set());
   const visibleDefaults = defaultTemplates.filter((t) => !hiddenBuiltins.has(t.id));
   const templateOptions = [...visibleDefaults, ...savedTemplates];
   const selectedTemplateId = template.id || templateOptions[0]?.id || '';
@@ -41,6 +39,9 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
 
   useEffect(() => {
     getSavedTemplates().then(setSavedTemplates).catch(() => setSavedTemplates([]));
+    getHiddenBuiltinTemplates()
+      .then((ids) => setHiddenBuiltins(new Set(Array.isArray(ids) ? ids : [])))
+      .catch(() => setHiddenBuiltins(new Set()));
   }, []);
 
   // Restore the previously-selected template once savedTemplates loads, so a
@@ -105,28 +106,33 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   }
 
   async function removeTemplate(templateId) {
-    // Two delete paths: server-side row for custom templates, client-side
-    // "hidden" flag for built-ins (which are hard-coded — can't actually be
-    // removed from disk, only filtered out of the picker per-browser).
+    // Backend handles the fork: real DELETE for custom-* rows, write to the
+    // hiddenBuiltins Setting for built-ins. Frontend just calls and reflects
+    // the result. Hidden-built-ins state is server-truth so other devices
+    // see the hide too on their next mount.
     const isBuiltin = !templateId.startsWith('custom-');
     try {
+      const result = await deleteTemplate(templateId);
       if (isBuiltin) {
-        const next = new Set(hiddenBuiltins);
-        next.add(templateId);
+        const next = Array.isArray(result?.hiddenBuiltins)
+          ? new Set(result.hiddenBuiltins)
+          : new Set([...hiddenBuiltins, templateId]);
         setHiddenBuiltins(next);
-        writeHiddenBuiltins(next);
-        notify('Template hidden — restore from your local storage if you change your mind');
+        notify('Template hidden');
       } else {
-        await deleteTemplate(templateId);
         setSavedTemplates((items) => items.filter((item) => item.id !== templateId));
         notify('Template deleted');
       }
       if (template.id === templateId) {
         // Pick the first still-visible template as the new selection.
-        const fallback = [
-          ...defaultTemplates.filter((t) => !(isBuiltin ? new Set(hiddenBuiltins).add(templateId) : hiddenBuiltins).has(t.id)),
-          ...savedTemplates.filter((t) => t.id !== templateId),
-        ][0];
+        const stillVisibleBuiltins = defaultTemplates.filter(
+          (t) => !(isBuiltin
+            ? (Array.isArray(result?.hiddenBuiltins) ? new Set(result.hiddenBuiltins) : new Set([...hiddenBuiltins, templateId]))
+            : hiddenBuiltins
+          ).has(t.id),
+        );
+        const stillVisibleCustom = savedTemplates.filter((t) => t.id !== templateId);
+        const fallback = [...stillVisibleBuiltins, ...stillVisibleCustom][0];
         if (fallback) setTemplate(fallback);
         // Clear the pointer so a refresh after delete doesn't try to restore
         // a now-missing template id.
@@ -273,21 +279,6 @@ function writeSelectedTemplateId(id) {
 function clearSelectedTemplateId() {
   if (typeof window === 'undefined') return;
   try { window.localStorage.removeItem(SELECTED_TEMPLATE_KEY); } catch { /* ignore */ }
-}
-
-function readHiddenBuiltins() {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = window.localStorage.getItem(HIDDEN_BUILTINS_KEY);
-    return new Set(raw ? JSON.parse(raw) : []);
-  } catch { return new Set(); }
-}
-
-function writeHiddenBuiltins(set) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(HIDDEN_BUILTINS_KEY, JSON.stringify([...set]));
-  } catch { /* private mode / quota */ }
 }
 
 const fallbackLogo = `data:image/svg+xml;utf8,${encodeURIComponent(
