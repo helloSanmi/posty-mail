@@ -78,8 +78,13 @@ export function TemplateEditor({
       // is clickable (banner anchor uses display:block; logo anchor uses
       // inline-block so it still centers via the parent's text-align).
       const banner = asset.sizeMode === 'banner';
+      // Banner mode = full-width, no bottom gap (the banner usually IS the
+      // whole email body; spacing should come from whatever sits around it,
+      // not baked into the image's margin).
+      // Logo mode keeps 24px bottom because logos typically sit above a
+      // greeting / paragraph that benefits from breathing room.
       const imgStyle = banner
-        ? 'display:block;max-width:600px;width:100%;height:auto;margin:0 auto 24px;border:0;'
+        ? 'display:block;max-width:600px;width:100%;height:auto;margin:0 auto;border:0;'
         : 'max-width:140px;display:block;margin:0 auto 24px;border:0;';
       const img = `<img src="${asset.url}" alt="${escapeAttr(asset.fileName || 'image')}" style="${imgStyle}">`;
       const linkUrl = asset.linkUrl?.trim();
