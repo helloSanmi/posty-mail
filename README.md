@@ -18,7 +18,7 @@ backend, Brevo for transactional sends and click tracking.
   tier (300 emails/day). Brevo's own Campaigns UI appends a *"Sent with
   Brevo"* footer until you upgrade to a paid plan.
 - **You own your data.** Contacts, groups, send history, opens, clicks,
-  unsubscribes — all stored in your own Postgres. Nothing locked behind
+  unsubscribes. All stored in your own Postgres. Nothing locked behind
   Brevo's dashboard.
 - **Your domain on the unsubscribe link.** Self-hosted `/unsubscribe`
   handler means recipients see `unsubscribe.yourdomain.com`, not Brevo's
@@ -33,7 +33,7 @@ backend, Brevo for transactional sends and click tracking.
 > If you're using Brevo for both password-reset emails *and* Posty
 > campaigns, both count against the same 300/day bucket. For larger lists,
 > upgrade Brevo (you still don't need a paid plan for the branding-removal
-> feature — Posty handles that side regardless).
+> feature. Posty handles that side regardless).
 
 ---
 
@@ -68,7 +68,7 @@ All listed in `.env.example` with inline notes. The ones that matter most:
 | Var | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Postgres connection. |
-| `PUBLIC_BASE_URL` | Public URL the backend is reachable at. **Required for any email with embedded images** — see "Why the logo is broken" below. |
+| `PUBLIC_BASE_URL` | Public URL the backend is reachable at. **Required for any email with embedded images**. See "Why the logo is broken" below. |
 | `JWT_SECRET` | Signs auth tokens. 32+ random chars in production. |
 | `BREVO_API_KEY` | Brevo transactional key. Without it, sends are dry-runs (logged, not delivered). |
 | `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` | "From" identity. The email must be a verified sender in Brevo. |
@@ -133,7 +133,7 @@ Point the app at it:
 PUBLIC_BASE_URL=https://campaign.yourdomain.com
 ```
 
-Restart backend. CORS auto-includes the new public URL — no other config to
+Restart backend. CORS auto-includes the new public URL. No other config to
 touch.
 
 ### Option B: ngrok (quick, ephemeral)
@@ -165,18 +165,18 @@ Either:
 
 Everything except authentication state lives in Postgres:
 
-- `Contact`, `Audience`, `Segment` — your people and their grouping
-- `Template`, `Asset` — emails and their assets
-- `Draft`, `Campaign`, `CampaignSend` — campaign builder, scheduled/sent campaigns,
+- `Contact`, `Audience`, `Segment`. Your people and their grouping
+- `Template`, `Asset`. Emails and their assets
+- `Draft`, `Campaign`, `CampaignSend`. Campaign builder, scheduled/sent campaigns,
   per-recipient delivery rows
-- `Event`, `Unsubscribe` — Brevo webhooks and list-hygiene
+- `Event`, `Unsubscribe`. Brevo webhooks and list-hygiene
 - `User`, audit-log entries, `Setting`
 
 In `localStorage` (browser-only):
 
-- `campaign-suite-token` — the JWT. Has to be client-side; it's the credential
+- `campaign-suite-token`. The JWT. Has to be client-side; it's the credential
   the browser sends back on each request.
-- `campaign-builder:activeDraftId` — a ~30-byte pointer to "which `Draft` row
+- `campaign-builder:activeDraftId`. A ~30-byte pointer to "which `Draft` row
   was I editing?" so a tab-switch in the same browser reattaches to the right
   row. The data itself is in Postgres.
 

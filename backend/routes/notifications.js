@@ -6,7 +6,7 @@ const NOTIFICATION_LIMIT = 30;
 // Mailbox provider link-prefetchers (Gmail, Outlook safelinks, etc.) fire a
 // "click" event on every link in every email, with no human involved. We hide
 // these from the notifications panel + unread count so the badge tracks real
-// engagement, not bot noise. Same logic as src/utils/brevoEvents.js#isBotEvent —
+// engagement, not bot noise. Same logic as src/utils/brevoEvents.js#isBotEvent.
 // kept in lockstep with that file.
 const BOT_UA_RE = /GoogleImageProxy|YahooMailProxy|OutlookSafelinks|MicrosoftPreview|Slackbot|bot\b|spider|crawler/i;
 function isBotEvent(payload) {
@@ -65,7 +65,7 @@ export function registerNotificationRoutes(app) {
   }));
 
   // "Clear" hides all current items from the user's panel from now on. The
-  // underlying Event rows stay in place for audit / analytics — this is just a
+  // underlying Event rows stay in place for audit / analytics. This is just a
   // per-user view filter. New events arriving after this call will show again.
   app.post('/api/notifications/clear', asyncRoute(async (req, res) => {
     const now = new Date();

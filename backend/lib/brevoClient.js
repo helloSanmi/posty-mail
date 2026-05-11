@@ -104,7 +104,7 @@ export async function fetchTransactionalEvents({ startDate, endDate, maxEvents =
 
   // Brevo's API rejects the request unless startDate + endDate are *both*
   // provided or *both* omitted. If only startDate is given, default endDate
-  // to today (UTC) so the caller's intent — "from this date forward" — works.
+  // to today (UTC) so the caller's intent. "from this date forward". Works.
   let resolvedEnd = endDate;
   if (startDate && !resolvedEnd) {
     resolvedEnd = new Date().toISOString().slice(0, 10);
@@ -124,7 +124,7 @@ export async function fetchTransactionalEvents({ startDate, endDate, maxEvents =
       params.set('endDate', resolvedEnd);
     }
 
-    // brevoFetch throws on transport / non-OK responses — that bubbles up to
+    // brevoFetch throws on transport / non-OK responses. That bubbles up to
     // syncBrevoEvents, which logs and bails without crashing startup.
     const body = await brevoFetch(`/smtp/statistics/events?${params.toString()}`);
     const events = Array.isArray(body?.events) ? body.events : [];
@@ -150,7 +150,7 @@ export async function fetchVerifiedSenders() {
     name: sender.name,
     // `active` is true once Brevo has verified the address (DNS records ok
     // or the verification email was clicked). Inactive senders can't be used
-    // even though they're on the list — UI should disable / warn on these.
+    // even though they're on the list. UI should disable / warn on these.
     active: sender.active === true || sender.active === 'true',
   }));
 }

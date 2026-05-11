@@ -102,7 +102,7 @@ export function registerContactRoutes(app) {
       const incoming = req.body.contacts;
       const defaultGroup = (req.body.defaultGroup || '').trim();
 
-      // Strip the group field before storing — it's not a contact column.
+      // Strip the group field before storing. It's not a contact column.
       const cleanContacts = incoming.map(({ group: _g, ...rest }) => rest);
       await upsertContacts(cleanContacts);
 
@@ -198,7 +198,7 @@ export function registerContactRoutes(app) {
   app.delete('/api/contacts/:email', asyncRoute(async (req, res) => {
     const email = decodeURIComponent(req.params.email).toLowerCase();
     const result = await prisma.contact.deleteMany({ where: { email } });
-    // Always prune from groups — handles both fresh deletes and zombie cleanup.
+    // Always prune from groups. Handles both fresh deletes and zombie cleanup.
     await removeEmailsFromAllAudiences([email]);
     if (result.count) await recordAudit(req, 'contact.delete', 'contact', email);
     const total = await prisma.contact.count();

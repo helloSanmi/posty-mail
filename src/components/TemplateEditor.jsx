@@ -71,9 +71,9 @@ export function TemplateEditor({
       notify?.('Image replaced');
     } else {
       // Two sizing intents from the picker:
-      // - 'banner': full-width responsive (max-width:600px;width:100%) —
+      // - 'banner': full-width responsive (max-width:600px;width:100%).
       //   Canva / Figma marketing banner that fills the email body.
-      // - 'logo' (default): centered 140px — header/footer logo.
+      // - 'logo' (default): centered 140px. Header/footer logo.
       // When `linkUrl` is set, wrap the <img> in an <a> so the whole image
       // is clickable (banner anchor uses display:block; logo anchor uses
       // inline-block so it still centers via the parent's text-align).
@@ -314,7 +314,7 @@ export function TemplateEditor({
           placeholder="<p>Hello {{firstname}},</p>"
         />
         <small className="muted html-field-hint">
-          Brevo wraps every <code>&lt;a href&gt;</code> with click tracking — see clicks on the campaign detail page.
+          Brevo wraps every <code>&lt;a href&gt;</code> with click tracking. See clicks on the campaign detail page.
         </small>
       </div>
 

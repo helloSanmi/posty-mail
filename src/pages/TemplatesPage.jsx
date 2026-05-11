@@ -47,7 +47,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   // Restore the previously-selected template once savedTemplates loads, so a
   // refresh doesn't always snap back to the first default template. Persistence
   // happens explicitly inside selectTemplate / createTemplate / handleSaveTemplate
-  // — NOT in an effect on template.id — because an effect would fire on mount
+  // NOT in an effect on template.id. Because an effect would fire on mount
   // with the parent's default id and overwrite the persisted value before this
   // restore effect could read it.
   useEffect(() => {
@@ -150,7 +150,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
 
   // Make a copy of the current template. The copy gets a new `custom-*` id
   // and a "(copy)" suffix on the name. It's loaded into the editor but NOT
-  // saved server-side until the user clicks Save — gives them a chance to
+  // saved server-side until the user clicks Save. Gives them a chance to
   // tweak the name first and prevents accidental duplicates on misclicks.
   function duplicateTemplate() {
     const base = templateOptions.find((item) => item.id === selectedTemplateId) || template;
@@ -162,7 +162,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
     setTemplate(copy);
     writeSelectedTemplateId(copy.id);
     setSaveStatus('');
-    notify('Duplicated — review and click Save to keep it');
+    notify('Duplicated. Review and click Save to keep it');
   }
 
   return (
@@ -236,7 +236,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
 function buildPreviewData(contacts, logoUrl) {
   // Build a preview unsubscribe URL pointing at the real /unsubscribe handler.
   // Prefer VITE_PUBLIC_BASE_URL (the tunnel / production URL) so the preview
-  // link is reachable from any device — phones, other networks, etc. Fall
+  // link is reachable from any device. Phones, other networks, etc. Fall
   // back to VITE_API_URL (typically localhost:4010 in dev) which only works
   // when the browser is on the same machine as the backend.
   const publicBase = (import.meta.env.VITE_PUBLIC_BASE_URL || API_URL || '').replace(/\/$/, '');

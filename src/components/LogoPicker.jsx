@@ -10,26 +10,26 @@ import { ConfirmDialog } from './ConfirmDialog';
 // `mode` defaults to 'insert' so the link-URL field appears for the toolbar's
 // "Insert image" flow. Pass mode="replace" from the Images asset list (where
 // the user is swapping a specific existing img's src) to hide the link field
-// — replace shouldn't introduce a wrapping anchor.
+// Replace shouldn't introduce a wrapping anchor.
 export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(null);
-  // Optional click-through URL — when set, the picked image is wrapped in
+  // Optional click-through URL. When set, the picked image is wrapped in
   // an <a href> at insert time. Empty string = plain non-clickable image
   // (the legacy behavior). Common values: campaign CTA URL, {{unsubscribeUrl}}
   // merge tag, etc.
   const [linkUrl, setLinkUrl] = useState('');
-  // Image sizing intent: 'logo' (140px centered — the original behavior,
+  // Image sizing intent: 'logo' (140px centered. The original behavior,
   // good for header/footer logos) or 'banner' (full-width responsive up to
-  // 600px — good for Canva/Figma marketing banners that occupy the whole
+  // 600px. Good for Canva/Figma marketing banners that occupy the whole
   // email body).
   const [sizeMode, setSizeMode] = useState('logo');
   const fileInputRef = useRef(null);
 
-  // Fetch once when the picker opens. Deps deliberately empty — this component
+  // Fetch once when the picker opens. Deps deliberately empty. This component
   // is mounted/unmounted via the parent, so a fresh mount = a fresh fetch.
   useEffect(() => {
     refresh();
@@ -158,7 +158,7 @@ export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
                   type="button"
                   className={sizeMode === 'logo' ? 'active' : ''}
                   onClick={() => setSizeMode('logo')}
-                  title="Centered, 140px wide — good for header/footer logos"
+                  title="Centered, 140px wide. Good for header/footer logos"
                 >
                   Logo
                 </button>
@@ -166,7 +166,7 @@ export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
                   type="button"
                   className={sizeMode === 'banner' ? 'active' : ''}
                   onClick={() => setSizeMode('banner')}
-                  title="Full-width responsive (up to 600px) — good for marketing banners"
+                  title="Full-width responsive (up to 600px). Good for marketing banners"
                 >
                   Full-width banner
                 </button>

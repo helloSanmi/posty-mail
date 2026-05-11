@@ -189,7 +189,7 @@ function VariantsTable({ variants }) {
       {variants.map((variant) => (
         <div className="data-table-row variants-row" key={variant.id} role="row">
           <span><strong>{variant.label || variant.id}</strong></span>
-          <span className="muted">{variant.subject || '—'}</span>
+          <span className="muted">{variant.subject || '-'}</span>
           <span>{variant.weight}</span>
           <span>{variant.opens}</span>
           <span>{variant.clicks}</span>
@@ -216,7 +216,7 @@ function pillForStatus(row) {
 }
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return '-';
   try {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' })
       .format(new Date(value));

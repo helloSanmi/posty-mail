@@ -2,7 +2,7 @@
 // contact ends up in exactly one named group. Default rule: keep them in the
 // most recently created audience (latest `createdAt`), drop from older ones.
 //
-// Skips the "Unspecified" audience entirely — that one is handled by
+// Skips the "Unspecified" audience entirely. That one is handled by
 // dedupe-unspecified-group.js and represents "in no other group."
 //
 // Usage:
@@ -75,7 +75,7 @@ async function main() {
   }
 
   if (dryRun) {
-    console.log('\nDry run — no writes.');
+    console.log('\nDry run. No writes.');
   } else {
     console.log('\nDone.');
   }

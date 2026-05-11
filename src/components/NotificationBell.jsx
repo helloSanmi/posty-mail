@@ -17,7 +17,7 @@ export function NotificationBell() {
       const result = await getNotifications();
       setData(result);
     } catch {
-      // silent — bell can be ignored when offline
+      // silent. Bell can be ignored when offline
     } finally {
       setLoading(false);
     }

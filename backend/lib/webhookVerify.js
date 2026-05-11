@@ -20,7 +20,7 @@ export function verifyBrevoWebhook(req, res, next) {
     }
     // In dev, accept unsigned but log once.
     if (!verifyBrevoWebhook._warned) {
-      console.warn('[security] Brevo webhook is unverified — set BREVO_WEBHOOK_TOKEN or BREVO_WEBHOOK_SECRET');
+      console.warn('[security] Brevo webhook is unverified. Set BREVO_WEBHOOK_TOKEN or BREVO_WEBHOOK_SECRET');
       verifyBrevoWebhook._warned = true;
     }
     return next();

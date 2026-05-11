@@ -41,7 +41,7 @@ const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
 const BOUNCE_EVENTS = new Set(['hard_bounce', 'spam', 'invalid_email', 'blocked']);
 
-// Public — called by Brevo and by email recipients clicking unsubscribe
+// Public. Called by Brevo and by email recipients clicking unsubscribe
 export function registerPublicIntegrationRoutes(app) {
   app.post('/api/webhooks/brevo', verifyBrevoWebhook, asyncRoute(async (req, res) => {
     await recordEvent({ provider: 'brevo', payload: req.body });
@@ -112,7 +112,7 @@ export function registerPublicIntegrationRoutes(app) {
         reason: campaign ? `link-click: campaign ${campaign}` : 'link-click',
       });
     } catch (error) {
-      // Soft-fail — show a confirmation anyway. The recipient shouldn't see a
+      // Soft-fail. Show a confirmation anyway. The recipient shouldn't see a
       // 500 page just because we couldn't write to the DB; they can resubmit.
       console.error('[unsubscribe] write failed:', error.message);
     }
@@ -189,7 +189,7 @@ function renderUnsubscribePage({ ok, title, email, message }) {
 </html>`;
 }
 
-// Protected — admin/editor management endpoints
+// Protected. Admin/editor management endpoints
 export function registerIntegrationRoutes(app, { logoRoot, publicBaseUrl }) {
   app.post(
     '/api/integrations/webhook',

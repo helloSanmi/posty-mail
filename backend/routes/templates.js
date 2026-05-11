@@ -42,9 +42,9 @@ export function registerTemplateRoutes(app) {
   }));
 
   // List of built-in template ids the admin has hidden. Built-ins ship as
-  // code (defaultTemplates.js) so we can't actually delete them — instead
+  // code (defaultTemplates.js) so we can't actually delete them. Instead
   // their ids land in a Setting row, and every client filters them out.
-  // Server-side state, not localStorage — so hides persist across browsers
+  // Server-side state, not localStorage. So hides persist across browsers
   // and machines once an admin has decided not to use a starter.
   app.get('/api/templates/hidden-builtins', asyncRoute(async (_req, res) => {
     res.json(await readHiddenBuiltins());
@@ -104,7 +104,7 @@ export function registerTemplateRoutes(app) {
     const id = decodeURIComponent(req.params.id);
 
     // Built-in templates live in code (defaultTemplates.js) so a real DELETE
-    // would do nothing — we can't strip them from disk. Instead, record the
+    // would do nothing. We can't strip them from disk. Instead, record the
     // admin's intent in the Setting table; every list-fetch filters them
     // out. Survives cache clears, syncs across devices, audit-logged.
     if (!id.startsWith('custom-')) {

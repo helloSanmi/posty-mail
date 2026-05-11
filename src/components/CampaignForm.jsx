@@ -68,7 +68,7 @@ export function CampaignForm({
       minute: '2-digit',
     }).format(date);
     if (date.getTime() <= Date.now()) {
-      return `${formatted} — that's in the past, will send immediately.`;
+      return `${formatted}. That's in the past, will send immediately.`;
     }
     return `${formatted} (${timezone}) · ${FREQUENCY_LABEL[form.frequency] || 'Once'}`;
   }, [form.sendMode, form.scheduledAt, form.frequency, timezone]);
@@ -122,7 +122,7 @@ export function CampaignForm({
               groups={groups}
               selectedIds={selectedGroupIds}
               onChange={(ids) => onSelectGroups?.(ids)}
-              emptyMessage="No groups yet — this campaign will go to All contacts."
+              emptyMessage="No groups yet. This campaign will go to All contacts."
             />
           </div>
         )}

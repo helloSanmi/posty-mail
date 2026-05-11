@@ -58,7 +58,7 @@ async function main() {
     });
   }
 
-  console.log(`\nDone. ${changed} updated, ${unchanged} already clean${dryRun ? ' (dry run — no writes)' : ''}.`);
+  console.log(`\nDone. ${changed} updated, ${unchanged} already clean${dryRun ? ' (dry run. No writes)' : ''}.`);
 }
 
 main()

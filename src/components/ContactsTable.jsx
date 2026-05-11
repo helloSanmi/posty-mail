@@ -99,7 +99,7 @@ export function ContactsTable({
       const status = error.response?.status;
       // If the group we're viewing was deleted (404), gracefully bounce back to "All contacts".
       if (status === 404 && viewingGroupId) {
-        notify?.('That group no longer exists — showing all contacts.', 'error');
+        notify?.('That group no longer exists. Showing all contacts.', 'error');
         onClearGroupView?.();
         return;
       }
@@ -114,14 +114,14 @@ export function ContactsTable({
   }
 
   // `page` is already inside `params` (rebuilt by the useMemo above) for the
-  // all-contacts case, but the group-view branch reads `page` directly — so
+  // all-contacts case, but the group-view branch reads `page` directly. So
   // include it explicitly so changing pages while viewing a group re-slices.
   useEffect(() => { refresh(); }, [params, page, viewingGroupId, groupsRefreshTick]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     getGroups().then(setGroups).catch(() => {});
   }, [groupsRefreshTick]);
 
-  // Clear the selection whenever the visible set changes — paging, filtering,
+  // Clear the selection whenever the visible set changes. Paging, filtering,
   // or switching the viewed group. Carrying over invisible selections meant
   // "Add 40 to group" could quietly fire against rows the user can no longer
   // see. With this, "selected" always corresponds to rows currently on screen
@@ -448,7 +448,7 @@ export function ContactsTable({
               <p className="empty-state">
                 {hasActiveFilters(filter)
                   ? 'No people match these filters.'
-                  : 'No saved people yet — upload a CSV or add someone manually above.'}
+                  : 'No saved people yet. Upload a CSV or add someone manually above.'}
               </p>
             )}
           </>

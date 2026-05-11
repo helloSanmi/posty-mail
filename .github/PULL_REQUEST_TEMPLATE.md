@@ -1,4 +1,4 @@
-<!-- Thanks for contributing! Keep PRs focused — one change per PR. -->
+<!-- Thanks for contributing! Keep PRs focused. One change per PR. -->
 
 ## What this changes
 
@@ -8,7 +8,7 @@
 
 <!-- Concrete steps. "Tested locally" by itself isn't enough.
 Examples:
-  - Ran `npm test` — all 38 pass
+  - Ran `npm test`. All 38 pass
   - Manually: imported a 200-row CSV with a `Firstname` column, verified the
     column populated correctly on the contacts list
   - Sent a test email through Brevo, opened in Gmail, verified the unsubscribe

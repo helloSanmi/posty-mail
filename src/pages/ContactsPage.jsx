@@ -50,7 +50,7 @@ export function ContactsPage({ onParsed, refreshContacts, notify }) {
         if (!parsed.valid.length) return;
 
         // Carry the group column through to the import payload. If the CSV
-        // has no group column, we leave it empty — the backend will simply not
+        // has no group column, we leave it empty. The backend will simply not
         // add the contact to any audience. (We used to auto-tag with
         // "Unspecified", but that created a zombie group that double-counted
         // anyone later added to a real group.)

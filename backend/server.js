@@ -36,10 +36,10 @@ app.use(helmet({
 }));
 
 // Build the CORS allowlist from three sources, in order:
-//   1. Explicit CORS_ORIGIN env (comma-separated) — highest priority, catches anything custom.
-//   2. PUBLIC_BASE_URL — auto-included so requests from the same host (e.g. when the
+//   1. Explicit CORS_ORIGIN env (comma-separated). Highest priority, catches anything custom.
+//   2. PUBLIC_BASE_URL. Auto-included so requests from the same host (e.g. when the
 //      tunnel/CDN serves both the API and the frontend) work without extra config.
-//   3. Vite dev server origins — auto-included in development only.
+//   3. Vite dev server origins. Auto-included in development only.
 // In production we still require at least one of (CORS_ORIGIN, PUBLIC_BASE_URL) to be
 // set explicitly; refusing wide-open CORS if both are missing.
 const corsAllowlist = new Set();
@@ -132,7 +132,7 @@ restoreCampaignJobs().catch((error) => {
   console.error('Could not restore scheduled campaigns', error);
 });
 
-// Catch up on any Brevo events that fired while we were down. Non-blocking —
+// Catch up on any Brevo events that fired while we were down. Non-blocking.
 // startup is unaffected if Brevo is unreachable. Idempotent thanks to the
 // Event.externalId unique index, so safe to run on every boot.
 syncBrevoEvents().catch((error) => {

@@ -253,7 +253,7 @@ export function registerCampaignRoutes(app) {
 
     sends.forEach((send) => {
       // Variant for a recipient is determined by the same hash function used at send time.
-      // We can't know it without access to the variants array — but we already know which
+      // We can't know it without access to the variants array. But we already know which
       // variant was tagged in the events stream. Count sends per-recipient unconditionally
       // and rely on event tags for opens/clicks attribution.
       const fallback = stats.get('v1') || stats.values().next().value;
@@ -467,7 +467,7 @@ export function registerCampaignRoutes(app) {
       // Surface URLs the recipient's mail client won't be able to fetch (localhost,
       // private IPs, .local, etc.). Common cause: PUBLIC_BASE_URL not set, so the
       // asset upload returned an http://localhost URL that's now embedded in the
-      // email. Send still goes out — we just warn so the user knows why images
+      // email. Send still goes out. We just warn so the user knows why images
       // appear broken in Gmail.
       const unreachable = findUnreachableImageUrls(renderedHtml, template.logoUrl);
       const warnings = unreachable.length
@@ -517,7 +517,7 @@ export function registerCampaignRoutes(app) {
   );
 
   // Verified senders pulled live from Brevo. Drives the UI dropdown so admins
-  // pick from addresses that will actually deliver — instead of free-typing
+  // pick from addresses that will actually deliver. Instead of free-typing
   // an unverified one and getting cryptic 400s from Brevo at send time.
   // Returns `[]` in dry-run mode (no API key); UI falls back to free text.
   app.get('/api/settings/sender/verified', asyncRoute(async (_req, res) => {
@@ -525,7 +525,7 @@ export function registerCampaignRoutes(app) {
       const senders = await fetchVerifiedSenders();
       res.json({ senders, dryRun: !process.env.BREVO_API_KEY });
     } catch (error) {
-      // Surface the Brevo error message but don't 500 — the UI will degrade
+      // Surface the Brevo error message but don't 500. The UI will degrade
       // to free-text input and the admin can still save.
       res.json({ senders: [], dryRun: !process.env.BREVO_API_KEY, error: error.message });
     }

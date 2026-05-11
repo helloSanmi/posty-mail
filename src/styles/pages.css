@@ -263,7 +263,7 @@
 }
 .reports-events .muted { font-size: 0.82rem; }
 
-/* KPI active state — used when a card is the currently-drilled-down metric. */
+/* KPI active state. Used when a card is the currently-drilled-down metric. */
 .kpi-card.is-active {
   background: #eef4ff;
   border-color: var(--blue);
@@ -271,7 +271,7 @@
 .kpi-card.is-active .kpi-icon { background: var(--blue); color: #fff; }
 .kpi-card.is-active strong { color: var(--blue); }
 
-/* Drill-down panel — appears below the KPI grid when a card is selected.
+/* Drill-down panel. Appears below the KPI grid when a card is selected.
    Tabular layout with sticky header that scrolls inside the panel. */
 .analytics-drill { display: grid; gap: 12px; }
 .analytics-drill-table {
@@ -348,7 +348,7 @@
 .integration-card > .integration-icon { grid-row: 1 / span 3; align-self: start; }
 .integration-card > *:not(.integration-icon) { grid-column: 2; }
 
-/* Settings page — sidebar nav + content. */
+/* Settings page. Sidebar nav + content. */
 .settings-header h2 { margin: 0; }
 .settings-header p { margin: 4px 0 0; }
 .settings-shell {
@@ -410,7 +410,7 @@
 }
 .settings-count { flex-shrink: 0; }
 
-/* Sender identity card — collapsed read-only view by default; Edit reveals
+/* Sender identity card. Collapsed read-only view by default; Edit reveals
    the two-field form below. */
 .sender-view {
   align-items: center;
@@ -915,7 +915,7 @@
    form fields keep their bottom edges aligned even when one has no hint. */
 .send-form .form-field .form-field-hint { min-height: 1.1em; }
 
-/* Date+time picker — popover with calendar grid + hour/minute selects. */
+/* Date+time picker. Popover with calendar grid + hour/minute selects. */
 .dtp { position: relative; }
 .dtp-trigger {
   align-items: center;
@@ -1039,7 +1039,7 @@
   width: auto;
 }
 
-/* Recipients — compact popover-button. Sits next to the template select on a
+/* Recipients. Compact popover-button. Sits next to the template select on a
    single row; the multi-select picker drops down only when clicked, so the
    form stays tight by default. */
 .send-recipients-field { position: relative; }
@@ -1090,7 +1090,7 @@
 }
 .send-recipients-hint { font-size: 0.78rem; line-height: 1.4; }
 
-/* Compact GroupSelector — used inside the recipients popover. No chips, no
+/* Compact GroupSelector. Used inside the recipients popover. No chips, no
    search bar (unless many groups), just the checkbox list. */
 .group-selector-v2.is-compact {
   background: transparent;
@@ -1129,7 +1129,7 @@
 }
 .add-variant-cta { justify-self: start; }
 
-/* Campaigns page — main list on the left, drafts as a side rail on the right.
+/* Campaigns page. Main list on the left, drafts as a side rail on the right.
    The auto-fit grid inside the main column adapts: 2 cards/row at this width,
    1 card/row when the viewport collapses to a single column. */
 .campaigns-shell {
@@ -1143,7 +1143,7 @@
   .campaigns-shell { grid-template-columns: 1fr; }
 }
 
-/* Pagination controls — Prev / status / Next, anchored to the bottom of the
+/* Pagination controls. Prev / status / Next, anchored to the bottom of the
    campaigns column. */
 .pagination {
   align-items: center;
@@ -1371,7 +1371,7 @@
 /* Dashboard */
 .dashboard-page { gap: 16px; }
 
-/* Hero — greeting + state summary + primary CTA. Replaces the loose row of
+/* Hero. Greeting + state summary + primary CTA. Replaces the loose row of
    buttons that lived above the KPIs. */
 .dashboard-hero {
   align-items: center;
@@ -1396,7 +1396,7 @@
 .dashboard-hero-text p { margin: 0; }
 .dashboard-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
-/* Recent campaigns — taller list items with optional progress bar for runs. */
+/* Recent campaigns. Taller list items with optional progress bar for runs. */
 .dashboard-campaign-main {
   display: grid;
   flex: 1;
@@ -1494,7 +1494,7 @@
 .dashboard-list-item:hover { background: #f1f5fb; }
 .dashboard-list-item div { display: grid; gap: 2px; }
 .dashboard-list-item .muted { font-size: 0.78rem; }
-/* Recent activity rows — fixed-width pill column so the email column lines up
+/* Recent activity rows. Fixed-width pill column so the email column lines up
    across rows regardless of event name length, and the timestamp lives in its
    own right-aligned column instead of stacked under the email. */
 .dashboard-event {

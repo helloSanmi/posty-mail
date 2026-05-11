@@ -1,5 +1,5 @@
 // Smoke test for CampaignForm. Confirms the form renders with the expected
-// fields and that user input flows back through `setForm`. Not exhaustive —
+// fields and that user input flows back through `setForm`. Not exhaustive.
 // intended as the seed pattern for further UI tests (and proof that the
 // vitest + Testing Library + jsdom stack works end-to-end).
 
@@ -82,7 +82,7 @@ describe('CampaignForm', () => {
   it('reveals the date picker only in schedule mode', () => {
     const { rerender } = renderForm.__hoist__ || {};
     void rerender;
-    // First render: send-now mode — no date picker.
+    // First render: send-now mode. No date picker.
     renderForm();
     expect(screen.queryByText(/send date/i)).not.toBeInTheDocument();
     // Schedule mode renders it.

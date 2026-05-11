@@ -1,6 +1,6 @@
 // One-shot cleanup: removes any email from the "Unspecified" audience that
 // is already a member of another audience. This restores the invariant that
-// "Unspecified" means "in no other group" — counts in the Groups sidebar
+// "Unspecified" means "in no other group". Counts in the Groups sidebar
 // will sum to the total contact count after this runs.
 //
 // Why: an earlier version of the import flow auto-tagged every contact with
@@ -13,7 +13,7 @@
 //   node backend/scripts/dedupe-unspecified-group.js --dry   # preview
 //   node backend/scripts/dedupe-unspecified-group.js         # apply
 //
-// Safe to run multiple times — idempotent.
+// Safe to run multiple times. Idempotent.
 
 import { prisma } from '../lib/db.js';
 
@@ -24,7 +24,7 @@ async function main() {
     where: { name: { equals: 'Unspecified', mode: 'insensitive' } },
   });
   if (!unspecified) {
-    console.log('No "Unspecified" audience found — nothing to do.');
+    console.log('No "Unspecified" audience found. Nothing to do.');
     return;
   }
 
@@ -51,7 +51,7 @@ async function main() {
   }
 
   if (dryRun) {
-    console.log('Dry run — no writes.');
+    console.log('Dry run. No writes.');
     return;
   }
 

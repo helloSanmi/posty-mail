@@ -11,7 +11,7 @@ assignees: ''
 underlying need, not the specific solution you have in mind. -->
 
 **A solution you'd consider**
-<!-- Optional — sometimes the best feature requests stop at the problem. -->
+<!-- Optional. Sometimes the best feature requests stop at the problem. -->
 
 **Alternatives**
 <!-- Other ways to address the same problem, or workarounds you're using now. -->

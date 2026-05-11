@@ -53,7 +53,7 @@ export function SettingsPage({ notify }) {
         setSenderEffective(data.effective);
         setSenderSource(data.source);
         // Pre-fill the form with the effective values so the admin sees what
-        // sends actually use right now — not just the (possibly empty) stored
+        // sends actually use right now. Not just the (possibly empty) stored
         // override. Saving will then persist into the DB explicitly.
         setSenderForm({
           email: data.stored?.email || data.effective?.email || '',
@@ -82,7 +82,7 @@ export function SettingsPage({ notify }) {
       setSenderEffective({ email: saved.email, name: saved.name });
       setSenderSource('database');
       setSenderEditing(false);
-      notify('Sender updated — applies to next send');
+      notify('Sender updated. Applies to next send');
     } catch (error) {
       notify(error.response?.data?.error || 'Could not save sender', 'error');
     } finally {
@@ -311,7 +311,7 @@ export function SettingsPage({ notify }) {
                     <h3>Outbound webhook</h3>
                     <p className="muted">
                       Forward <code>campaign.completed</code> and <code>contact.unsubscribed</code>{' '}
-                      events to your own endpoint — Zapier, Slack, a CRM, anywhere.
+                      events to your own endpoint. Zapier, Slack, a CRM, anywhere.
                     </p>
                   </div>
                   <StatusPill ok={webhookSaved} okLabel="Configured" emptyLabel="Not configured" />
@@ -408,7 +408,7 @@ export function SettingsPage({ notify }) {
                         type="button"
                         className="text-button"
                         onClick={() => handleRestore(item.email)}
-                        title={`Re-subscribe ${item.email} — removes from this list and sets consent back to yes`}
+                        title={`Re-subscribe ${item.email}. Removes from this list and sets consent back to yes`}
                       >
                         <RotateCcw size={13} aria-hidden="true" /> Restore
                       </button>

@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
         setOpenSignup(status.openSignup);
         setPasswordResetEnabled(status.passwordResetEnabled !== false);
       } catch {
-        // server may be unreachable — let pages handle that
+        // server may be unreachable. Let pages handle that
       }
 
       if (token) {

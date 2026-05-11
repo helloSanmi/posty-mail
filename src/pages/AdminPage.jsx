@@ -152,7 +152,7 @@ export function AdminPage({ notify }) {
             {logs.map((log) => (
               <li key={log.id}>
                 <span className="audit-time">{formatTime(log.createdAt)}</span>
-                <span className="audit-user">{log.userEmail || '—'}</span>
+                <span className="audit-user">{log.userEmail || '-'}</span>
                 <span className="audit-action">{log.action}</span>
                 <span className="audit-resource">
                   {log.resource}{log.resourceId ? `:${log.resourceId.slice(0, 8)}` : ''}

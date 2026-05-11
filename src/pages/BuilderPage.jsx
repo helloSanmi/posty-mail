@@ -27,7 +27,7 @@ export function BuilderPage(props) {
   const navigate = useNavigate();
   // /builder is always a NEW campaign unless the user explicitly clicked
   // "Resume" on a saved draft (which navigates with state.draft attached).
-  // We deliberately don't auto-resume a previous draft from localStorage —
+  // We deliberately don't auto-resume a previous draft from localStorage.
   // that locked the builder into editing one perpetual draft and prevented
   // the user from creating multiple drafts. To continue an in-progress
   // campaign, head to All campaigns → Drafts → Resume.
@@ -38,7 +38,7 @@ export function BuilderPage(props) {
   const draftIdRef = useRef(draftFromNav?.id || null);
   // Snapshot of the last successfully-saved state, so unchanged renders are skipped.
   const lastSavedSnapshotRef = useRef('');
-  // Pending debounce timer — cleared on unmount or when a newer change arrives.
+  // Pending debounce timer. Cleared on unmount or when a newer change arrives.
   const autosaveTimerRef = useRef(null);
   // Template id we want to apply once savedTemplates finishes loading.
   // Set on mount when resuming a draft so the parent's template state matches
@@ -81,7 +81,7 @@ export function BuilderPage(props) {
   useEffect(() => {
     getSavedTemplates().then(setSavedTemplates).catch(() => setSavedTemplates([]));
     getGroups().then(setGroups).catch(() => setGroups([]));
-    // Force the parent's contacts state to refresh — its initial fetch happened
+    // Force the parent's contacts state to refresh. Its initial fetch happened
     // at app boot, so a contact added on the Audience page since then would not
     // be reflected in the audience count here.
     refreshContacts?.();
@@ -135,7 +135,7 @@ export function BuilderPage(props) {
   }, [selectedGroupIds, notify]);
 
   // Debounced autosave to the Draft table. On a fresh /builder visit there is
-  // no draft id yet — the first autosave creates one. On a Resume click the
+  // no draft id yet. The first autosave creates one. On a Resume click the
   // draft id is already set from `state.draft` and subsequent saves upsert
   // that same row. Since /builder no longer auto-resumes via localStorage,
   // every fresh visit creates a NEW draft, which is exactly how the user
@@ -210,8 +210,8 @@ export function BuilderPage(props) {
       await scheduleCampaign(buildCampaignPayload(form, contacts, template, variants));
       notify(
         form.sendMode === 'now'
-          ? 'Campaign sending — track progress in Campaigns'
-          : 'Campaign scheduled — track in Campaigns',
+          ? 'Campaign sending. Track progress in Campaigns'
+          : 'Campaign scheduled. Track in Campaigns',
       );
       onCampaignScheduled();
 
@@ -280,7 +280,7 @@ export function BuilderPage(props) {
     }
   }
 
-  // Manual flush of the autosave — useful when the user clicks "Save draft"
+  // Manual flush of the autosave. Useful when the user clicks "Save draft"
   // and wants explicit confirmation rather than waiting for the debounce.
   async function handleSaveDraft() {
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
@@ -402,7 +402,7 @@ export function BuilderPage(props) {
 function SaveIndicator({ state }) {
   if (state === 'saving') return <span className="muted save-indicator">Saving…</span>;
   if (state === 'saved') return <span className="muted save-indicator">Saved</span>;
-  if (state === 'error') return <span className="save-indicator save-indicator-error">Save failed — will retry on next change</span>;
+  if (state === 'error') return <span className="save-indicator save-indicator-error">Save failed. Will retry on next change</span>;
   return null;
 }
 

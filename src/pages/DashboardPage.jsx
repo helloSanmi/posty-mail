@@ -55,7 +55,7 @@ export function DashboardPage({ contacts, template, setPage }) {
 
   return (
     <div className="page-stack content-page dashboard-page">
-      {/* Hero — greets the user, summarises state in one line, surfaces the
+      {/* Hero. Greets the user, summarises state in one line, surfaces the
           single most likely next action. Replaces the loose row of buttons
           that lived above the KPI strip; those duplicate the sidebar nav. */}
       <section className="surface dashboard-hero">
@@ -231,7 +231,7 @@ function heroHeadline(contactsCount, campaignsCount, inFlightCount) {
 
 function heroSubtitle(contactsCount, lastCampaign) {
   if (contactsCount === 0) {
-    return 'Upload a CSV or add contacts manually — your list is saved in this app.';
+    return 'Upload a CSV or add contacts manually. Your list is saved in this app.';
   }
   if (!lastCampaign) {
     return `${contactsCount.toLocaleString()} ${contactsCount === 1 ? 'person' : 'people'} ready to receive your first campaign.`;
@@ -322,7 +322,7 @@ function Onboarding({ contacts, template, setPage }) {
 }
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return '-';
   try {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
       .format(new Date(value));
@@ -331,7 +331,7 @@ function formatDate(value) {
   }
 }
 
-// Compact relative time for the activity feed — "12s", "5m", "3h", "2d", or
+// Compact relative time for the activity feed. "12s", "5m", "3h", "2d", or
 // the short date for anything older. Keeps the right column narrow and
 // scannable instead of carrying a full datetime per row.
 function formatRelative(value) {
@@ -351,7 +351,7 @@ function formatRelative(value) {
 
 function labelFor(status) {
   if (status === 'completed_with_errors') return 'completed (errors)';
-  return status || '—';
+  return status || '-';
 }
 
 function pillFor(status) {

@@ -1,7 +1,7 @@
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Case-insensitive lookup across CSV header variants. Handles `Firstname`,
-// `FirstName`, `first_name`, `FIRSTNAME`, etc. — any capitalization or
+// `FirstName`, `first_name`, `FIRSTNAME`, etc.. Any capitalization or
 // underscoring of the canonical names below.
 function pickField(row, ...names) {
   if (!row || typeof row !== 'object') return '';

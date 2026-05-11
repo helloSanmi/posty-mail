@@ -18,7 +18,7 @@ export function isUnreachableUrl(url) {
     const { hostname } = new URL(url);
     return UNREACHABLE_HOST_PATTERNS.some((re) => re.test(hostname));
   } catch {
-    // Relative or malformed URL — that's a different problem; not flagged here.
+    // Relative or malformed URL. That's a different problem; not flagged here.
     return false;
   }
 }

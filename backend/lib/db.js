@@ -316,7 +316,7 @@ export async function upsertContacts(contacts) {
       // Default consent to "yes" when the CSV / payload has no value. The
       // compliance gate in shared/campaignUtils.js treats "yes" as affirmative
       // opt-in, so new imports won't be held back by `requireOptIn`. On UPDATE
-      // we only fill in the default for empty values — never overwrite a real
+      // we only fill in the default for empty values. Never overwrite a real
       // value the row already has.
       consent: contact.consent || 'yes',
       region: contact.region || '',
@@ -327,7 +327,7 @@ export async function upsertContacts(contacts) {
       lastname: contact.lastname || '',
       // On update we only set consent when the incoming row actually has a
       // value. If consent is missing on the new payload, the spread below is
-      // empty and we leave the stored value alone — re-importing a CSV with
+      // empty and we leave the stored value alone. Re-importing a CSV with
       // no consent column will not silently re-opt-in someone who said "no".
       ...(contact.consent ? { consent: contact.consent } : {}),
       region: contact.region || '',
@@ -409,7 +409,7 @@ export async function addEmailsToAudience(id, emails) {
   });
   // Groups are exclusive: a contact lives in exactly one group at a time.
   // When we add an email to group X, scrub it from every OTHER audience so
-  // counts always sum to total — no double-bookkeeping. This covers the
+  // counts always sum to total. No double-bookkeeping. This covers the
   // legacy "Unspecified" case as well as overlap between named groups.
   if (normalized.length) {
     const removeSet = new Set(normalized);
@@ -504,7 +504,7 @@ export async function upsertUnsubscribe(item) {
     },
   });
 
-  // Reflect the unsubscribe on the Contact row too — so the Contacts page
+  // Reflect the unsubscribe on the Contact row too. So the Contacts page
   // shows the person as opted-out, not still "yes". The Unsubscribe table is
   // the suppression list (queried at send time); Contact.consent is the
   // user's expressed preference. Both should agree after an unsubscribe.
@@ -553,7 +553,7 @@ export async function recordEvent(event) {
         // otherwise default to now via Prisma.
         ...(event.receivedAt ? { receivedAt: event.receivedAt } : {}),
       },
-      // No-op update — we just need the upsert to dedupe; the existing row's
+      // No-op update. We just need the upsert to dedupe; the existing row's
       // payload is already canonical.
       update: {},
     });

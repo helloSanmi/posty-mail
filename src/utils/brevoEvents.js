@@ -1,6 +1,6 @@
 // Brevo's webhook event names are inconsistent: some come as `opened`, others
 // as `unique_opened` / `proxy_open`. The UI shouldn't care about the variants
-// — show one pill color per "kind of thing", and one human label per event.
+// Show one pill color per "kind of thing", and one human label per event.
 
 const POSITIVE = new Set([
   'delivered',
@@ -61,7 +61,7 @@ export function eventLabel(eventName) {
 
 // Mailbox providers (Gmail, Outlook, security gateways) prefetch every link in
 // every email for malware / phishing scanning the moment the message lands.
-// That fires as a "click" event with no human involved — and inflates click
+// That fires as a "click" event with no human involved. And inflates click
 // counts unless we filter it. Heuristic: user-agent string that mentions a
 // known scanner, or sending IP from a mailbox provider's prefetch range.
 const BOT_USER_AGENT_RE = /GoogleImageProxy|YahooMailProxy|OutlookSafelinks|MicrosoftPreview|Slackbot|bot\b|spider|crawler/i;
@@ -69,7 +69,7 @@ const BOT_USER_AGENT_RE = /GoogleImageProxy|YahooMailProxy|OutlookSafelinks|Micr
 export function isBotEvent(payload) {
   if (!payload) return false;
   // Only flag click events as bot. Gmail registers OPENS through Google's
-  // image proxy — every legitimate Gmail open has a Google IP + a proxy UA
+  // image proxy. Every legitimate Gmail open has a Google IP + a proxy UA
   // string. Filtering opens by these signals would zero out our open count.
   const ev = String(payload.event || '').toLowerCase();
   if (!ev.includes('click')) return false;

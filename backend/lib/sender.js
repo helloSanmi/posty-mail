@@ -20,7 +20,7 @@ export async function resolveSender() {
     const setting = await prisma.setting.findUnique({ where: { key: SETTING_KEY } });
     stored = setting?.value || null;
   } catch {
-    // DB unavailable at the moment we tried — fall through to env / defaults.
+    // DB unavailable at the moment we tried. Fall through to env / defaults.
   }
   const email = stored?.email
     || process.env.BREVO_SENDER_EMAIL

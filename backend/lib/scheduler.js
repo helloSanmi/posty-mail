@@ -233,7 +233,7 @@ export function createCampaignPayload(body) {
     compliance: body.compliance || { requireOptIn: true, gdprMode: true },
     // Sender is resolved by the caller (see /api/campaigns/schedule and
     // /api/campaigns/test-email) so we don't have to make this whole helper
-    // async. Falls back to env vars when the caller hasn't supplied one — keeps
+    // async. Falls back to env vars when the caller hasn't supplied one. Keeps
     // legacy code paths and tests working without a DB read.
     sender: body.sender || {
       email: process.env.BREVO_SENDER_EMAIL || 'campaigns@example.com',
@@ -241,7 +241,7 @@ export function createCampaignPayload(body) {
     },
     // Default the unsubscribe link to the self-hosted page on PUBLIC_BASE_URL.
     // Falls back to the example.com placeholder only if neither is set, which
-    // means the link will be visibly broken — that's intentional, so the dev
+    // means the link will be visibly broken. That's intentional, so the dev
     // notices and configures PUBLIC_BASE_URL before sending real campaigns.
     unsubscribeBaseUrl: body.unsubscribeBaseUrl
       || (process.env.PUBLIC_BASE_URL ? `${process.env.PUBLIC_BASE_URL.replace(/\/$/, '')}/unsubscribe` : 'https://example.com/unsubscribe'),

@@ -125,7 +125,7 @@ export function AddContactModal({ groups, onCreate, onCancel }) {
             groups={groups}
             selectedIds={selectedGroupIds}
             onChange={setSelectedGroupIds}
-            emptyMessage="No groups yet — you can create one from the sidebar after saving."
+            emptyMessage="No groups yet. You can create one from the sidebar after saving."
           />
         </div>
 

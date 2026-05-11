@@ -288,7 +288,7 @@ function Meta({ label, value }) {
 }
 
 function progressLine(progress) {
-  if (!progress) return '—';
+  if (!progress) return '-';
   const sent = progress.sent || 0;
   const failed = progress.failed || 0;
   const skipped = progress.skipped || 0;
@@ -312,7 +312,7 @@ function statusPill(status) {
 }
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return '-';
   try {
     return new Intl.DateTimeFormat(undefined, {
       dateStyle: 'medium',

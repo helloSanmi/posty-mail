@@ -44,7 +44,7 @@ export function EditLinkModal({ link, onSave, onCancel, onRemove }) {
           <div>
             <h2>Edit link</h2>
             {isMergeTag && (
-              <span className="muted">This URL is a merge tag — leave as-is unless you know.</span>
+              <span className="muted">This URL is a merge tag. Leave as-is unless you know.</span>
             )}
           </div>
           <button type="button" onClick={onCancel} aria-label="Close">

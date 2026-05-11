@@ -59,7 +59,7 @@ export function AnalyticsPage() {
     return map;
   }, [campaigns]);
 
-  // Real (non-bot) events only — totals + drill-down both honor the bot
+  // Real (non-bot) events only. Totals + drill-down both honor the bot
   // filter so engagement numbers track real humans, not Gmail's link scanner.
   const realEvents = useMemo(
     () => events.filter((event) => !isBotEvent(event.payload)),
@@ -219,7 +219,7 @@ export function AnalyticsPage() {
                 <span className={`pill ${eventPill(event.payload?.event)}`}>
                   {eventLabel(event.payload?.event || event.provider)}
                 </span>
-                <span className="reports-event-email">{event.payload?.email || '—'}</span>
+                <span className="reports-event-email">{event.payload?.email || '-'}</span>
                 <span className="muted">{formatDate(event.receivedAt)}</span>
               </li>
             ))}
@@ -279,7 +279,7 @@ function DrillDown({ metric, events, campaignsById, onClose, onCampaignClick }) 
             const link = event.payload?.link;
             return (
               <div key={event.id} className="analytics-drill-row">
-                <span className="analytics-drill-email">{event.payload?.email || '—'}</span>
+                <span className="analytics-drill-email">{event.payload?.email || '-'}</span>
                 <span>
                   {campaign ? (
                     <button
@@ -290,11 +290,11 @@ function DrillDown({ metric, events, campaignsById, onClose, onCampaignClick }) 
                       {campaign.name}
                     </button>
                   ) : (
-                    <span className="muted">—</span>
+                    <span className="muted">-</span>
                   )}
                 </span>
                 <span className="muted analytics-drill-subject">
-                  {event.payload?.subject || '—'}
+                  {event.payload?.subject || '-'}
                 </span>
                 {showLink && (
                   <span className="analytics-drill-link">
@@ -303,7 +303,7 @@ function DrillDown({ metric, events, campaignsById, onClose, onCampaignClick }) 
                         <ExternalLink size={11} aria-hidden="true" />
                         {summariseLink(link)}
                       </a>
-                    ) : <span className="muted">—</span>}
+                    ) : <span className="muted">-</span>}
                   </span>
                 )}
                 <span className="muted analytics-drill-time">{formatDate(event.receivedAt)}</span>
@@ -356,7 +356,7 @@ function perCampaignStats(events, campaignId) {
 
 function labelFor(status) {
   if (status === 'completed_with_errors') return 'errors';
-  return status || '—';
+  return status || '-';
 }
 
 function pillFor(status) {
@@ -367,7 +367,7 @@ function pillFor(status) {
 }
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return '-';
   try {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
       .format(new Date(value));

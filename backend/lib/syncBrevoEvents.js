@@ -1,13 +1,13 @@
 // Catch-up sync for Brevo transactional events.
 //
-// Webhooks are fire-and-forget HTTP POSTs — if the backend is down when Brevo
+// Webhooks are fire-and-forget HTTP POSTs. If the backend is down when Brevo
 // fires one, the event is dropped after a few retries. This module fills that
 // gap on startup by asking Brevo's API for events since the last one we have
 // stored, and upserting them into the local Event table (deduped by Brevo's
 // per-event `uuid`).
 //
 // Brevo retains transactional events for ~30 days. Anything older than that
-// when we boot is permanently lost on Brevo's side too — no recovery possible.
+// when we boot is permanently lost on Brevo's side too. No recovery possible.
 
 import { fetchTransactionalEvents } from './brevoClient.js';
 import { getLatestEventDate, recordEvent } from './db.js';
@@ -19,7 +19,7 @@ const OVERLAP_HOURS = 1;
 
 export async function syncBrevoEvents({ logger = console } = {}) {
   if (!process.env.BREVO_API_KEY) {
-    logger.log('[sync] Skipping Brevo event sync — BREVO_API_KEY not set.');
+    logger.log('[sync] Skipping Brevo event sync. BREVO_API_KEY not set.');
     return { skipped: true, reason: 'no_api_key' };
   }
 
@@ -57,7 +57,7 @@ export async function syncBrevoEvents({ logger = console } = {}) {
       });
       inserted += 1;
     } catch (error) {
-      // Most likely a duplicate that raced with a concurrent webhook write —
+      // Most likely a duplicate that raced with a concurrent webhook write.
       // safe to ignore.
       skipped += 1;
       logger.warn(`[sync] Skipped one event: ${error.message}`);
@@ -70,7 +70,7 @@ export async function syncBrevoEvents({ logger = console } = {}) {
 
 // Brevo's API response uses slightly different field names than the webhook
 // payload (e.g. `messageId` instead of `message-id`). Normalize so the rest
-// of the app — metrics, dashboards, drill-downs — sees one consistent shape.
+// of the app. Metrics, dashboards, drill-downs. Sees one consistent shape.
 function normaliseApiEvent(apiEvent) {
   if (!apiEvent || !apiEvent.event) return null;
   // Brevo's API returns `tag` in two shapes depending on call: sometimes a
@@ -86,7 +86,7 @@ function normaliseApiEvent(apiEvent) {
       const parsed = JSON.parse(tagsRaw);
       tags = Array.isArray(parsed) ? parsed : [];
     } catch {
-      // Plain comma-separated fallback — most common shape from /smtp/statistics/events.
+      // Plain comma-separated fallback. Most common shape from /smtp/statistics/events.
       tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
     }
   }

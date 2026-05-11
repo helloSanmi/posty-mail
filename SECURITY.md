@@ -31,7 +31,7 @@ In scope:
 Out of scope:
 
 - Issues requiring physical access to the server
-- Reports against `node_modules` dependencies — open an issue with the
+- Reports against `node_modules` dependencies. Open an issue with the
   upstream project instead
 - Self-XSS (a user pasting `<script>` into their own template is the user
   attacking themselves; the sanitizer still strips it on save)
@@ -40,7 +40,7 @@ Out of scope:
 
 ## Hardening defaults this app already applies
 
-For context — these aren't bugs:
+For context. These aren't bugs:
 
 - HTML sanitization on every template save (`backend/lib/sanitize.js`):
   scripts, event handlers, and `javascript:` URIs are stripped; every anchor

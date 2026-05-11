@@ -106,7 +106,7 @@ export function GroupSelector({ groups, selectedIds, onChange, emptyMessage, com
         )}
         {truncated && (
           <li className="muted group-selector-more">
-            …{filtered.length - MAX_VISIBLE} more — refine your search to see them.
+            …{filtered.length - MAX_VISIBLE} more. Refine your search to see them.
           </li>
         )}
       </ul>

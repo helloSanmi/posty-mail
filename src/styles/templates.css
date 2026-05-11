@@ -243,7 +243,7 @@
   opacity: 1;
 }
 .template-asset-actions .row-action { height: 24px; width: 24px; }
-/* The entire row is the click target (replace image / edit link) — the only
+/* The entire row is the click target (replace image / edit link). The only
    nested button is the destructive Delete which calls stopPropagation(). */
 .template-asset-row {
   cursor: pointer;
