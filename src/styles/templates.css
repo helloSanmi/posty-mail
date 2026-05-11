@@ -301,6 +301,20 @@
   display: flex;
   gap: 12px;
 }
+/* Optional click-through URL input — appears only when picking to insert
+   (not when replacing an existing img's src). Setting a URL wraps the
+   inserted <img> in an <a href> at insert time. */
+.logo-picker-link {
+  display: grid;
+  gap: 4px;
+}
+.logo-picker-link > span {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 500;
+  gap: 6px;
+}
+.logo-picker-link small { font-size: 0.78rem; }
 .upload-button {
   align-items: center;
   background: var(--blue);

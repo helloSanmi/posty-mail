@@ -70,9 +70,17 @@ export function TemplateEditor({
       setTemplate({ ...template, html: next });
       notify?.('Image replaced');
     } else {
-      const tag = `<img src="${asset.url}" alt="${escapeAttr(asset.fileName || 'image')}" style="max-width:140px;display:block;margin:0 auto 24px;">`;
+      // Image-banner / CTA pattern: when the picker collected a click-through
+      // URL, wrap the <img> in an <a> so the whole image becomes a clickable
+      // link. rel="noopener noreferrer" matches the sanitizer's default for
+      // anchors. Otherwise inserts a plain image as before.
+      const img = `<img src="${asset.url}" alt="${escapeAttr(asset.fileName || 'image')}" style="max-width:140px;display:block;margin:0 auto 24px;border:0;">`;
+      const linkUrl = asset.linkUrl?.trim();
+      const tag = linkUrl
+        ? `<a href="${escapeAttr(linkUrl)}" rel="noopener noreferrer" target="_blank" style="display:inline-block;text-decoration:none;">${img}</a>`
+        : img;
       insertAtCursor(tag);
-      notify?.('Image inserted');
+      notify?.(linkUrl ? 'Image inserted (clickable)' : 'Image inserted');
     }
 
     setPicker(null);
@@ -332,6 +340,7 @@ export function TemplateEditor({
 
       {picker && (
         <LogoPicker
+          mode={picker.mode}
           onSelect={handlePicked}
           onClose={() => setPicker(null)}
           notify={notify}

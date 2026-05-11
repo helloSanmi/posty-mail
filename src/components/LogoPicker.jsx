@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Trash2, Upload, X } from 'lucide-react';
+import { Link2, Trash2, Upload, X } from 'lucide-react';
 import {
   deleteLogoAsset,
   listLogoAssets,
@@ -7,12 +7,21 @@ import {
 } from '../services/brevoApi';
 import { ConfirmDialog } from './ConfirmDialog';
 
-export function LogoPicker({ onSelect, onClose, notify }) {
+// `mode` defaults to 'insert' so the link-URL field appears for the toolbar's
+// "Insert image" flow. Pass mode="replace" from the Images asset list (where
+// the user is swapping a specific existing img's src) to hide the link field
+// — replace shouldn't introduce a wrapping anchor.
+export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(null);
+  // Optional click-through URL — when set, the picked image is wrapped in
+  // an <a href> at insert time. Empty string = plain non-clickable image
+  // (the legacy behavior). Common values: campaign CTA URL, {{unsubscribeUrl}}
+  // merge tag, etc.
+  const [linkUrl, setLinkUrl] = useState('');
   const fileInputRef = useRef(null);
 
   // Fetch once when the picker opens. Deps deliberately empty — this component
@@ -57,7 +66,7 @@ export function LogoPicker({ onSelect, onClose, notify }) {
       try {
         const result = await uploadLogoAsset({ fileName: file.name, dataUrl: reader.result });
         setAssets((prev) => [result, ...prev]);
-        onSelect(result);
+        onSelect({ ...result, linkUrl: linkUrl.trim() || null });
         notify?.('Logo uploaded');
       } catch (requestError) {
         notify?.(requestError.response?.data?.error || 'Upload failed', 'error');
@@ -67,6 +76,10 @@ export function LogoPicker({ onSelect, onClose, notify }) {
       }
     };
     reader.readAsDataURL(file);
+  }
+
+  function handlePickExisting(asset) {
+    onSelect({ ...asset, linkUrl: linkUrl.trim() || null });
   }
 
   function handleDelete(asset, event) {
@@ -116,6 +129,23 @@ export function LogoPicker({ onSelect, onClose, notify }) {
           <span className="muted">PNG, JPEG, GIF or WEBP · 2MB max</span>
         </div>
 
+        {mode === 'insert' && (
+          <label className="logo-picker-link">
+            <span>
+              <Link2 size={13} aria-hidden="true" /> Click-through URL <span className="muted">(optional)</span>
+            </span>
+            <input
+              type="text"
+              value={linkUrl}
+              onChange={(event) => setLinkUrl(event.target.value)}
+              placeholder="https://example.com/signup  or  {{unsubscribeUrl}}"
+            />
+            <small className="muted">
+              When set, the inserted image becomes a clickable link. Leave blank for a plain image.
+            </small>
+          </label>
+        )}
+
         {error ? (
           <p className="empty-state error" role="alert">
             {error} <button type="button" className="text-button" onClick={refresh}>Retry</button>
@@ -131,7 +161,7 @@ export function LogoPicker({ onSelect, onClose, notify }) {
                 <button
                   type="button"
                   className="logo-tile"
-                  onClick={() => onSelect(asset)}
+                  onClick={() => handlePickExisting(asset)}
                 >
                   <img src={asset.url} alt={asset.fileName} loading="lazy" />
                   <span className="logo-meta">
