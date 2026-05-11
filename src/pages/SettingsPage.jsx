@@ -192,11 +192,7 @@ export function SettingsPage({ notify }) {
                 <div className="settings-card-head">
                   <div>
                     <h3><Key size={16} aria-hidden="true" /> Brevo API key</h3>
-                    <p className="muted">
-                      Set <code>BREVO_API_KEY</code> in your backend <code>.env</code> to
-                      actually deliver email. Without it, every send is a dry-run (logged,
-                      not delivered).
-                    </p>
+                    <p className="muted">Required to deliver email through Brevo.</p>
                   </div>
                   {brevoConfigured === null ? (
                     <span className="pill muted">Checking…</span>
@@ -210,8 +206,8 @@ export function SettingsPage({ notify }) {
                 </div>
                 {brevoConfigured === false && (
                   <small className="muted">
-                    Add <code>BREVO_API_KEY=xkeysib-…</code> to <code>.env</code> and
-                    restart the backend. Your sends will keep being dry-runs until then.
+                    Add <code>BREVO_API_KEY=xkeysib-…</code> to your backend <code>.env</code> and
+                    restart the server. Until then, every send is a dry-run (logged, not delivered).
                   </small>
                 )}
               </section>
@@ -303,8 +299,8 @@ export function SettingsPage({ notify }) {
                   <div>
                     <h3>Outbound webhook</h3>
                     <p className="muted">
-                      Send <code>campaign.completed</code> and <code>contact.unsubscribed</code> events
-                      to your own endpoint (Zapier, Slack incoming webhook, your CRM…).
+                      Forward <code>campaign.completed</code> and <code>contact.unsubscribed</code>{' '}
+                      events to your own endpoint — Zapier, Slack, a CRM, anywhere.
                     </p>
                   </div>
                   <StatusPill ok={webhookSaved} okLabel="Configured" emptyLabel="Not configured" />
