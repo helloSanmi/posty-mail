@@ -19,7 +19,7 @@ import { findUnreachableImageUrls } from '../lib/urlReachability.js';
 // Brevo's webhook event names come in variants. Use these to classify them
 // once, in one place, so metrics counts don't silently drop opens/clicks just
 // because Brevo named them `unique_opened` / `proxy_open` / `unique_clicked`.
-const OPEN_EVENTS = new Set(['opened', 'open', 'unique_opened', 'proxy_open']);
+const OPEN_EVENTS = new Set(['opened', 'open', 'unique_opened', 'proxy_open', 'loadedbyproxy']);
 const CLICK_EVENTS = new Set(['click', 'clicked', 'unique_clicked']);
 const BOUNCE_EVENTS_METRICS = new Set(['hard_bounce', 'soft_bounce', 'blocked', 'invalid_email']);
 const isOpen = (e) => OPEN_EVENTS.has(e);

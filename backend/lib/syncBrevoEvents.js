@@ -73,15 +73,21 @@ export async function syncBrevoEvents({ logger = console } = {}) {
 // of the app — metrics, dashboards, drill-downs — sees one consistent shape.
 function normaliseApiEvent(apiEvent) {
   if (!apiEvent || !apiEvent.event) return null;
+  // Brevo's API returns `tag` in two shapes depending on call: sometimes a
+  // JSON-encoded array string (`'["a","b"]'`), sometimes a plain
+  // comma-separated string (`'a,b'`). Webhooks deliver a proper array.
+  // Normalize all three so downstream code sees a real `tags: string[]`.
   const tagsRaw = apiEvent.tag;
   let tags = [];
-  if (Array.isArray(tagsRaw)) tags = tagsRaw;
-  else if (typeof tagsRaw === 'string') {
+  if (Array.isArray(tagsRaw)) {
+    tags = tagsRaw;
+  } else if (typeof tagsRaw === 'string') {
     try {
       const parsed = JSON.parse(tagsRaw);
-      tags = Array.isArray(parsed) ? parsed : [tagsRaw];
+      tags = Array.isArray(parsed) ? parsed : [];
     } catch {
-      tags = [tagsRaw];
+      // Plain comma-separated fallback — most common shape from /smtp/statistics/events.
+      tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
     }
   }
   return {

@@ -17,7 +17,7 @@ import { eventLabel, eventPill, isBotEvent } from '../utils/brevoEvents';
 
 // Brevo event-name groups. Mirrors backend/routes/campaigns.js so the report
 // totals always agree with the per-campaign metrics.
-const OPEN_NAMES = new Set(['opened', 'open', 'unique_opened', 'proxy_open']);
+const OPEN_NAMES = new Set(['opened', 'open', 'unique_opened', 'proxy_open', 'loadedbyproxy']);
 const CLICK_NAMES = new Set(['click', 'clicked', 'unique_clicked']);
 const BOUNCE_NAMES = new Set(['hard_bounce', 'soft_bounce', 'blocked', 'invalid_email']);
 

@@ -9,6 +9,32 @@ backend, Brevo for transactional sends and click tracking.
 
 ---
 
+## Why use Posty instead of Brevo's own UI
+
+- **No vendor branding on the free plan.** Posty sends through Brevo's
+  transactional API, so your emails go out unbranded even on Brevo's free
+  tier (300 emails/day). Brevo's own Campaigns UI appends a *"Sent with
+  Brevo"* footer until you upgrade to a paid plan.
+- **You own your data.** Contacts, groups, send history, opens, clicks,
+  unsubscribes — all stored in your own Postgres. Nothing locked behind
+  Brevo's dashboard.
+- **Your domain on the unsubscribe link.** Self-hosted `/unsubscribe`
+  handler means recipients see `unsubscribe.yourdomain.com`, not Brevo's
+  click-tracker domain.
+- **Real engagement counts.** Click events from Gmail's link-prefetch
+  scanner are detected and filtered, so your open/click numbers track real
+  humans instead of mailbox-provider bots.
+- **MIT licensed, no SaaS subscription.** Bring your own Brevo API key,
+  run it on your own machine or VPS, share with your team.
+
+> **Brevo's free plan is shared across transactional and marketing sends.**
+> If you're using Brevo for both password-reset emails *and* Posty
+> campaigns, both count against the same 300/day bucket. For larger lists,
+> upgrade Brevo (you still don't need a paid plan for the branding-removal
+> feature — Posty handles that side regardless).
+
+---
+
 ## Quick start (local dev)
 
 ```bash

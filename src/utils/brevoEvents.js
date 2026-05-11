@@ -4,7 +4,10 @@
 
 const POSITIVE = new Set([
   'delivered',
-  'opened', 'open', 'unique_opened', 'proxy_open',
+  // Brevo emits a small zoo of open variants depending on the mailbox provider:
+  // `opened` = standard pixel load, `unique_opened` = first open per recipient,
+  // `proxy_open` / `loadedbyproxy` = Apple Mail Privacy or Outlook image proxy.
+  'opened', 'open', 'unique_opened', 'proxy_open', 'loadedbyproxy',
   'click', 'clicked', 'unique_clicked',
 ]);
 
@@ -26,6 +29,7 @@ const LABELS = {
   open: 'Opened',
   unique_opened: 'Opened',
   proxy_open: 'Opened',
+  loadedbyproxy: 'Opened',
   click: 'Clicked',
   clicked: 'Clicked',
   unique_clicked: 'Clicked',
