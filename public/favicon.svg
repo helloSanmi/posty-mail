@@ -1,6 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 82 80" width="82" height="80" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-labelledby="title desc">
 <title id="title">Posty logomark</title>
 <desc id="desc">A warm abstract P-shaped carrier mark for Posty.</desc>
 
-<path d="M12 0 H54 C71.2 0 82 10.8 82 26 C82 42.4 68.7 52.5 51.3 52.5 H30 V68 C30 74.6 24.6 80 18 80 H0 V12 C0 5.4 5.4 0 12 0 Z M23.0 27.0 C33.5 27.6 43.7 16.3 61.0 17.2 C67.5 17.5 69.8 20.7 65.6 25.3 C55.7 36.4 37.7 40.0 23.0 34.0 C17.8 31.9 17.2 27.8 23.0 27.0 Z" fill="#2F66A3" fill-rule="evenodd"/>
+<!--
+  Favicon variant: same path as docs/posty-mark.svg, but centered inside a
+  120×120 square with ~19px of padding so the mark doesn't crash into the
+  edges of the browser tab. The in-app .brand-mark uses posty-mark.svg
+  which has no padding because it sits flush against a sidebar context.
+-->
+<g transform="translate(19 20)">
+  <path d="M12 0 H54 C71.2 0 82 10.8 82 26 C82 42.4 68.7 52.5 51.3 52.5 H30 V68 C30 74.6 24.6 80 18 80 H0 V12 C0 5.4 5.4 0 12 0 Z M23.0 27.0 C33.5 27.6 43.7 16.3 61.0 17.2 C67.5 17.5 69.8 20.7 65.6 25.3 C55.7 36.4 37.7 40.0 23.0 34.0 C17.8 31.9 17.2 27.8 23.0 27.0 Z" fill="#2F66A3" fill-rule="evenodd"/>
+</g>
 </svg>
