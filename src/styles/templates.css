@@ -301,9 +301,12 @@
   display: flex;
   gap: 12px;
 }
-/* Optional click-through URL input — appears only when picking to insert
-   (not when replacing an existing img's src). Setting a URL wraps the
-   inserted <img> in an <a href> at insert time. */
+/* Insert-mode-only block: optional click-through URL + image-size choice.
+   Hidden entirely when picking to replace an existing img's src. */
+.logo-picker-insert-opts {
+  display: grid;
+  gap: 12px;
+}
 .logo-picker-link {
   display: grid;
   gap: 4px;
@@ -315,6 +318,9 @@
   gap: 6px;
 }
 .logo-picker-link small { font-size: 0.78rem; }
+.logo-picker-size { display: grid; gap: 6px; }
+.logo-picker-size-label { font-weight: 500; }
+.logo-picker-size-control { width: max-content; }
 .upload-button {
   align-items: center;
   background: var(--blue);

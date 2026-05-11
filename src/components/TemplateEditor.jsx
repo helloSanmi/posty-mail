@@ -70,17 +70,31 @@ export function TemplateEditor({
       setTemplate({ ...template, html: next });
       notify?.('Image replaced');
     } else {
-      // Image-banner / CTA pattern: when the picker collected a click-through
-      // URL, wrap the <img> in an <a> so the whole image becomes a clickable
-      // link. rel="noopener noreferrer" matches the sanitizer's default for
-      // anchors. Otherwise inserts a plain image as before.
-      const img = `<img src="${asset.url}" alt="${escapeAttr(asset.fileName || 'image')}" style="max-width:140px;display:block;margin:0 auto 24px;border:0;">`;
+      // Two sizing intents from the picker:
+      // - 'banner': full-width responsive (max-width:600px;width:100%) —
+      //   Canva / Figma marketing banner that fills the email body.
+      // - 'logo' (default): centered 140px — header/footer logo.
+      // When `linkUrl` is set, wrap the <img> in an <a> so the whole image
+      // is clickable (banner anchor uses display:block; logo anchor uses
+      // inline-block so it still centers via the parent's text-align).
+      const banner = asset.sizeMode === 'banner';
+      const imgStyle = banner
+        ? 'display:block;max-width:600px;width:100%;height:auto;margin:0 auto 24px;border:0;'
+        : 'max-width:140px;display:block;margin:0 auto 24px;border:0;';
+      const img = `<img src="${asset.url}" alt="${escapeAttr(asset.fileName || 'image')}" style="${imgStyle}">`;
       const linkUrl = asset.linkUrl?.trim();
-      const tag = linkUrl
-        ? `<a href="${escapeAttr(linkUrl)}" rel="noopener noreferrer" target="_blank" style="display:inline-block;text-decoration:none;">${img}</a>`
-        : img;
+      let tag;
+      if (linkUrl) {
+        const anchorStyle = banner
+          ? 'display:block;text-decoration:none;'
+          : 'display:inline-block;text-decoration:none;';
+        tag = `<a href="${escapeAttr(linkUrl)}" rel="noopener noreferrer" target="_blank" style="${anchorStyle}">${img}</a>`;
+      } else {
+        tag = img;
+      }
       insertAtCursor(tag);
-      notify?.(linkUrl ? 'Image inserted (clickable)' : 'Image inserted');
+      const label = banner ? 'Banner inserted' : 'Image inserted';
+      notify?.(linkUrl ? `${label} (clickable)` : label);
     }
 
     setPicker(null);

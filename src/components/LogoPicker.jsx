@@ -22,6 +22,11 @@ export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
   // (the legacy behavior). Common values: campaign CTA URL, {{unsubscribeUrl}}
   // merge tag, etc.
   const [linkUrl, setLinkUrl] = useState('');
+  // Image sizing intent: 'logo' (140px centered — the original behavior,
+  // good for header/footer logos) or 'banner' (full-width responsive up to
+  // 600px — good for Canva/Figma marketing banners that occupy the whole
+  // email body).
+  const [sizeMode, setSizeMode] = useState('logo');
   const fileInputRef = useRef(null);
 
   // Fetch once when the picker opens. Deps deliberately empty — this component
@@ -66,7 +71,7 @@ export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
       try {
         const result = await uploadLogoAsset({ fileName: file.name, dataUrl: reader.result });
         setAssets((prev) => [result, ...prev]);
-        onSelect({ ...result, linkUrl: linkUrl.trim() || null });
+        onSelect({ ...result, linkUrl: linkUrl.trim() || null, sizeMode });
         notify?.('Logo uploaded');
       } catch (requestError) {
         notify?.(requestError.response?.data?.error || 'Upload failed', 'error');
@@ -79,7 +84,7 @@ export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
   }
 
   function handlePickExisting(asset) {
-    onSelect({ ...asset, linkUrl: linkUrl.trim() || null });
+    onSelect({ ...asset, linkUrl: linkUrl.trim() || null, sizeMode });
   }
 
   function handleDelete(asset, event) {
@@ -130,20 +135,44 @@ export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
         </div>
 
         {mode === 'insert' && (
-          <label className="logo-picker-link">
-            <span>
-              <Link2 size={13} aria-hidden="true" /> Click-through URL <span className="muted">(optional)</span>
-            </span>
-            <input
-              type="text"
-              value={linkUrl}
-              onChange={(event) => setLinkUrl(event.target.value)}
-              placeholder="https://example.com/signup  or  {{unsubscribeUrl}}"
-            />
-            <small className="muted">
-              When set, the inserted image becomes a clickable link. Leave blank for a plain image.
-            </small>
-          </label>
+          <div className="logo-picker-insert-opts">
+            <label className="logo-picker-link">
+              <span>
+                <Link2 size={13} aria-hidden="true" /> Click-through URL <span className="muted">(optional)</span>
+              </span>
+              <input
+                type="text"
+                value={linkUrl}
+                onChange={(event) => setLinkUrl(event.target.value)}
+                placeholder="https://example.com/signup  or  {{unsubscribeUrl}}"
+              />
+              <small className="muted">
+                When set, the inserted image becomes a clickable link. Leave blank for a plain image.
+              </small>
+            </label>
+
+            <div className="logo-picker-size">
+              <span className="logo-picker-size-label">Image size</span>
+              <div className="segmented-control logo-picker-size-control">
+                <button
+                  type="button"
+                  className={sizeMode === 'logo' ? 'active' : ''}
+                  onClick={() => setSizeMode('logo')}
+                  title="Centered, 140px wide — good for header/footer logos"
+                >
+                  Logo
+                </button>
+                <button
+                  type="button"
+                  className={sizeMode === 'banner' ? 'active' : ''}
+                  onClick={() => setSizeMode('banner')}
+                  title="Full-width responsive (up to 600px) — good for marketing banners"
+                >
+                  Full-width banner
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {error ? (
