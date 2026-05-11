@@ -118,11 +118,10 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
           ? new Set(result.hiddenBuiltins)
           : new Set([...hiddenBuiltins, templateId]);
         setHiddenBuiltins(next);
-        notify('Template hidden');
       } else {
         setSavedTemplates((items) => items.filter((item) => item.id !== templateId));
-        notify('Template deleted');
       }
+      notify('Template deleted');
       if (template.id === templateId) {
         // Pick the first still-visible template as the new selection.
         const stillVisibleBuiltins = defaultTemplates.filter(
@@ -217,26 +216,19 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
           )}
         </section>
       </section>
-      {deleteTarget && (() => {
-        const isBuiltin = !deleteTarget.id.startsWith('custom-');
-        return (
-          <ConfirmDialog
-            title={isBuiltin
-              ? `Hide "${deleteTarget.name}" from this list?`
-              : `Delete "${deleteTarget.name || 'Untitled template'}"?`}
-            message={isBuiltin
-              ? 'Built-in templates ship with the app — hiding it here just removes it from your dropdown. Campaigns already using it keep working.'
-              : 'This removes the template from this app. Campaigns already sent are not changed.'}
-            confirmLabel={isBuiltin ? 'Hide' : 'Delete'}
-            confirmVariant="danger"
-            onCancel={() => setDeleteTarget(null)}
-            onConfirm={async () => {
-              await removeTemplate(deleteTarget.id);
-              setDeleteTarget(null);
-            }}
-          />
-        );
-      })()}
+      {deleteTarget && (
+        <ConfirmDialog
+          title={`Delete "${deleteTarget.name || 'Untitled template'}"?`}
+          message="This removes the template from your list. Campaigns already sent are not changed."
+          confirmLabel="Delete"
+          confirmVariant="danger"
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={async () => {
+            await removeTemplate(deleteTarget.id);
+            setDeleteTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 }
