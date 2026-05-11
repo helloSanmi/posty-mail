@@ -4,3 +4,11 @@ dist
 .DS_Store
 coverage
 npm-debug.log*
+
+# User-uploaded assets — these belong on the runtime filesystem, not in git.
+# Keep the directory itself via .gitkeep so a fresh clone has the path that
+# the upload route + express.static expect.
+backend/uploads/**
+!backend/uploads/
+!backend/uploads/**/
+!backend/uploads/**/.gitkeep
