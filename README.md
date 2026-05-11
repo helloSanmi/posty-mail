@@ -1,4 +1,6 @@
-# Posty
+<p align="left">
+  <img src="docs/posty-logo.png" alt="Posty" height="56">
+</p>
 
 > Send a little something.
 

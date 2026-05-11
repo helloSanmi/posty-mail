@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LogOut, PanelLeft, Sparkles, X } from 'lucide-react';
+import { LogOut, PanelLeft, X } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { navItems, pageTitles } from '../data/navigation';
 import { useAuth } from '../auth/AuthContext';
@@ -33,9 +33,7 @@ export function AppShell({ children }) {
         aria-label="Primary navigation"
       >
         <div className="brand">
-          <div className="brand-mark" aria-hidden="true">
-            <Sparkles size={18} />
-          </div>
+          <img src="/posty-mark.svg" alt="" className="brand-mark" aria-hidden="true" />
           <div>
             <strong>Posty</strong>
             <span>Send a little something.</span>

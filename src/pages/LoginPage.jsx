@@ -1,6 +1,5 @@
 import { useId, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -117,7 +116,7 @@ export function LoginPage() {
     <div className="auth-shell">
       <div className="auth-card surface">
         <div className="auth-brand">
-          <div className="brand-mark" aria-hidden="true"><Sparkles size={20} /></div>
+          <img src="/posty-mark.svg" alt="" className="brand-mark" aria-hidden="true" />
           <div>
             <strong>Posty</strong>
             <span>{heading}</span>

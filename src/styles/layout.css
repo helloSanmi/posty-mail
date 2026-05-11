@@ -44,7 +44,10 @@
   padding-top: 14px;
 }
 
-.brand-mark, .contact-avatar, .integration-icon {
+/* `.brand-mark` is now the Posty logomark SVG itself — no background tile,
+   no centering grid, just a fixed-size image. `.contact-avatar` and
+   `.integration-icon` keep the tile look because they wrap small icons. */
+.contact-avatar, .integration-icon {
   background: #edf4ff;
   border-radius: 10px;
   color: var(--blue);
@@ -52,6 +55,12 @@
   flex-shrink: 0;
   height: 38px;
   place-items: center;
+  width: 38px;
+}
+.brand-mark {
+  display: block;
+  flex-shrink: 0;
+  height: 38px;
   width: 38px;
 }
 
