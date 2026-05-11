@@ -410,7 +410,20 @@
 }
 .settings-count { flex-shrink: 0; }
 
-/* Sender identity card — kept to two fields + a save button. */
+/* Sender identity card — collapsed read-only view by default; Edit reveals
+   the two-field form below. */
+.sender-view {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.sender-view-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .sender-form-grid {
   display: grid;
   gap: 12px;
@@ -418,6 +431,7 @@
 }
 .sender-actions {
   display: flex;
+  gap: 8px;
   justify-content: flex-end;
 }
 @media (max-width: 640px) {

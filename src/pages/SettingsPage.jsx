@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { AtSign, CheckCircle2, Key, MailX, PlugZap, RotateCcw, ShieldOff } from 'lucide-react';
+import { AtSign, CheckCircle2, Key, MailX, Pencil, PlugZap, RotateCcw, ShieldOff } from 'lucide-react';
 import {
   addUnsubscribe,
   getBounceSync,
@@ -34,6 +34,8 @@ export function SettingsPage({ notify }) {
   const [senderSource, setSenderSource] = useState(null); // 'database' | 'env' | 'default'
   const [verifiedSenders, setVerifiedSenders] = useState([]);
   const [senderSaving, setSenderSaving] = useState(false);
+  // Card is read-only by default. Edit reveals the form; Cancel reverts.
+  const [senderEditing, setSenderEditing] = useState(false);
   const webhookId = useId();
   const unsubId = useId();
   const bounceSyncId = useId();
@@ -79,12 +81,22 @@ export function SettingsPage({ notify }) {
       });
       setSenderEffective({ email: saved.email, name: saved.name });
       setSenderSource('database');
+      setSenderEditing(false);
       notify('Sender updated — applies to next send');
     } catch (error) {
       notify(error.response?.data?.error || 'Could not save sender', 'error');
     } finally {
       setSenderSaving(false);
     }
+  }
+
+  function cancelEditSender() {
+    // Revert the form to whatever sends are currently using.
+    setSenderForm({
+      email: senderEffective?.email || '',
+      name: senderEffective?.name || '',
+    });
+    setSenderEditing(false);
   }
 
   function pickVerifiedSender(value) {
@@ -210,62 +222,80 @@ export function SettingsPage({ notify }) {
                     <h3><AtSign size={16} aria-hidden="true" /> Sender</h3>
                     <p className="muted">The &quot;From&quot; name and address on every send.</p>
                   </div>
-                  {senderSource === 'database' && (
+                  {senderSource === 'database' && !senderEditing && (
                     <span className="pill green">Saved</span>
                   )}
                 </div>
 
-                <div className="sender-form-grid">
-                  <label htmlFor={senderNameId}>
-                    From name
-                    <input
-                      id={senderNameId}
-                      value={senderForm.name}
-                      onChange={(event) => setSenderForm({ ...senderForm, name: event.target.value })}
-                      placeholder="Nest Analytics"
-                    />
-                  </label>
-                  <label htmlFor={senderEmailId}>
-                    From email
-                    {verifiedSenders.length > 0 ? (
-                      <select
-                        id={senderEmailId}
-                        value={senderForm.email}
-                        onChange={(event) => pickVerifiedSender(event.target.value)}
-                      >
-                        {!verifiedSenders.find((s) => s.email === senderForm.email) && (
-                          <option value={senderForm.email}>
-                            {senderForm.email || 'Pick a verified sender…'}
-                          </option>
+                {!senderEditing ? (
+                  <div className="sender-view">
+                    <span className="sender-view-line">
+                      {senderEffective?.name
+                        ? <><strong>{senderEffective.name}</strong> <span className="muted">&lt;{senderEffective.email}&gt;</span></>
+                        : <span className="muted">Not configured yet</span>}
+                    </span>
+                    <button type="button" onClick={() => setSenderEditing(true)}>
+                      <Pencil size={13} aria-hidden="true" /> Edit
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="sender-form-grid">
+                      <label htmlFor={senderNameId}>
+                        From name
+                        <input
+                          id={senderNameId}
+                          value={senderForm.name}
+                          onChange={(event) => setSenderForm({ ...senderForm, name: event.target.value })}
+                          placeholder="Nest Analytics"
+                        />
+                      </label>
+                      <label htmlFor={senderEmailId}>
+                        From email
+                        {verifiedSenders.length > 0 ? (
+                          <select
+                            id={senderEmailId}
+                            value={senderForm.email}
+                            onChange={(event) => pickVerifiedSender(event.target.value)}
+                          >
+                            {!verifiedSenders.find((s) => s.email === senderForm.email) && (
+                              <option value={senderForm.email}>
+                                {senderForm.email || 'Pick a verified sender…'}
+                              </option>
+                            )}
+                            {verifiedSenders.map((s) => (
+                              <option key={s.email} value={s.email} disabled={!s.active}>
+                                {s.email}{!s.active ? ' (not verified)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            id={senderEmailId}
+                            type="email"
+                            value={senderForm.email}
+                            onChange={(event) => setSenderForm({ ...senderForm, email: event.target.value })}
+                            placeholder="hello@yourdomain.com"
+                          />
                         )}
-                        {verifiedSenders.map((s) => (
-                          <option key={s.email} value={s.email} disabled={!s.active}>
-                            {s.email}{!s.active ? ' (not verified)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        id={senderEmailId}
-                        type="email"
-                        value={senderForm.email}
-                        onChange={(event) => setSenderForm({ ...senderForm, email: event.target.value })}
-                        placeholder="hello@yourdomain.com"
-                      />
-                    )}
-                  </label>
-                </div>
+                      </label>
+                    </div>
 
-                <div className="sender-actions">
-                  <button
-                    type="button"
-                    className="primary"
-                    onClick={saveSender}
-                    disabled={!senderCanSave || senderSaving}
-                  >
-                    {senderSaving ? 'Saving…' : 'Save'}
-                  </button>
-                </div>
+                    <div className="sender-actions">
+                      <button type="button" onClick={cancelEditSender} disabled={senderSaving}>
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="primary"
+                        onClick={saveSender}
+                        disabled={!senderCanSave || senderSaving}
+                      >
+                        {senderSaving ? 'Saving…' : 'Save'}
+                      </button>
+                    </div>
+                  </>
+                )}
               </section>
 
               <section className="surface settings-card">
