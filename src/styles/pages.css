@@ -841,6 +841,19 @@
   top: 100%;
   z-index: 30;
 }
+/* Portal-rendered variant. The contacts list has `overflow: auto` to keep
+   the inner table scrollable, which clips any absolutely-positioned popup
+   that extends past its bottom edge. Rendering this variant into
+   document.body with `position: fixed` (coords supplied inline by JS,
+   anchored to the trigger's bounding rect) sidesteps that clip entirely.
+   transform: translateX(-100%) aligns the popup's right edge with the
+   inline `left` coord, matching the old `right: 0` behavior. */
+.segment-menu-panel--floating {
+  margin-top: 0;
+  position: fixed;
+  right: auto;
+  transform: translateX(-100%);
+}
 .segment-menu-section {
   display: grid;
   gap: 6px;

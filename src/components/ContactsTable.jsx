@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Download, FolderMinus, FolderPlus, Pencil, Trash2, X } from 'lucide-react';
 import { countryName } from '../data/countries';
 import { complianceIssues, validateContacts } from '../../shared/campaignUtils.js';
@@ -518,15 +519,51 @@ function ContactReadRow({
   const issues = complianceIssues(contact, { requireOptIn: true, gdprMode: true });
   const fullName = [contact.firstname, contact.lastname].filter(Boolean).join(' ');
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
-  const menuRef = useRef(null);
+  // anchorRef points at the trigger button; popupRef at the popup element
+  // (rendered in a portal). Outside-click closes when both are missed.
+  const anchorRef = useRef(null);
+  const popupRef = useRef(null);
+  // Popup coordinates — viewport-relative because we render via portal into
+  // document.body, escaping the contact-list's overflow:auto clip. Without
+  // this the popup was getting sliced off at the bottom of the scroll port
+  // whenever the trigger row sat near the bottom of the visible list.
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     if (!groupMenuOpen) return undefined;
     function onOutside(event) {
-      if (!menuRef.current?.contains(event.target)) setGroupMenuOpen(false);
+      const inAnchor = anchorRef.current?.contains(event.target);
+      const inPopup = popupRef.current?.contains(event.target);
+      if (!inAnchor && !inPopup) setGroupMenuOpen(false);
     }
     document.addEventListener('mousedown', onOutside);
     return () => document.removeEventListener('mousedown', onOutside);
+  }, [groupMenuOpen]);
+
+  // Re-measure the trigger and place the popup on open + on scroll/resize.
+  // useLayoutEffect avoids a paint with the popup at (0,0) before the
+  // measurement lands. The popup is positioned by its top-right corner so
+  // it visually matches the old absolute-positioned layout (right: 0 of the
+  // trigger, top: just below the trigger).
+  useLayoutEffect(() => {
+    if (!groupMenuOpen) return undefined;
+    function place() {
+      const rect = anchorRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPopupPos({
+        top: rect.bottom + 6,
+        // viewport-relative right edge of the trigger; the popup's own
+        // styling pulls it left via transform so its right edge lines up.
+        left: rect.right,
+      });
+    }
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
   }, [groupMenuOpen]);
 
   // Render every group in the popup so the user always sees their full
@@ -573,66 +610,71 @@ function ContactReadRow({
             <Check size={14} aria-hidden="true" />
           </button>
         )}
-        <div className="segment-menu" ref={menuRef}>
-          <button
-            type="button"
-            className="row-action"
-            onClick={() => setGroupMenuOpen((value) => !value)}
-            title="Move to group"
-            aria-label="Move to group"
-            aria-expanded={groupMenuOpen}
-            aria-haspopup="menu"
-            data-tooltip="Move to group"
+        <button
+          ref={anchorRef}
+          type="button"
+          className="row-action"
+          onClick={() => setGroupMenuOpen((value) => !value)}
+          title="Move to group"
+          aria-label="Move to group"
+          aria-expanded={groupMenuOpen}
+          aria-haspopup="menu"
+          data-tooltip="Move to group"
+        >
+          <FolderPlus size={14} aria-hidden="true" />
+        </button>
+        {groupMenuOpen && createPortal(
+          <div
+            ref={popupRef}
+            className="segment-menu-panel segment-menu-panel--floating"
+            role="menu"
+            style={{ top: popupPos.top, left: popupPos.left }}
           >
-            <FolderPlus size={14} aria-hidden="true" />
-          </button>
-          {groupMenuOpen && (
-            <div className="segment-menu-panel" role="menu">
-              {groups.length === 0 ? (
-                <p className="muted segment-menu-hint">
-                  No groups yet. Create one above.
-                </p>
-              ) : (
-                <div className="segment-menu-section">
-                  <span className="segment-menu-heading">Move to</span>
-                  {groups.map((group) => {
-                    const isCurrent = groupContainsContact(group);
-                    return (
-                      <button
-                        key={group.id}
-                        type="button"
-                        className={`segment-menu-apply${isCurrent ? ' is-current' : ''}`}
-                        disabled={isCurrent}
-                        aria-label={
-                          isCurrent
-                            ? `${group.name} — current group`
-                            : `Move to ${group.name}`
-                        }
-                        onClick={() => {
-                          if (isCurrent) return;
-                          onAddToGroup?.(group);
-                          setGroupMenuOpen(false);
-                        }}
-                      >
-                        <span className="segment-menu-apply-name">{group.name}</span>
-                        <span className="muted">
-                          {' · '}
-                          {(group.contactEmails || []).length}
-                          {isCurrent ? ' · current' : ''}
-                        </span>
-                      </button>
-                    );
-                  })}
-                  {!hasAnyOtherGroup && (
-                    <p className="muted segment-menu-hint">
-                      Create another group to move this contact.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            {groups.length === 0 ? (
+              <p className="muted segment-menu-hint">
+                No groups yet. Create one above.
+              </p>
+            ) : (
+              <div className="segment-menu-section">
+                <span className="segment-menu-heading">Move to</span>
+                {groups.map((group) => {
+                  const isCurrent = groupContainsContact(group);
+                  return (
+                    <button
+                      key={group.id}
+                      type="button"
+                      className={`segment-menu-apply${isCurrent ? ' is-current' : ''}`}
+                      disabled={isCurrent}
+                      aria-label={
+                        isCurrent
+                          ? `${group.name} — current group`
+                          : `Move to ${group.name}`
+                      }
+                      onClick={() => {
+                        if (isCurrent) return;
+                        onAddToGroup?.(group);
+                        setGroupMenuOpen(false);
+                      }}
+                    >
+                      <span className="segment-menu-apply-name">{group.name}</span>
+                      <span className="muted">
+                        {' · '}
+                        {(group.contactEmails || []).length}
+                        {isCurrent ? ' · current' : ''}
+                      </span>
+                    </button>
+                  );
+                })}
+                {!hasAnyOtherGroup && (
+                  <p className="muted segment-menu-hint">
+                    Create another group to move this contact.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>,
+          document.body,
+        )}
         <button
           type="button"
           className="row-action"
