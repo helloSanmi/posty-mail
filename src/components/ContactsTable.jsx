@@ -529,9 +529,14 @@ function ContactReadRow({
     return () => document.removeEventListener('mousedown', onOutside);
   }, [groupMenuOpen]);
 
-  const availableGroups = groups.filter(
-    (group) => !(group.contactEmails || []).includes(contact.email),
-  );
+  // Render every group in the popup so the user always sees their full
+  // inventory, but mark the one the contact is already in as the current
+  // home (disabled + "current" tag). Showing only "available" groups was
+  // confusing when a user has just two groups — the popup would render a
+  // single row and look truncated.
+  const groupContainsContact = (group) =>
+    (group.contactEmails || []).includes(contact.email);
+  const hasAnyOtherGroup = groups.some((group) => !groupContainsContact(group));
 
   return (
     <div className={`contact-row${selected ? ' selected' : ''}`}>
@@ -583,29 +588,46 @@ function ContactReadRow({
           </button>
           {groupMenuOpen && (
             <div className="segment-menu-panel" role="menu">
-              {availableGroups.length === 0 ? (
+              {groups.length === 0 ? (
                 <p className="muted segment-menu-hint">
-                  {groups.length === 0
-                    ? 'No groups yet. Create one above.'
-                    : 'No other group to move to. Create another first.'}
+                  No groups yet. Create one above.
                 </p>
               ) : (
                 <div className="segment-menu-section">
                   <span className="segment-menu-heading">Move to</span>
-                  {availableGroups.map((group) => (
-                    <button
-                      key={group.id}
-                      type="button"
-                      className="segment-menu-apply"
-                      onClick={() => {
-                        onAddToGroup?.(group);
-                        setGroupMenuOpen(false);
-                      }}
-                    >
-                      {group.name}
-                      <span className="muted"> · {(group.contactEmails || []).length}</span>
-                    </button>
-                  ))}
+                  {groups.map((group) => {
+                    const isCurrent = groupContainsContact(group);
+                    return (
+                      <button
+                        key={group.id}
+                        type="button"
+                        className={`segment-menu-apply${isCurrent ? ' is-current' : ''}`}
+                        disabled={isCurrent}
+                        aria-label={
+                          isCurrent
+                            ? `${group.name} — current group`
+                            : `Move to ${group.name}`
+                        }
+                        onClick={() => {
+                          if (isCurrent) return;
+                          onAddToGroup?.(group);
+                          setGroupMenuOpen(false);
+                        }}
+                      >
+                        <span className="segment-menu-apply-name">{group.name}</span>
+                        <span className="muted">
+                          {' · '}
+                          {(group.contactEmails || []).length}
+                          {isCurrent ? ' · current' : ''}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {!hasAnyOtherGroup && (
+                    <p className="muted segment-menu-hint">
+                      Create another group to move this contact.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

@@ -872,6 +872,19 @@
 }
 .segment-menu-apply:hover { background: #f1f5fb; }
 .segment-menu-apply.muted { color: var(--muted); font-size: 0.85rem; }
+/* Disabled "current group" row in the Move-to popup. Visually present so
+   the user sees their full group inventory at a glance, but visibly
+   non-interactive so they understand why it can't be clicked. */
+.segment-menu-apply.is-current,
+.segment-menu-apply.is-current:hover {
+  background: transparent;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.segment-menu-apply.is-current .segment-menu-apply-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--line);
+}
 .segment-menu-row .text-button { padding: 4px; }
 .segment-menu-hint { font-size: 0.78rem; margin: 4px 0 0; }
 
