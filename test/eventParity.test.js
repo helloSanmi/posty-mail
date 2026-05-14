@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const SOURCE = fs.readFileSync(
-  path.resolve(import.meta.dirname, '../backend/routes/campaigns.js'),
+  path.resolve(import.meta.dirname, '../backend/routes/campaigns/event-classifiers.js'),
   'utf8',
 );
 const UI_SOURCE = fs.readFileSync(
@@ -29,10 +29,12 @@ const UI_SOURCE = fs.readFileSync(
 );
 
 function extractSet(name, source) {
-  const re = new RegExp(`const ${name}\\s*=\\s*new Set\\(\\[([^\\]]+)\\]\\)`);
+  // Match both `const NAME = new Set([...])` and `export const NAME = new
+  // Set([...])`. Spans multiple lines because event-classifiers.js wraps
+  // the literal list across several lines for readability.
+  const re = new RegExp(`(?:export\\s+)?const ${name}\\s*=\\s*new Set\\(\\[([\\s\\S]*?)\\]\\)`);
   const match = source.match(re);
   if (!match) return null;
-  // Pull out quoted strings from the captured body.
   const literals = match[1].match(/'[^']+'/g) || [];
   return new Set(literals.map((s) => s.slice(1, -1)));
 }
