@@ -541,21 +541,31 @@ function ContactReadRow({
   }, [groupMenuOpen]);
 
   // Re-measure the trigger and place the popup on open + on scroll/resize.
-  // useLayoutEffect avoids a paint with the popup at (0,0) before the
-  // measurement lands. The popup is positioned by its top-right corner so
-  // it visually matches the old absolute-positioned layout (right: 0 of the
-  // trigger, top: just below the trigger).
+  // useLayoutEffect runs synchronously after DOM mutation, before paint, so
+  // the user sees the popup at the correct position in the same frame.
+  //
+  // Placement strategy: try below the trigger. If the popup's height won't
+  // fit between the trigger and the viewport bottom, flip and place it
+  // ABOVE the trigger instead. Prevents the last group rows from sitting
+  // off-screen when the trigger row is near the bottom of the viewport.
+  // The popup is positioned by its right edge (CSS `translateX(-100%)`)
+  // so it visually matches the old absolute layout.
   useLayoutEffect(() => {
     if (!groupMenuOpen) return undefined;
     function place() {
-      const rect = anchorRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setPopupPos({
-        top: rect.bottom + 6,
-        // viewport-relative right edge of the trigger; the popup's own
-        // styling pulls it left via transform so its right edge lines up.
-        left: rect.right,
-      });
+      const triggerRect = anchorRef.current?.getBoundingClientRect();
+      if (!triggerRect) return;
+      // Height is determined by content, so we can read it regardless of
+      // where the popup is currently positioned (the previous setPopupPos
+      // may have stuck it temporarily at 0,0).
+      const popupHeight = popupRef.current?.offsetHeight || 0;
+      const margin = 8;
+      const spaceBelow = window.innerHeight - triggerRect.bottom - margin;
+      const fitsBelow = popupHeight === 0 || popupHeight <= spaceBelow;
+      const top = fitsBelow
+        ? triggerRect.bottom + 6
+        : Math.max(margin, triggerRect.top - popupHeight - 6);
+      setPopupPos({ top, left: triggerRect.right });
     }
     place();
     window.addEventListener('scroll', place, true);
