@@ -67,7 +67,16 @@ const CHECKS = [
 /**
  * @param {object} input
  * @param {{ subject?: string, html?: string, text?: string, logoUrl?: string }} input.template
- * @returns {{ checks: Array<{code:string, severity:'error'|'warn'|'info', message:string, hint?:string, meta?:object}>, ok: boolean }}
+ * @returns {{
+ *   checks: Array<{
+ *     code: string,
+ *     severity: 'error' | 'warn' | 'info',
+ *     message: string,
+ *     hint?: string,
+ *     meta?: object,
+ *   }>,
+ *   ok: boolean,
+ * }}
  */
 export function runSendChecks(input) {
   const template = input?.template || {};

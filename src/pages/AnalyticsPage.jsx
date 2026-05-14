@@ -335,7 +335,8 @@ export function AnalyticsPage() {
           <SkeletonCard />
         ) : realEvents.length === 0 ? (
           <p className="empty-state">
-            No webhook events received. Configure your Brevo webhook in Settings to point at <code>/api/webhooks/brevo</code>.
+            No webhook events received. Configure your Brevo webhook in
+            Settings to point at <code>/api/webhooks/brevo</code>.
           </p>
         ) : (
           <ul className="reports-events">

@@ -305,7 +305,10 @@ export function SegmentsPage({ notify }) {
 }
 
 // Composer body. Split out so the parent stays readable.
-function Composer({ draft, setDraft, updateFilter, updateRule, addRule, removeRule, groups, toggleGroup, onSave, onDelete, saving }) {
+function Composer({
+  draft, setDraft, updateFilter, updateRule, addRule, removeRule,
+  groups, toggleGroup, onSave, onDelete, saving,
+}) {
   const filter = draft.filter;
   return (
     <div className="composer-body">

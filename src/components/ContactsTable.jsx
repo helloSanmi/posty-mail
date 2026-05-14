@@ -116,7 +116,8 @@ export function ContactsTable({
   // `page` is already inside `params` (rebuilt by the useMemo above) for the
   // all-contacts case, but the group-view branch reads `page` directly. So
   // include it explicitly so changing pages while viewing a group re-slices.
-  useEffect(() => { refresh(); }, [params, page, viewingGroupId, groupsRefreshTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { refresh(); }, [params, page, viewingGroupId, groupsRefreshTick]);
   useEffect(() => {
     getGroups().then(setGroups).catch(() => {});
   }, [groupsRefreshTick]);

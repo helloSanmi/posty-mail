@@ -421,7 +421,9 @@ export function TemplateEditor({
               textareaRef={htmlRef}
             />
             <small className="muted html-field-hint">
-              Tab inserts two spaces. Edits here persist until you change a block in Visual. Brevo wraps every <code>&lt;a href&gt;</code> with click tracking.
+              Tab inserts two spaces. Edits here persist until you change a
+              block in Visual. Brevo wraps every <code>&lt;a href&gt;</code>{' '}
+              with click tracking.
             </small>
           </div>
         </div>

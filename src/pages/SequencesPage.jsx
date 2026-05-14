@@ -239,7 +239,10 @@ export function SequencesPage({ notify }) {
   );
 }
 
-function SequenceComposer({ draft, updateDraft, updateStep, addStep, removeStep, groups, templates, onSave, onDelete, saving }) {
+function SequenceComposer({
+  draft, updateDraft, updateStep, addStep, removeStep,
+  groups, templates, onSave, onDelete, saving,
+}) {
   return (
     <div className="composer-body">
       <div className="composer-name-row">

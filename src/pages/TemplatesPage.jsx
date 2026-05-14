@@ -130,7 +130,9 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
         // Pick the first still-visible template as the new selection.
         const stillVisibleBuiltins = defaultTemplates.filter(
           (t) => !(isBuiltin
-            ? (Array.isArray(result?.hiddenBuiltins) ? new Set(result.hiddenBuiltins) : new Set([...hiddenBuiltins, templateId]))
+            ? (Array.isArray(result?.hiddenBuiltins)
+              ? new Set(result.hiddenBuiltins)
+              : new Set([...hiddenBuiltins, templateId]))
             : hiddenBuiltins
           ).has(t.id),
         );

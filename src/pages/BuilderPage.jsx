@@ -267,7 +267,10 @@ export function BuilderPage(props) {
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
-  }, [form, selectedGroupIds, selectedSegmentIds, variants, testEmail, showAdvanced, template.id, templateChosen, recipientsChosen]);
+  }, [
+    form, selectedGroupIds, selectedSegmentIds, variants, testEmail,
+    showAdvanced, template.id, templateChosen, recipientsChosen,
+  ]);
 
   function requestSchedule() {
     if (!form.name.trim()) {

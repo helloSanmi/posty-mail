@@ -45,6 +45,20 @@ export default [
         caughtErrorsIgnorePattern: '^_',
       }],
       'no-empty': ['warn', { allowEmptyCatch: true }],
+      // Cap line length. 120 was chosen over the strict 100 because email
+      // HTML templates have lots of inline styles where wrapping mid-line
+      // hurts readability. URLs, comments, and template strings are
+      // exempted — those tend to be opaque blobs where forcing a wrap
+      // makes the line WORSE.
+      'max-len': ['warn', {
+        code: 120,
+        tabWidth: 2,
+        ignoreUrls: true,
+        ignoreStrings: true,
+        ignoreTemplateLiterals: true,
+        ignoreRegExpLiterals: true,
+        ignoreComments: false,
+      }],
     },
   },
   {
