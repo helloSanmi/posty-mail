@@ -91,13 +91,18 @@ make it idempotent (safe to re-run).
 
 The transactional API uses `POST /smtp/email`. Webhooks fire to
 `/api/webhooks/brevo`. Event tags follow the pattern
-`['campaign-suite', 'campaign:<uuid>', 'variant:<id>']` so per-campaign
-metrics can fan out from the shared event log.
+`['posty', 'campaign-suite', 'campaign:<uuid>', 'variant:<id>']` so
+per-campaign metrics can fan out from the shared event log.
 
-If you're adding a new event type, update both
-`src/utils/brevoEvents.js` (UI classification) and the matching sets in
-`backend/routes/campaigns.js` (metrics counting). The two should stay in
-lockstep.
+Brevo fires webhooks for every transactional email on the account, not just
+Posty's. We scope incoming events by tag in `backend/lib/eventScope.js`. If
+you add a new outbound tag, update the `POSTY_TAGS` set there too, otherwise
+the webhook handler will silently drop legitimate events.
+
+If you're adding a new event type, update three places (keep them in lockstep):
+- `src/utils/brevoEvents.js` (UI classification)
+- The matching sets in `backend/routes/campaigns.js` (metrics counting)
+- `backend/lib/eventScope.js` if the event needs a new recognized tag
 
 ## Reporting bugs
 

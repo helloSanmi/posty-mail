@@ -19,6 +19,8 @@ import { TemplatesPage } from './pages/TemplatesPage';
 import { BuilderPage } from './pages/BuilderPage';
 import { CampaignsPage } from './pages/CampaignsPage';
 import { CampaignDetailPage } from './pages/CampaignDetailPage';
+import { SegmentsPage } from './pages/SegmentsPage';
+import { SequencesPage } from './pages/SequencesPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminPage } from './pages/AdminPage';
@@ -129,6 +131,8 @@ function ProtectedShell() {
         />
         <Route path="/campaigns" element={<CampaignsPage notify={notify} />} />
         <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
+        <Route path="/segments" element={<SegmentsPage notify={notify} />} />
+        <Route path="/sequences" element={<SequencesPage notify={notify} />} />
         <Route path="/analytics" element={<AnalyticsPage key={refreshTick} />} />
         <Route path="/settings" element={<SettingsPage notify={notify} />} />
         <Route path="/admin" element={<AdminPage notify={notify} />} />

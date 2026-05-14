@@ -1,14 +1,40 @@
 import cron from 'node-cron';
 import { chunkContacts, complianceIssues, renderTemplate } from '../../shared/campaignUtils.js';
 import { sendTransactionalEmail } from './brevoClient.js';
+import { resolveSender } from './sender.js';
+import { isReady, nowInZone, parseLocalTarget } from './sendTime.js';
 import {
   getSendRecord,
   markSendAttempt,
   markSendFailed,
   markSendSkipped,
   markSendSucceeded,
+  prisma,
   unsubscribedEmailSet,
 } from './db.js';
+
+// How long to wait between per-timezone re-checks. 15 minutes is a sweet
+// spot: short enough that recipients don't get the email significantly late,
+// long enough that we don't hammer the DB for a slow-moving campaign.
+const TIMEZONE_RECHECK_MS = 15 * 60 * 1000;
+
+// Read per-contact subscribedCategories preferences for the recipients of a
+// run. Returns a Map<email, Set<categoryId>>. Contacts without an entry mean
+// "preferences never set" — backward compat with legacy contacts means we
+// treat that as "subscribed to all categories" so they keep receiving.
+async function loadCategoryPreferences(emails) {
+  if (!emails.length) return new Map();
+  const rows = await prisma.contact.findMany({
+    where: { email: { in: emails } },
+    select: { email: true, data: true },
+  });
+  const map = new Map();
+  for (const row of rows) {
+    const list = row.data?.subscribedCategories;
+    if (Array.isArray(list)) map.set(row.email, new Set(list));
+  }
+  return map;
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const jobs = new Map();
@@ -57,8 +83,50 @@ export async function runCampaign(campaign, onUpdate) {
   campaign.progress = { sent: 0, failed: 0, skipped: 0, currentBatch: 0, totalBatches: campaign.batches.length };
   await onUpdate?.(campaign);
 
+  // Resolve sender at FIRE time, not at schedule time. If the admin updated
+  // the Sender in Settings between scheduling and now, the new value wins.
+  // If nothing is configured, we fail the whole campaign here instead of
+  // mailing under a dummy address. That's the whole point of refusing to
+  // ship a placeholder.
+  let liveSender = null;
+  try {
+    liveSender = await resolveSender();
+  } catch {
+    // resolveSender already swallows DB errors. Falls through to the null guard.
+  }
+  if (!liveSender) {
+    campaign.status = 'completed_with_errors';
+    campaign.completedAt = new Date().toISOString();
+    campaign.logs.push({
+      level: 'error',
+      message: 'Sender not configured. Set From name + email in Settings, then reschedule.',
+      at: new Date().toISOString(),
+    });
+    await onUpdate?.(campaign);
+    return;
+  }
+
   const unsubscribed = await unsubscribedEmailSet();
   const hasVariants = Array.isArray(campaign.variants) && campaign.variants.length > 0;
+  // Per-template category gating. If the campaign's template carries a
+  // category id, recipients whose preference list excludes that category get
+  // skipped at send time. Contacts with no preference list are treated as
+  // subscribed-to-all (legacy behavior).
+  const templateCategory = String(campaign.template?.category || '').trim() || null;
+  const categoryPrefs = templateCategory
+    ? await loadCategoryPreferences(campaign.contacts.map((c) => c.email))
+    : null;
+
+  // Send-time-per-timezone. When set, the campaign's scheduledAt is treated
+  // as a wall-clock LOCAL time (the digits as-typed, not a UTC instant). For
+  // each contact we compare their current local clock against that target;
+  // contacts whose clock hasn't reached it get deferred and re-checked on a
+  // 15-minute timer until done. Contacts with no stored timezone fall back
+  // to UTC (which often makes them go first since UTC is "ahead" of most
+  // Americas zones).
+  const useRecipientTz = Boolean(campaign.useRecipientTimezone);
+  const localTarget = useRecipientTz ? parseLocalTarget(campaign.scheduledAt) : null;
+  let anyDeferred = false;
 
   for (let index = 0; index < campaign.batches.length; index += 1) {
     const batch = campaign.batches[index];
@@ -81,6 +149,34 @@ export async function runCampaign(campaign, onUpdate) {
           at: new Date().toISOString(),
         });
         continue;
+      }
+
+      // Per-timezone gate. Holds back the send until the contact's local
+      // clock reaches the target. Status is 'pending' (not 'skipped') so
+      // the next run picks them up; we DO NOT write a markSendSkipped row
+      // because that would permanently exclude them.
+      if (useRecipientTz && localTarget) {
+        const zone = contact.timezone || 'UTC';
+        if (isReady(nowInZone(zone), localTarget) === 'later') {
+          anyDeferred = true;
+          continue; // don't increment progress.skipped; revisit next cycle
+        }
+      }
+
+      // Category-preference gate. Only fires when the campaign's template
+      // has a category set AND the contact has explicit preferences that
+      // exclude it. Missing preferences = subscribed to all = no skip.
+      if (templateCategory && categoryPrefs) {
+        const prefs = categoryPrefs.get(contact.email);
+        if (prefs && !prefs.has(templateCategory)) {
+          campaign.progress.skipped += 1;
+          const reason = `Skipped: opted out of "${templateCategory}"`;
+          await markSendSkipped(campaign.id, contact.email, reason);
+          campaign.logs.push({
+            level: 'warn', email: contact.email, message: reason, at: new Date().toISOString(),
+          });
+          continue;
+        }
       }
 
       const issues = complianceIssues(contact, campaign.compliance);
@@ -115,7 +211,7 @@ export async function runCampaign(campaign, onUpdate) {
         const response = await withRetry(() =>
           sendTransactionalEmail({
             contact,
-            sender: campaign.sender,
+            sender: liveSender,
             subject: renderTemplate(template.subject, enriched),
             htmlContent: renderTemplate(template.html, enriched),
             textContent: renderTemplate(template.text, enriched),
@@ -144,6 +240,21 @@ export async function runCampaign(campaign, onUpdate) {
   }
 
   campaign.lastRunAt = new Date().toISOString();
+
+  // Per-timezone re-check. If we deferred any contacts this pass, the
+  // campaign isn't truly done. Stay in 'running' status and re-arm a timer
+  // 15 minutes out so the next batch of timezones gets their turn.
+  if (anyDeferred && useRecipientTz) {
+    campaign.status = 'running';
+    await onUpdate?.(campaign);
+    setTimeout(() => {
+      runCampaign(campaign, onUpdate).catch((error) => {
+        console.error('[scheduler] per-tz re-check failed:', error.message);
+      });
+    }, TIMEZONE_RECHECK_MS);
+    return;
+  }
+
   campaign.status = campaign.schedule?.frequency && campaign.schedule.frequency !== 'once'
     ? 'scheduled'
     : campaign.progress.failed > 0 ? 'completed_with_errors' : 'completed';
@@ -231,20 +342,26 @@ export function createCampaignPayload(body) {
     template: body.template,
     variants,
     compliance: body.compliance || { requireOptIn: true, gdprMode: true },
-    // Sender is resolved by the caller (see /api/campaigns/schedule and
-    // /api/campaigns/test-email) so we don't have to make this whole helper
-    // async. Falls back to env vars when the caller hasn't supplied one. Keeps
-    // legacy code paths and tests working without a DB read.
-    sender: body.sender || {
-      email: process.env.BREVO_SENDER_EMAIL || 'campaigns@example.com',
-      name: process.env.BREVO_SENDER_NAME || 'Campaign Team',
-    },
+    // Sender SNAPSHOT for audit only. Real sends re-resolve at fire time via
+    // runCampaign() so a Settings change between schedule and run takes
+    // effect. If the caller (e.g. /api/campaigns/schedule) didn't supply one,
+    // we fall back to env. We DO NOT inject a dummy placeholder. runCampaign
+    // refuses to send when nothing is configured.
+    sender: body.sender || (
+      process.env.BREVO_SENDER_EMAIL && process.env.BREVO_SENDER_NAME
+        ? { email: process.env.BREVO_SENDER_EMAIL, name: process.env.BREVO_SENDER_NAME }
+        : null
+    ),
     // Default the unsubscribe link to the self-hosted page on PUBLIC_BASE_URL.
     // Falls back to the example.com placeholder only if neither is set, which
     // means the link will be visibly broken. That's intentional, so the dev
     // notices and configures PUBLIC_BASE_URL before sending real campaigns.
     unsubscribeBaseUrl: body.unsubscribeBaseUrl
       || (process.env.PUBLIC_BASE_URL ? `${process.env.PUBLIC_BASE_URL.replace(/\/$/, '')}/unsubscribe` : 'https://example.com/unsubscribe'),
+    // Flag for per-recipient-timezone mode. The runner reads this and
+    // defers contacts whose local clock hasn't reached the target yet,
+    // re-checking on a 15-minute timer until done.
+    useRecipientTimezone: Boolean(body.useRecipientTimezone),
     status: 'scheduled',
     logs: [],
     progress: { sent: 0, failed: 0, skipped: 0, currentBatch: 0, totalBatches: 0 },

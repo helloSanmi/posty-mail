@@ -1,8 +1,11 @@
-import { useId, useMemo, useRef, useState } from 'react';
-import { Copy, Image, Link2, MailMinus, MousePointerClick, RefreshCw, Trash2 } from 'lucide-react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Copy, Image, Link2, MailMinus, Maximize2, Minimize2, MousePointerClick, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { BlockEditor } from './BlockEditor';
+import { CodeArea } from './CodeArea';
 import { EditLinkModal } from './EditLinkModal';
 import { InsertButtonModal } from './InsertButtonModal';
 import { LogoPicker } from './LogoPicker';
+import { formatHtml } from '../utils/formatHtml';
 import { getImagesFromHtml, replaceImageSrc } from '../utils/htmlImages';
 import { getLinksFromHtml, removeLink, replaceLinkAttrs } from '../utils/htmlLinks';
 import { textFromHtml } from '../utils/textFromHtml';
@@ -16,12 +19,40 @@ export function TemplateEditor({
   canDelete,
   onDelete,
   onDuplicate,
+  // Optional list of preference-center categories. When passed, the editor
+  // shows a "Category" picker tied to template.category. Omitted = no picker
+  // (legacy installs / pages that don't care about gating).
+  categories,
 }) {
   // picker = null | { mode: 'insert' } | { mode: 'replace', index: number }
   const [picker, setPicker] = useState(null);
   const [buttonModalOpen, setButtonModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState(null);
+  // Visual vs HTML editor. One visible at a time; the container has a
+  // min-height so switching tabs doesn't shift the page vertically. Both
+  // panes stay mounted (display toggled in CSS) so state survives a switch.
+  const [editorMode, setEditorMode] = useState(
+    Array.isArray(template?.blocks) && template.blocks.length ? 'visual' : 'html'
+  );
   const htmlRef = useRef(null);
+  // Expand the body editor (Visual / HTML stage) to fill the viewport. Lets
+  // the admin focus on the email body without the page chrome around it.
+  const [bodyExpanded, setBodyExpanded] = useState(false);
+
+  // Esc exits fullscreen. Also lock background scroll while expanded.
+  useEffect(() => {
+    if (!bodyExpanded) return undefined;
+    function onKey(event) {
+      if (event.key === 'Escape') setBodyExpanded(false);
+    }
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [bodyExpanded]);
 
   function insertAtCursor(snippet) {
     const textarea = htmlRef.current;
@@ -49,7 +80,7 @@ export function TemplateEditor({
   }
   const nameId = useId();
   const subjectId = useId();
-  const htmlId = useId();
+  // htmlId removed: CodeArea owns its own label/id now.
   const textId = useId();
 
   const images = useMemo(() => getImagesFromHtml(template.html), [template.html]);
@@ -182,6 +213,24 @@ export function TemplateEditor({
             placeholder="e.g. A quick update for {{firstname}}"
           />
         </label>
+        {/* Category gate. When the admin has defined preference-center
+            categories AND tags this template with one, sends skip
+            recipients who opted out of that topic via the unsubscribe page.
+            Empty value = no gating (legacy behavior). */}
+        {Array.isArray(categories) && categories.length > 0 && (
+          <label>
+            Category
+            <select
+              value={template.category || ''}
+              onChange={(event) => setTemplate({ ...template, category: event.target.value })}
+            >
+              <option value="">No category (sends to everyone)</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       {(images.length > 0 || links.length > 0) && (
@@ -210,10 +259,11 @@ export function TemplateEditor({
                         : <Image size={14} />}
                     </div>
                     <div className="template-asset-info">
-                      <strong>{image.alt || `Image ${image.index + 1}`}</strong>
-                      <span className="muted" title={image.src}>
-                        {summariseSrc(image.src)}
-                      </span>
+                      {/* Single line: name only. The full URL still lives in
+                          the `title` attribute on the row so a user can hover
+                          to see it, but we don't waste vertical space showing
+                          a truncated URL nobody reads. */}
+                      <strong title={image.src}>{image.alt || `Image ${image.index + 1}`}</strong>
                     </div>
                     <div className="template-asset-actions">
                       <button
@@ -257,15 +307,15 @@ export function TemplateEditor({
                         <Link2 size={14} />
                       </div>
                       <div className="template-asset-info">
-                        <strong>{link.text}</strong>
-                        <span
-                          className={`muted${isPlaceholder ? ' template-link-placeholder' : ''}`}
-                          title={link.href}
-                        >
-                          {summariseHref(link.href) || '(no URL)'}
-                          {isPlaceholder && ' · placeholder'}
-                          {isMergeTag && ' · merge tag'}
-                        </span>
+                        {/* Single line: link text only. The full href is
+                            hover-revealed via title. Inline tags surface
+                            "placeholder" / "merge tag" when relevant so the
+                            user still knows when an href is unfinished. */}
+                        <strong title={link.href || '(no URL)'}>
+                          {link.text}
+                          {isPlaceholder && <span className="template-asset-tag is-warn"> placeholder</span>}
+                          {isMergeTag && <span className="template-asset-tag is-info"> merge</span>}
+                        </strong>
                       </div>
                     </li>
                   );
@@ -276,46 +326,105 @@ export function TemplateEditor({
         </div>
       )}
 
-      <div className="html-field">
-        <div className="html-field-header">
-          <label htmlFor={htmlId} className="template-field-label">HTML</label>
-          <div className="html-field-tools">
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => setPicker({ mode: 'insert' })}
-            >
-              <Image size={14} aria-hidden="true" /> Insert image
-            </button>
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => setButtonModalOpen(true)}
-            >
-              <MousePointerClick size={14} aria-hidden="true" /> Insert button
-            </button>
-            <button
-              type="button"
-              className="text-button"
-              onClick={handleInsertUnsubscribe}
-              title="Insert a styled unsubscribe footer wired to {{unsubscribeUrl}}"
-            >
-              <MailMinus size={14} aria-hidden="true" /> Insert unsubscribe
-            </button>
+      {/* Body editor. Visual / HTML are tabs that share a fixed-height
+          container, so switching between them doesn't bump the rest of the
+          page up or down. Both panes stay mounted (one is display:none) so
+          their internal state survives a tab switch.
+
+          When the user hits the expand button, the wrapper gets the
+          `.is-fullscreen` class which lifts it to position:fixed over the
+          whole viewport. Esc and the same button collapse it back. */}
+      <div className={`body-editor${bodyExpanded ? ' is-fullscreen' : ''}`}>
+        <div className="body-editor-tabs" role="tablist" aria-label="Editor mode">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={editorMode === 'visual'}
+            className={`body-editor-tab${editorMode === 'visual' ? ' is-active' : ''}`}
+            onClick={() => setEditorMode('visual')}
+          >
+            Visual
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={editorMode === 'html'}
+            className={`body-editor-tab${editorMode === 'html' ? ' is-active' : ''}`}
+            onClick={() => setEditorMode('html')}
+          >
+            HTML
+          </button>
+          {editorMode === 'html' && (
+            <div className="html-field-tools body-editor-tools">
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setTemplate({ ...template, html: formatHtml(template.html || '') })}
+                title="Pretty-print the HTML: one tag per line, two-space indent"
+              >
+                <Sparkles size={14} aria-hidden="true" /> Format
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setPicker({ mode: 'insert' })}
+              >
+                <Image size={14} aria-hidden="true" /> Image
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setButtonModalOpen(true)}
+              >
+                <MousePointerClick size={14} aria-hidden="true" /> Button
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                onClick={handleInsertUnsubscribe}
+                title="Insert a styled unsubscribe footer wired to {{unsubscribeUrl}}"
+              >
+                <MailMinus size={14} aria-hidden="true" /> Unsubscribe
+              </button>
+            </div>
+          )}
+          {/* Expand / collapse. Pinned at the far right of the tab strip so
+              it stays in the same screen position whether the editor is
+              inline or fullscreen. Visible TEXT label alongside the icon
+              so the affordance is obvious — an icon-only button here was
+              invisible against the white tab strip. */}
+          <button
+            type="button"
+            className="body-editor-expand"
+            onClick={() => setBodyExpanded((value) => !value)}
+            title={bodyExpanded ? 'Exit fullscreen (Esc)' : 'Expand editor to fullscreen'}
+            aria-label={bodyExpanded ? 'Exit fullscreen' : 'Expand to fullscreen'}
+            data-tooltip={bodyExpanded ? 'Exit (Esc)' : 'Fullscreen'}
+          >
+            {bodyExpanded
+              ? <Minimize2 size={14} aria-hidden="true" />
+              : <Maximize2 size={14} aria-hidden="true" />}
+            <span>{bodyExpanded ? 'Exit' : 'Expand'}</span>
+          </button>
+        </div>
+
+        <div className="body-editor-stage">
+          <div hidden={editorMode !== 'visual'}>
+            <BlockEditor template={template} setTemplate={setTemplate} />
+          </div>
+          <div hidden={editorMode !== 'html'}>
+            <CodeArea
+              value={template.html || ''}
+              onChange={(next) => setTemplate({ ...template, html: next })}
+              placeholder="<p>Hello {{firstname}},</p>"
+              ariaLabel="HTML body"
+              textareaRef={htmlRef}
+            />
+            <small className="muted html-field-hint">
+              Tab inserts two spaces. Edits here persist until you change a block in Visual. Brevo wraps every <code>&lt;a href&gt;</code> with click tracking.
+            </small>
           </div>
         </div>
-        <textarea
-          ref={htmlRef}
-          id={htmlId}
-          className="code-editor"
-          rows="14"
-          value={template.html || ''}
-          onChange={(event) => setTemplate({ ...template, html: event.target.value })}
-          placeholder="<p>Hello {{firstname}},</p>"
-        />
-        <small className="muted html-field-hint">
-          Brevo wraps every <code>&lt;a href&gt;</code> with click tracking. See clicks on the campaign detail page.
-        </small>
       </div>
 
       <details className="plain-text-details">
@@ -385,31 +494,10 @@ export function TemplateEditor({
   );
 }
 
-function summariseHref(href) {
-  if (!href) return '';
-  if (href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('#')) return href;
-  if (/\{\{[^}]+\}\}/.test(href)) return href;
-  if (/^\[[A-Z_]+\]$/.test(href)) return href;
-  if (href.length <= 60) return href;
-  try {
-    const url = new URL(href);
-    return `${url.host}${url.pathname.length > 1 ? url.pathname : ''}`;
-  } catch {
-    return `${href.slice(0, 30)}…${href.slice(-20)}`;
-  }
-}
-
-function summariseSrc(src) {
-  if (!src) return 'no source';
-  if (src.length <= 50) return src;
-  try {
-    const url = new URL(src);
-    const file = url.pathname.split('/').pop() || url.hostname;
-    return `${url.hostname}/…/${file}`;
-  } catch {
-    return `${src.slice(0, 24)}…${src.slice(-20)}`;
-  }
-}
+// summariseHref / summariseSrc were used to truncate noisy URLs for the
+// asset inspector rows. The inspector now shows just the alt text / link
+// text and stashes the full URL in the row's title attribute, so these
+// helpers aren't needed anymore. Removed in the inspector-compact pass.
 
 function escapeAttr(value) {
   return String(value).replace(/"/g, '&quot;').replace(/</g, '&lt;');

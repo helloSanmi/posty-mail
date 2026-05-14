@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
@@ -14,6 +14,65 @@ import {
 import { getCampaigns, getEvents } from '../services/brevoApi';
 import { SkeletonCard } from '../components/Skeleton';
 import { eventLabel, eventPill, isBotEvent } from '../utils/brevoEvents';
+
+// Date-range presets for the Reports filter. Each one returns
+// `{ since, until }` Date objects (or null for "everything").
+// Used by both the UI dropdown and the request to /api/events.
+const RANGES = [
+  { id: 'today', label: 'Today' },
+  { id: 'yesterday', label: 'Yesterday' },
+  { id: '7d', label: 'Last 7 days' },
+  { id: '30d', label: 'Last 30 days' },
+  { id: '90d', label: 'Last 90 days' },
+  { id: 'all', label: 'All time' },
+];
+const DEFAULT_RANGE = '7d';
+
+function resolveRange(id) {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  switch (id) {
+    case 'today':
+      return { since: startOfToday, until: null };
+    case 'yesterday': {
+      const startOfYesterday = new Date(startOfToday);
+      startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+      return { since: startOfYesterday, until: startOfToday };
+    }
+    case '7d': {
+      const start = new Date(startOfToday);
+      start.setDate(start.getDate() - 7);
+      return { since: start, until: null };
+    }
+    case '30d': {
+      const start = new Date(startOfToday);
+      start.setDate(start.getDate() - 30);
+      return { since: start, until: null };
+    }
+    case '90d': {
+      const start = new Date(startOfToday);
+      start.setDate(start.getDate() - 90);
+      return { since: start, until: null };
+    }
+    case 'all':
+    default:
+      return { since: null, until: null };
+  }
+}
+
+// Filter a list of items by a date field. Used for the per-campaign table
+// so a "Last 7 days" view only shows campaigns sent (or created) in that
+// window. Items with no/unparseable date pass through (defensive — we'd
+// rather show too much than silently drop a row).
+function withinRange(value, since, until) {
+  if (!since && !until) return true;
+  if (!value) return true;
+  const t = new Date(value).getTime();
+  if (Number.isNaN(t)) return true;
+  if (since && t < since.getTime()) return false;
+  if (until && t > until.getTime()) return false;
+  return true;
+}
 
 // Brevo event-name groups. Mirrors backend/routes/campaigns.js so the report
 // totals always agree with the per-campaign metrics.
@@ -30,18 +89,33 @@ const METRIC_DEFINITIONS = {
 
 export function AnalyticsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [campaigns, setCampaigns] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   // Which KPI is currently expanded into the drill-down panel below the grid.
   const [drilledMetric, setDrilledMetric] = useState(null);
+  // Selected time window. URL-backed so a refresh / share preserves the view.
+  const rangeId = RANGES.some((r) => r.id === searchParams.get('range'))
+    ? searchParams.get('range')
+    : DEFAULT_RANGE;
+  const range = useMemo(() => resolveRange(rangeId), [rangeId]);
 
   async function refresh() {
     setLoading(true);
     setLoadError('');
     try {
-      const [c, e] = await Promise.all([getCampaigns(), getEvents()]);
+      const [c, e] = await Promise.all([
+        getCampaigns(),
+        // Server-side date filter so a "Last 7 days" view doesn't get
+        // truncated by the 500-event default cap. Returns up to 5000 when
+        // filtered — enough for typical low-to-mid volume installs.
+        getEvents({
+          since: range.since || undefined,
+          until: range.until || undefined,
+        }),
+      ]);
       setCampaigns(c);
       setEvents(e);
     } catch (error) {
@@ -51,7 +125,16 @@ export function AnalyticsPage() {
     }
   }
 
-  useEffect(() => { refresh(); }, []);
+  // Refetch when the user changes the time window. URL-backed so deep links
+  // ("/analytics?range=30d") show the right view on first load.
+  useEffect(() => { refresh(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [rangeId]);
+
+  function setRange(id) {
+    const next = new URLSearchParams(searchParams);
+    if (id === DEFAULT_RANGE) next.delete('range');
+    else next.set('range', id);
+    setSearchParams(next, { replace: true });
+  }
 
   const campaignsById = useMemo(() => {
     const map = new Map();
@@ -59,11 +142,28 @@ export function AnalyticsPage() {
     return map;
   }, [campaigns]);
 
-  // Real (non-bot) events only. Totals + drill-down both honor the bot
-  // filter so engagement numbers track real humans, not Gmail's link scanner.
+  // Campaigns sent within the selected window. Used to scope the "Sent" KPI
+  // and the per-campaign table. Events are already filtered server-side by
+  // `receivedAt`. The campaign date we filter on is `scheduledAt` (the
+  // intended send time, present on every campaign) with `createdAt` as a
+  // fallback for legacy rows that never had scheduledAt populated.
+  const rangedCampaigns = useMemo(
+    () => campaigns.filter((c) => withinRange(c.scheduledAt || c.createdAt, range.since, range.until)),
+    [campaigns, range.since, range.until],
+  );
+
+  // Real (non-bot) events inside the selected window. Two filters layer:
+  //   1. Date range — applied client-side as a safety net in addition to the
+  //      server's `since/until` filter. Belt-and-suspenders against stale
+  //      backends and to keep the UI honest the instant the user changes
+  //      the range (no flicker waiting on the refetch).
+  //   2. Bot filter — drops Gmail link-prefetch clicks etc. so engagement
+  //      KPIs track real humans.
   const realEvents = useMemo(
-    () => events.filter((event) => !isBotEvent(event.payload)),
-    [events],
+    () => events
+      .filter((event) => withinRange(event.receivedAt, range.since, range.until))
+      .filter((event) => !isBotEvent(event.payload)),
+    [events, range.since, range.until],
   );
 
   const totals = useMemo(() => {
@@ -73,7 +173,7 @@ export function AnalyticsPage() {
     let clicks = 0;
     let bounces = 0;
     let unsubscribes = 0;
-    campaigns.forEach((campaign) => {
+    rangedCampaigns.forEach((campaign) => {
       sent += campaign.progress?.sent || 0;
       failed += campaign.progress?.failed || 0;
     });
@@ -85,7 +185,7 @@ export function AnalyticsPage() {
       if (name === 'unsubscribed') unsubscribes += 1;
     });
     return { sent, failed, opens, clicks, bounces, unsubscribes };
-  }, [campaigns, realEvents]);
+  }, [rangedCampaigns, realEvents]);
 
   const drillEvents = useMemo(() => {
     if (!drilledMetric) return [];
@@ -101,6 +201,27 @@ export function AnalyticsPage() {
 
   return (
     <div className="page-stack content-page reports-page">
+      {/* Time-range filter. URL-backed (?range=30d) so refresh / share works.
+          The default is "Last 7 days" — most useful at a glance without
+          getting too noisy. "All time" is the escape hatch. */}
+      <section className="reports-range-bar">
+        <span className="muted reports-range-label">Showing</span>
+        <div className="reports-range-tabs" role="tablist" aria-label="Time range">
+          {RANGES.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              role="tab"
+              aria-selected={rangeId === r.id}
+              className={`reports-range-tab${rangeId === r.id ? ' is-active' : ''}`}
+              onClick={() => setRange(r.id)}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="kpi-grid reports-kpi">
         <KpiCard
           icon={<MailCheck size={16} aria-hidden="true" />}
@@ -160,8 +281,12 @@ export function AnalyticsPage() {
           </p>
         ) : loading ? (
           <SkeletonCard />
-        ) : campaigns.length === 0 ? (
-          <p className="empty-state">No campaigns yet. Send one to see metrics here.</p>
+        ) : rangedCampaigns.length === 0 ? (
+          <p className="empty-state">
+            {campaigns.length === 0
+              ? 'No campaigns yet. Send one to see metrics here.'
+              : `No campaigns in this window. Try a wider range like "All time".`}
+          </p>
         ) : (
           <div className="reports-table">
             <div className="reports-table-head">
@@ -173,7 +298,7 @@ export function AnalyticsPage() {
               <span>Bounces</span>
               <span aria-hidden="true" />
             </div>
-            {campaigns.map((campaign) => {
+            {rangedCampaigns.map((campaign) => {
               const stats = perCampaignStats(realEvents, campaign.id);
               return (
                 <button

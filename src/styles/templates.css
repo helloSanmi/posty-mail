@@ -152,14 +152,41 @@
   font-size: 0.95em;
   padding: 1px 4px;
 }
+/* Images + Links sit SIDE BY SIDE in a two-column grid on wide screens.
+   The minmax(0, 1fr) prevents long URLs from blowing out the column width.
+   Single-column-collapsed below 900px so the inspector stays usable on
+   narrow viewports.
+
+   Bounded height: the inner lists already cap at 240px and scroll. The
+   outer container caps too so even if BOTH lists hit their max, the
+   container doesn't drag the page (template editor scrolls instead). On
+   stacked-vertically screens (≤900px) the two lists are top/bottom so we
+   relax the cap there to let each column show its full 240px. */
 .template-assets {
   border: 1px solid var(--line);
   border-radius: 10px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  max-height: 280px;
   overflow: hidden;
 }
+@media (max-width: 900px) {
+  .template-assets { max-height: none; }
+}
+/* When only one group is present (only images, or only links), it spans the
+   full width rather than leaving a phantom empty column. */
+.template-assets:has(.template-asset-group:only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
 .template-asset-group + .template-asset-group {
-  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+@media (max-width: 900px) {
+  .template-assets { grid-template-columns: minmax(0, 1fr); }
+  .template-asset-group + .template-asset-group {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
 }
 .template-asset-header {
   align-items: center;
@@ -167,32 +194,35 @@
   border-bottom: 1px solid var(--line);
   color: var(--muted);
   display: flex;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   gap: 6px;
   letter-spacing: 0.04em;
-  padding: 6px 12px;
+  padding: 5px 10px;
   text-transform: uppercase;
 }
 .template-asset-title { color: #4b5563; font-weight: 500; }
 
+/* Tighter list: single column inside each side, smaller rows, smaller font.
+   The inner list NO LONGER auto-fits horizontally — each list is already
+   inside a narrow column from the outer 2-col grid, so a second inner
+   column would crush the labels. */
 .template-asset-list {
   display: grid;
-  gap: 4px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2px;
   list-style: none;
   margin: 0;
-  max-height: 280px;
+  max-height: 240px;
   overflow-y: auto;
-  padding: 6px;
+  padding: 4px;
 }
 .template-asset-list li {
   align-items: center;
   border-radius: 6px;
   display: grid;
   gap: 8px;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
   min-height: 0;
-  padding: 4px 8px;
+  padding: 3px 6px;
 }
 .template-asset-list li:hover { background: #f1f5fb; }
 .template-asset-thumb {
@@ -203,10 +233,10 @@
   color: var(--muted);
   display: flex;
   flex-shrink: 0;
-  height: 24px;
+  height: 20px;
   justify-content: center;
   overflow: hidden;
-  width: 24px;
+  width: 20px;
 }
 .template-asset-thumb.is-link {
   background: #eef4ff;
@@ -220,17 +250,32 @@
 }
 .template-asset-info { display: grid; gap: 0; min-width: 0; }
 .template-asset-info strong {
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .template-asset-info .muted {
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Inline status chip next to a link name. Replaces the second muted line
+   so unfinished hrefs still surface (placeholder / merge tag) without
+   eating an extra row. */
+.template-asset-tag {
+  border-radius: 3px;
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-left: 4px;
+  padding: 0 4px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.template-asset-tag.is-warn { background: #fff1d5; color: #8a5a06; }
+.template-asset-tag.is-info { background: #e8eef9; color: #2a4a82; }
 .template-asset-actions {
   align-items: center;
   display: flex;
@@ -242,7 +287,7 @@
 .template-asset-list li:focus-within .template-asset-actions {
   opacity: 1;
 }
-.template-asset-actions .row-action { height: 24px; width: 24px; }
+.template-asset-actions .row-action { height: 20px; width: 20px; }
 /* The entire row is the click target (replace image / edit link). The only
    nested button is the destructive Delete which calls stopPropagation(). */
 .template-asset-row {
@@ -441,13 +486,38 @@
   min-height: 520px;
 }
 .preview-header { justify-content: space-between; }
+/* Subject row inside the preview. Reads as "Subject: <text>" so an empty
+   subject still looks like a labeled field, not a floating empty pill. The
+   `.is-empty` modifier dims the field and removes the bold weight on the
+   placeholder copy so it reads as a hint, not a real subject line. */
 .preview-subject {
+  align-items: baseline;
+  background: #fff;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
+  display: flex;
   font-weight: 500;
+  gap: 10px;
   margin-bottom: 12px;
-  padding: 10px;
+  min-height: 38px;
+  padding: 8px 12px;
 }
+.preview-subject-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.preview-subject-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preview-subject.is-empty { background: #fbfcfd; font-weight: 400; }
+.preview-subject.is-empty .preview-subject-text { font-weight: 400; }
 .segmented-control {
   background: #f3f6fa;
   border: 1px solid var(--line);

@@ -1,0 +1,1 @@
+ALTER TABLE "Audience" ADD COLUMN "disabled" BOOLEAN NOT NULL DEFAULT false;

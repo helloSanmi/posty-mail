@@ -2,7 +2,7 @@ import { apiClient } from './apiClient';
 
 // Lightweight, public-ish read used by the Settings page to confirm Brevo is
 // actually configured on the backend. The endpoint is unauthenticated and
-// returns `{ ok, databaseConnected, brevoConfigured }`.
+// returns `{ ok, databaseConnected, brevoConfigured, demoMode }`.
 export async function getHealth() {
   const { data } = await apiClient.get('/api/health');
   return data;
@@ -20,6 +20,15 @@ export async function saveSenderSetting({ email, name }) {
 
 export async function getVerifiedSenders() {
   const { data } = await apiClient.get('/api/settings/sender/verified');
+  return data;
+}
+
+// Resolves SPF / DKIM / DMARC for the configured sender domain. Returns
+// { domain, spf, dkim, dmarc } where each record is
+// { status: 'pass' | 'warn' | 'fail', message, hint?, found?, example? }.
+// 400s with code 'SENDER_NOT_CONFIGURED' if the admin hasn't set a sender yet.
+export async function getDeliverabilityCheck() {
+  const { data } = await apiClient.get('/api/settings/sender/deliverability');
   return data;
 }
 
@@ -74,6 +83,16 @@ export async function deleteGroup(id) {
   return data;
 }
 
+export async function setGroupDisabled(id, disabled) {
+  const { data } = await apiClient.patch(`/api/audiences/${id}/disabled`, { disabled });
+  return data;
+}
+
+export async function renameGroup(id, name) {
+  const { data } = await apiClient.patch(`/api/audiences/${id}/name`, { name });
+  return data;
+}
+
 export async function patchGroupMembers(id, { add, remove }) {
   const { data } = await apiClient.patch(`/api/audiences/${id}/members`, { add, remove });
   return data;
@@ -101,6 +120,53 @@ export async function deleteSegment(id) {
 
 export async function getSegmentContacts(id) {
   const { data } = await apiClient.get(`/api/segments/${id}/contacts`);
+  return data;
+}
+
+// Drip sequences. A linear chain of templated emails contacts get over time.
+export async function getSequences() {
+  const { data } = await apiClient.get('/api/sequences');
+  return data;
+}
+
+export async function getSequence(id) {
+  const { data } = await apiClient.get(`/api/sequences/${id}`);
+  return data;
+}
+
+export async function saveSequence(sequence) {
+  const { data } = await apiClient.post('/api/sequences', sequence);
+  return data;
+}
+
+export async function deleteSequence(id) {
+  const { data } = await apiClient.delete(`/api/sequences/${id}`);
+  return data;
+}
+
+export async function enrollInSequence(id, emails) {
+  const { data } = await apiClient.post(`/api/sequences/${id}/enroll`, { emails });
+  return data;
+}
+
+export async function getSequenceEnrollments(id) {
+  const { data } = await apiClient.get(`/api/sequences/${id}/enrollments`);
+  return data;
+}
+
+// Read-only preview of an unsaved filter. Used by the composer to show a live
+// "would match N contacts" count and a 25-row sample while the admin builds
+// the rules. Powered by POST so the filter rides in the body.
+export async function previewSegmentFilter(filter) {
+  const { data } = await apiClient.post('/api/segments/preview', { filter });
+  return data;
+}
+
+// Cached preview of a saved segment (count + sample). The Segments page uses
+// this for the list view so each row shows "matches N contacts" without
+// re-fetching the full contact list.
+export async function getSegmentPreview(id) {
+  const { data } = await apiClient.get(`/api/segments/${id}/preview`);
   return data;
 }
 
@@ -221,6 +287,16 @@ export async function sendTestCampaignEmail(payload) {
   return data;
 }
 
+// Returns { ok, checks } where each check is
+// { code, severity: 'error' | 'warn' | 'info', message, hint?, meta? }.
+// Called from the Builder before scheduling to surface a checklist so the
+// admin can fix issues (missing unsubscribe, all-caps subject, oversized HTML,
+// broken merge tags, unreachable images, etc.) before the campaign goes out.
+export async function preflightCampaign({ template }) {
+  const { data } = await apiClient.post('/api/campaigns/preflight', { template });
+  return data;
+}
+
 export async function saveWebhookIntegration(payload) {
   const { data } = await apiClient.post('/api/integrations/webhook', payload);
   return data;
@@ -281,8 +357,29 @@ export async function restoreUnsubscribe(email) {
   return data;
 }
 
-export async function getEvents() {
-  const { data } = await apiClient.get('/api/events');
+// Preference-center categories. Read/write the admin-defined list that
+// powers the per-topic checkboxes on the public /unsubscribe page. Returns
+// `{ categories: [{ id, label, description? }, ...] }`. Empty list means
+// the unsubscribe page stays in legacy all-or-nothing mode.
+export async function getUnsubscribeCategories() {
+  const { data } = await apiClient.get('/api/settings/unsubscribe-categories');
+  return data?.categories || [];
+}
+
+export async function saveUnsubscribeCategories(categories) {
+  const { data } = await apiClient.put('/api/settings/unsubscribe-categories', { categories });
+  return data?.categories || [];
+}
+
+// Optional date-range filtering. Pass `{ since, until }` as Date objects;
+// they're serialized to ISO strings on the query string. Server returns the
+// latest 500 events with no filter, up to 5000 when filtered (so a 30-day
+// window doesn't silently truncate on a high-volume install).
+export async function getEvents({ since, until } = {}) {
+  const params = {};
+  if (since instanceof Date) params.since = since.toISOString();
+  if (until instanceof Date) params.until = until.toISOString();
+  const { data } = await apiClient.get('/api/events', { params });
   return data;
 }
 

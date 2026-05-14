@@ -13,6 +13,10 @@ model Contact {
   lastname  String?
   consent   String?
   region    String?
+  // IANA timezone string (e.g., 'America/New_York'). Optional; when unset,
+  // send-time-per-timezone falls back to UTC for that contact. Populated by
+  // the subscribe widget (Intl.DateTimeFormat) or imported via CSV.
+  timezone  String?
   data      Json?
   savedAt   DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -22,6 +26,10 @@ model Audience {
   id            String   @id @default(uuid())
   name          String
   contactEmails String[]
+  // When true, the group is kept around (members, history) but excluded
+  // from the campaign recipient picker. Acts like "archive" without
+  // destroying data. Admin toggles this from the Audience page.
+  disabled      Boolean  @default(false)
   updatedAt     DateTime @updatedAt
   createdAt     DateTime @default(now())
 }
@@ -115,6 +123,46 @@ model Segment {
   filter    Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Drip sequence. A linear chain of templated emails enrolled contacts get
+// over time. v1 trigger: 'group_added' (a contact added to a specific
+// Audience starts the sequence). Steps are stored inline as JSON because
+// the editor needs ordered, ad-hoc mutation; a separate SequenceStep table
+// would buy us very little. SequenceEnrollment tracks each contact's progress.
+model Sequence {
+  id             String   @id @default(uuid())
+  name           String
+  status         String   @default("active") // 'active' | 'paused'
+  triggerType    String   @default("group_added") // future: 'event', 'manual'
+  triggerGroupId String?  // when triggerType='group_added', which Audience id
+  // [{ order: 0, delayDays: 0, templateId: 'xxx' }, ...] — first step usually
+  // has delayDays=0 (fire on enroll). Stored as JSON for flexible editing.
+  steps          Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  enrollments    SequenceEnrollment[]
+}
+
+// One row per (sequence, contact) pair. The runner cron scans these for
+// pending work and advances `nextStepIndex` after each successful send.
+model SequenceEnrollment {
+  id            String   @id @default(uuid())
+  sequenceId    String
+  email         String
+  enrolledAt    DateTime @default(now())
+  nextStepIndex Int      @default(0)
+  // Wall-clock time the next step should fire. null means the enrollment is
+  // done (status will reflect that too).
+  nextRunAt     DateTime?
+  status        String   @default("active") // 'active' | 'completed' | 'unsubscribed' | 'paused'
+  lastError     String?
+
+  sequence      Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  @@unique([sequenceId, email])
+  @@index([nextRunAt, status])
 }
 
 model Asset {

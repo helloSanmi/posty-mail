@@ -57,7 +57,13 @@
   border-radius: 10px;
   display: grid;
   gap: 12px;
-  grid-template-columns: 18px 32px minmax(180px, 2fr) minmax(120px, 1.2fr) 64px 132px;
+  /* Last column was 132px and fit four 28px icons. With the new "delete
+     contact" surfacing alongside "remove from group" when viewing a group,
+     a row can carry up to five icons (Check + FolderPlus + Pencil +
+     FolderMinus + Trash2 = 5 × 28 + 4 × 4 = 156px). Bumped to 170 to give
+     each icon room to breathe and the hover area not to crowd the count
+     column to its left. */
+  grid-template-columns: 18px 32px minmax(180px, 2fr) minmax(120px, 1.2fr) 64px 170px;
   min-height: 48px;
   padding: 6px 12px;
 }
@@ -125,6 +131,75 @@
   padding-top: 18px;
 }
 .test-email-label { flex: 1; margin: 0; }
+
+/* Pre-send checklist. Three visual states: pass (green hairline), warn
+   (amber), error (red). Collapsed by default to keep the page short, expands
+   on click to show every check with its severity tag and hint. */
+.preflight-panel {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.preflight-panel.is-ok {
+  background: #f1faf3;
+  border-color: #c7e9d4;
+  color: #135c2f;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.preflight-panel.is-info { background: #f4f7fc; border-color: #d6e0ee; }
+.preflight-panel.is-warn { background: #fff7ec; border-color: #f3d9a5; }
+.preflight-panel.is-error { background: #fdf2f2; border-color: #f3c1c1; }
+.preflight-panel > summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  list-style: none;
+}
+.preflight-panel > summary::-webkit-details-marker { display: none; }
+.preflight-panel > summary::before {
+  content: '▸';
+  color: var(--muted);
+  display: inline-block;
+  font-size: 0.8rem;
+  transition: transform 0.15s;
+}
+.preflight-panel[open] > summary::before { transform: rotate(90deg); }
+.preflight-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.preflight-row {
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 56px 1fr;
+  padding: 8px 12px;
+}
+.preflight-row.is-error { border-color: #f3c1c1; }
+.preflight-row.is-warn { border-color: #f3d9a5; }
+.preflight-tag {
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  text-align: center;
+  text-transform: uppercase;
+}
+.preflight-row.is-error .preflight-tag { background: #fdecec; color: #9f1d1d; }
+.preflight-row.is-warn .preflight-tag { background: #fff1d5; color: #8a5a06; }
+.preflight-row.is-info .preflight-tag { background: #e8eef9; color: #2a4a82; }
+.preflight-message { font-size: 0.92rem; }
+.preflight-hint { font-size: 0.82rem; margin-top: 2px; }
 
 .send-secondary-actions {
   border-top: 1px solid var(--line);
@@ -197,6 +272,39 @@
 .review-row dt { color: var(--muted); margin: 0; }
 .review-row dd { font-weight: 500; margin: 0; }
 /* Reports page */
+/* Time-range tabs at the top of the Reports page. Pill-shaped, wraps to a
+   second line on narrow screens. The active tab uses the brand blue so the
+   selection is obvious; inactive tabs are subtle so they don't compete with
+   the KPI cards below. */
+.reports-range-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.reports-range-label { font-size: 0.84rem; }
+.reports-range-tabs {
+  background: #f3f6fa;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+}
+.reports-range-tab {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 500;
+  padding: 5px 12px;
+}
+.reports-range-tab:hover { color: var(--text); }
+.reports-range-tab.is-active { background: var(--blue); color: #fff; }
+
 .reports-kpi { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
 .reports-table {
   border: 1px solid var(--line);
@@ -402,6 +510,50 @@
   font-size: 0.92em;
   padding: 1px 5px;
 }
+/* Deliverability card. Three rows (SPF / DKIM / DMARC) each with a pass/
+   warn/fail pill, a one-line message, an optional hint, and either the
+   actual TXT record or an example to paste at the DNS provider. */
+.deliverability-domain { font-size: 0.84rem; }
+.deliverability-results {
+  display: grid;
+  gap: 10px;
+}
+.deliverability-row {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 6px;
+  padding: 10px 14px;
+}
+.deliverability-row.is-pass { background: #f1faf3; border-color: #c7e9d4; }
+.deliverability-row.is-warn { background: #fff7ec; border-color: #f3d9a5; }
+.deliverability-row.is-fail { background: #fdf2f2; border-color: #f3c1c1; }
+.deliverability-row-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+.deliverability-row-message { font-size: 0.92rem; }
+.deliverability-row-hint { font-size: 0.82rem; }
+.deliverability-record {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  margin: 0;
+  overflow-x: auto;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.deliverability-record.is-example { color: var(--muted); font-style: italic; }
+.deliverability-actions { display: flex; }
+.deliverability-actions button { min-width: 120px; }
+.deliverability-pill { font-size: 0.68rem; letter-spacing: 0.04em; padding: 2px 8px; }
+.pill.amber { background: #fff1d5; color: #8a5a06; }
+.pill.red { background: #fdecec; color: #9f1d1d; }
+
 .settings-status-pill {
   align-items: center;
   display: inline-flex;
@@ -516,7 +668,7 @@
   border-radius: 8px;
   display: grid;
   gap: 6px;
-  grid-template-columns: minmax(0, 1fr) auto 20px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   min-height: 34px;
   padding: 6px 6px;
   text-align: left;
@@ -526,6 +678,18 @@
 .group-row.is-active {
   background: #eef4ff;
   color: var(--blue);
+}
+.group-row.is-disabled .group-name { color: var(--muted); text-decoration: line-through; }
+.group-row.is-disabled .group-count { opacity: 0.6; }
+.group-row-actions {
+  display: inline-flex;
+  gap: 2px;
+}
+/* Three icons (rename, toggle, delete) + 2x2px gaps. Keep in sync with
+   .group-row-actions-spacer below so the "All contacts" row stays aligned. */
+.group-row-actions-spacer {
+  display: inline-block;
+  width: 70px;
 }
 .group-name {
   flex: 1;
@@ -548,7 +712,9 @@
   background: rgba(36, 89, 154, 0.12);
   color: var(--blue);
 }
-.group-row-delete {
+.group-row-rename,
+.group-row-delete,
+.group-row-toggle {
   align-items: center;
   border-radius: 4px;
   color: var(--muted);
@@ -556,14 +722,46 @@
   display: inline-flex;
   height: 22px;
   justify-content: center;
-  opacity: 0;
+  /* Subtle by default, full on hover/focus/active. opacity:0 made the row
+     look unbalanced. icons reserved grid space but were invisible, so the
+     count badge sat with a phantom gap on its right. */
+  opacity: 0.45;
   transition: opacity 0.15s, color 0.15s, background 0.15s;
   width: 22px;
 }
+.group-row:hover .group-row-rename,
 .group-row:hover .group-row-delete,
+.group-row:hover .group-row-toggle,
+.group-row:focus-visible .group-row-rename,
 .group-row:focus-visible .group-row-delete,
-.group-row.is-active .group-row-delete { opacity: 1; }
+.group-row:focus-visible .group-row-toggle,
+.group-row.is-active .group-row-rename,
+.group-row.is-active .group-row-delete,
+.group-row.is-active .group-row-toggle,
+.group-row.is-disabled .group-row-toggle { opacity: 1; }
+.group-row-rename:hover { background: #f1f5fb; color: var(--blue); }
 .group-row-delete:hover { background: #fef2f2; color: #9f1d1d; }
+.group-row-toggle:hover { background: #f1f5fb; color: var(--blue); }
+
+/* Inline rename row. Sits in place of the regular group-row button while
+   the user is editing. Single-line input, same grid alignment so the row
+   doesn't jump when you click the pencil. */
+.group-row-editing {
+  cursor: default;
+  display: block;
+  padding: 4px 6px;
+}
+.group-row-rename-input {
+  background: #fff;
+  border: 1px solid var(--blue);
+  border-radius: 6px;
+  font-size: inherit;
+  font-weight: 500;
+  min-height: 26px;
+  padding: 2px 8px;
+  width: 100%;
+}
+.group-row-rename-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(36, 89, 154, 0.18); }
 
 /* Currently-viewing group chip in contacts toolbar */
 .group-view-chip {
@@ -695,6 +893,858 @@
 }
 .pagination span { color: var(--muted); font-size: 0.9rem; }
 
+/* Subscribe-form snippet builder. Grid of pickers above an embed-snippet
+   block (monospace, copyable). The snippet block lives inside the card so
+   it inherits the card's padding. */
+.subscribe-form-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+.subscribe-form-grid > label { display: grid; font-size: 0.86rem; gap: 4px; }
+.subscribe-form-grid > label.checkbox-line { align-items: center; flex-direction: row; grid-column: 1 / -1; }
+.subscribe-form-grid input,
+.subscribe-form-grid select { min-height: 36px; }
+@media (max-width: 720px) {
+  .subscribe-form-grid { grid-template-columns: 1fr; }
+}
+.snippet-block {
+  background: #fbfcfd;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+}
+.snippet-block-head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+.snippet-block-head strong { flex: 1; font-size: 0.92rem; }
+.snippet-copy {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.82rem;
+  gap: 4px;
+  padding: 4px 10px;
+}
+.snippet-copy:hover { background: #f1f5fb; }
+.snippet-body {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  margin: 0;
+  overflow-x: auto;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.snippet-note { font-size: 0.82rem; margin: 0; }
+.snippet-note code {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  font-size: 0.92em;
+  padding: 1px 5px;
+}
+
+/* Preference-center category editor. Rows of (id, label, description, delete)
+   with an Add + Save action row at the bottom. */
+.preference-empty { font-size: 0.9rem; margin: 0; }
+.preference-list { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.preference-row {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 130px 180px minmax(0, 1fr) 32px;
+}
+.preference-row input { min-height: 34px; }
+.preference-remove {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+.preference-remove:hover { background: #fef2f2; color: #9f1d1d; }
+.preference-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.preference-actions button { align-items: center; display: inline-flex; gap: 6px; }
+.preference-actions .primary { margin-left: auto; }
+@media (max-width: 720px) {
+  .preference-row { grid-template-columns: 1fr; }
+}
+
+/* CodeArea. Two pixel-aligned layers stacked in the same grid cell: a
+   highlighted <pre> underneath shows syntax color, a transparent <textarea>
+   on top carries the caret and accepts input. Long lines wrap rather than
+   horizontally scroll — easier to skim for HTML email markup that's
+   typically a single long string of nested rows.
+
+   Height is FIXED on the container; the inner layers scroll. Without a cap
+   the overlay <pre> grows with content and drags the whole page taller as
+   the admin types. resize:vertical on the container lets a user enlarge
+   the editor themselves when working on something long. */
+.codearea {
+  background: #1e1f24;
+  border: 1px solid #2c2e36;
+  border-radius: 10px;
+  color: #d6dae3;
+  display: grid;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+  font-size: 0.84rem;
+  grid-template-columns: minmax(0, 1fr);
+  height: min(60vh, 520px);
+  line-height: 1.55;
+  overflow: hidden;
+  position: relative;
+  resize: vertical;
+}
+/* Shared shape rules for the two layers. They MUST stay in lockstep on
+   font, line-height, padding, and white-space; otherwise the colored
+   glyphs drift away from the caret. */
+.codearea-overlay,
+.codearea-input {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  tab-size: 2;
+  -moz-tab-size: 2;
+  padding: 14px 16px;
+  margin: 0;
+  border: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  grid-column: 1;
+  grid-row: 1;
+  height: 100%;
+  width: 100%;
+}
+.codearea-overlay {
+  color: #d6dae3;
+  /* The overlay scrolls in lockstep with the textarea (mirrored via JS).
+     Its own scrollbars are hidden so they don't double up. */
+  overflow: hidden;
+  pointer-events: none;
+}
+.codearea-overlay code { background: transparent; color: inherit; font: inherit; }
+.codearea-input {
+  background: transparent;
+  caret-color: #d6dae3;
+  /* Glyphs are transparent; the colored overlay below shows through. The
+     caret stays visible because caret-color is set explicitly. */
+  color: transparent;
+  outline: none;
+  /* Internal scroll: the textarea fills the fixed-height container; long
+     content scrolls within it instead of stretching the whole editor. */
+  overflow: auto;
+  resize: none;
+}
+.codearea-input::selection { background: rgba(96, 165, 250, 0.32); color: transparent; }
+.codearea-input::placeholder { color: #5b6172; }
+/* Syntax tokens. Same palette as One Dark / GitHub Dark for familiarity. */
+.codearea .t-tag { color: #e06c75; }
+.codearea .t-attr { color: #d19a66; }
+.codearea .t-string { color: #98c379; }
+.codearea .t-comment { color: #5c6370; font-style: italic; }
+.codearea .t-merge { color: #61afef; font-weight: 600; }
+
+/* Body editor with Visual / HTML tabs. Stage has a min-height so switching
+   between tabs doesn't move the rest of the page; both panes stay mounted
+   via `hidden` so state survives a switch. */
+.body-editor { display: grid; gap: 10px; }
+.body-editor-tabs {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 4px;
+  padding-bottom: 4px;
+}
+.body-editor-tab {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 500;
+  margin-bottom: -5px; /* line up the underline with the tab strip's border */
+  padding: 8px 14px;
+}
+.body-editor-tab:hover { color: var(--text); }
+.body-editor-tab.is-active {
+  border-bottom-color: var(--blue);
+  color: var(--blue);
+}
+/* Custom tooltip. Browser native `title` attributes have two problems for
+   icon-only buttons: they take ~1s to appear (too slow), and they don't
+   render reliably on nested `<span role="button">` inside a parent
+   `<button>` (the parent's title often wins, or nothing shows at all).
+   So we add a CSS-driven tooltip that hangs off `data-tooltip` and shows
+   instantly on hover or keyboard focus.
+
+   We also keep the underlying `title` attribute on the same element for
+   screen readers — they still announce it, the CSS overlay just gives
+   sighted users a faster, better-styled hint. */
+[data-tooltip] { position: relative; }
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  background: #1f2937;
+  border-radius: 4px;
+  bottom: calc(100% + 6px);
+  color: #fff;
+  content: attr(data-tooltip);
+  font-size: 0.74rem;
+  font-weight: 500;
+  left: 50%;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  padding: 4px 8px;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 100;
+}
+/* Tiny arrow under the tooltip. */
+[data-tooltip]:hover::before,
+[data-tooltip]:focus-visible::before {
+  border: 4px solid transparent;
+  border-top-color: #1f2937;
+  bottom: calc(100% + 2px);
+  content: '';
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+/* Edge correction: in scroll containers (contact list, group list, segments
+   list, etc.) the right-most icon's tooltip would extend past the
+   container's right edge and get clipped by overflow:auto. Anchor those
+   tooltips to the right edge of the host so they grow LEFTWARD. The arrow
+   re-positions to sit under the icon's center. */
+.contact-row-actions [data-tooltip]:hover::after,
+.contact-row-actions [data-tooltip]:focus-visible::after,
+.group-row-actions [data-tooltip]:hover::after,
+.group-row-actions [data-tooltip]:focus-visible::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.contact-row-actions [data-tooltip]:hover::before,
+.contact-row-actions [data-tooltip]:focus-visible::before,
+.group-row-actions [data-tooltip]:hover::before,
+.group-row-actions [data-tooltip]:focus-visible::before {
+  /* Icon is 22-28px wide; the host is the icon. Anchor the arrow ~half a
+     small icon from the right so it points at the icon's center. */
+  left: auto;
+  right: 10px;
+  transform: none;
+}
+
+.body-editor-tools { margin-left: auto; }
+/* Expand / collapse toggle. Icon-only was invisible (muted gray icon on
+   white). Now it's a labeled chip in the brand blue with a hover state,
+   so it actually reads as a clickable affordance. Pinned to the far
+   right of the tab strip via the margin rules below. */
+.body-editor-expand {
+  align-items: center;
+  background: #eef4ff;
+  border: 1px solid #cfe0fb;
+  border-radius: 6px;
+  color: var(--blue);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 500;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+}
+.body-editor-expand:hover { background: var(--blue); color: #fff; }
+.body-editor-expand:hover svg { color: #fff; }
+/* The expand button sits at the far right whether the HTML toolbar
+   (`.body-editor-tools`) is rendered or not. When the toolbar IS there,
+   the toolbar itself has `margin-left: auto`, so the expand button only
+   needs a small spacer between them. When it's the Visual tab and there's
+   no toolbar, the expand button itself takes `margin-left: auto`. */
+.body-editor-tabs .body-editor-expand { margin-left: auto; }
+.body-editor-tabs .body-editor-tools + .body-editor-expand { margin-left: 8px; }
+
+/* Fullscreen mode. The whole body-editor takes over the viewport. The tab
+   strip stays usable so the admin can switch Visual / HTML and exit. */
+.body-editor.is-fullscreen {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  left: 0;
+  padding: 16px 20px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 60;
+}
+.body-editor.is-fullscreen .body-editor-stage {
+  flex: 1 1 auto;
+  min-height: 0; /* allow flex shrink to let children scroll instead of overflow the viewport */
+}
+.body-editor.is-fullscreen .body-editor-stage > div:not([hidden]) { height: 100%; }
+.body-editor.is-fullscreen .codearea { height: 100%; }
+.body-editor.is-fullscreen .block-editor { height: 100%; overflow: auto; }
+/* The stage holds a min-height so switching Visual → HTML doesn't bump the
+   page. Only the active pane is shown — the inactive one carries `hidden`
+   so its DOM stays mounted (state survives a switch) but it doesn't paint.
+   The :not([hidden]) selector is essential: without it the rule below would
+   override the browser's default [hidden]{display:none} and BOTH panes
+   would render stacked, which is exactly the bug we're fixing. */
+.body-editor-stage { min-height: min(60vh, 520px); }
+.body-editor-stage > div:not([hidden]) {
+  display: grid;
+  gap: 8px;
+  min-height: 100%;
+}
+
+/* Block editor. Tight, list-like layout: a palette strip up top, then each
+   block is a thin row separated by a hairline. No card backgrounds — those
+   made the editor a tower of nested boxes. Controls (up/down/delete) live
+   inline at the right of each row's header so the row is compact even when
+   the block body has multiple fields. */
+/* Grid rows: palette (auto), then the list-or-empty (1fr). The 1fr lets the
+   empty-state card grow to fill the stage when no blocks exist; once the
+   user adds blocks, the list grows naturally and the row sizes to content. */
+.block-editor {
+  display: grid;
+  gap: 8px;
+  grid-template-rows: auto 1fr;
+}
+.block-palette {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.block-palette-label { font-size: 0.76rem; margin-right: 4px; }
+.block-palette-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.78rem;
+  gap: 4px;
+  padding: 3px 8px;
+}
+.block-palette-button:hover { background: #f1f5fb; border-color: #cfe0fb; color: var(--blue); }
+
+/* Empty state. Fills the visual pane so the message sits in the middle of
+   the stage rather than at the top with a tall blank gap below it. The
+   stage's min-height (set above) gives this room to breathe. */
+.block-empty {
+  align-content: center;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  min-height: 240px;
+  padding: 20px;
+  text-align: center;
+}
+.block-empty p { margin: 0; }
+
+.block-list { display: grid; list-style: none; margin: 0; padding: 0; }
+.block-row {
+  align-items: start;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 8px 0;
+}
+.block-list > li:first-child .block-row { border-top: 0; }
+.block-row-controls {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+  /* Sit at the top-right of the row so it doesn't grow with the body */
+  align-self: start;
+}
+.block-row-controls button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+.block-row-controls button:hover { background: #f1f5fb; color: var(--blue); }
+.block-row-controls button:disabled { opacity: 0.3; cursor: default; }
+.block-row-delete:hover { background: #fef2f2 !important; color: #9f1d1d !important; }
+
+/* Block body. Compact form rows. Inputs are 30px tall and use a thin border
+   so the editor doesn't feel padded. */
+.block-body { display: grid; gap: 6px; min-width: 0; }
+.block-body label { display: grid; font-size: 0.78rem; gap: 2px; }
+.block-body input,
+.block-body textarea,
+.block-body select {
+  min-height: 30px;
+  padding: 4px 8px;
+}
+.block-body input[type="color"] { padding: 2px; }
+.block-body textarea { font-family: inherit; }
+.block-body-row { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 720px) {
+  .block-body-row { grid-template-columns: 1fr; }
+}
+
+/* Sequences page. Two-column shell mirroring the Segments page: list of
+   saved sequences on the left, composer on the right. The composer renders
+   a vertical step ladder with arrows between steps. */
+.sequences-page { display: grid; gap: 16px; }
+.sequences-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.sequences-header h2 { margin: 0 0 4px; }
+.sequences-header p { margin: 0; max-width: 60ch; }
+.sequences-header .primary { align-items: center; display: inline-flex; gap: 6px; }
+.sequences-shell {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+@media (max-width: 980px) {
+  .sequences-shell { grid-template-columns: 1fr; }
+}
+.sequences-list-pane,
+.sequences-composer { padding: 16px; }
+.sequences-list { display: grid; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.sequence-row {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  padding: 10px 12px;
+  text-align: left;
+  width: 100%;
+}
+.sequence-row:hover { background: #f1f5fb; }
+.sequence-row.is-active { background: #eef4ff; color: var(--blue); }
+.sequence-row strong { display: block; }
+.sequence-row .muted { font-size: 0.78rem; }
+
+.composer-trigger-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.composer-trigger-row > label { display: grid; font-size: 0.86rem; gap: 4px; }
+.composer-trigger-row select { min-height: 34px; }
+@media (max-width: 720px) {
+  .composer-trigger-row { grid-template-columns: 1fr; }
+}
+
+.sequence-steps { display: grid; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.sequence-step {
+  align-items: flex-start;
+  background: #fbfcfd;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  padding: 12px;
+}
+.sequence-step-index {
+  align-items: center;
+  background: var(--blue);
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 600;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+.sequence-step-fields { display: grid; gap: 10px; }
+.sequence-step-fields label { display: grid; font-size: 0.86rem; gap: 4px; }
+.sequence-step-fields input,
+.sequence-step-fields select { min-height: 34px; }
+.sequence-step-delay {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+.sequence-step-delay input { max-width: 100px; }
+.sequence-step-remove {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+.sequence-step-remove:hover { background: #fef2f2; color: #9f1d1d; }
+.sequence-step-arrow {
+  color: var(--muted);
+  text-align: center;
+  padding: 2px 0;
+}
+
+/* Demo-mode banner. Sits above everything else (sidebar + workspace). The
+   `.app-shell` is a two-column grid so we span both columns explicitly. */
+.demo-banner {
+  align-items: center;
+  background: #fff5d5;
+  border-bottom: 1px solid #f0d77b;
+  color: #6a4c00;
+  display: flex;
+  font-size: 0.86rem;
+  gap: 8px;
+  grid-column: 1 / -1;
+  padding: 8px 16px;
+}
+.demo-banner a { color: inherit; font-weight: 600; text-decoration: underline; }
+
+/* Onboarding hero card (full mode). Shown on first-run dashboards before
+   the user has any contacts or campaigns. Three numbered steps each with
+   icon, label, detail, and a primary-styled CTA that routes to the right
+   page. Auto-checks itself off as the user completes each step. */
+.onboarding-card {
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+}
+.onboarding-card-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+.onboarding-card-head h2 { font-size: 1.4rem; margin: 6px 0 4px; }
+.onboarding-card-head p { margin: 0; }
+.onboarding-card-head .eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.onboarding-steps {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.onboarding-step {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  padding: 14px 16px;
+}
+.onboarding-step.is-done { background: #f1faf3; border-color: #c7e9d4; }
+.onboarding-step-index {
+  align-items: center;
+  background: #eef2f6;
+  border-radius: 50%;
+  color: var(--muted);
+  display: inline-flex;
+  font-weight: 600;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+.onboarding-step.is-done .onboarding-step-index {
+  background: var(--blue);
+  color: #fff;
+}
+.onboarding-step-body { display: grid; gap: 2px; min-width: 0; }
+.onboarding-step-label {
+  align-items: center;
+  display: flex;
+  font-weight: 600;
+  gap: 6px;
+}
+.onboarding-step-detail {
+  font-size: 0.86rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.onboarding-step button.primary {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* Onboarding banner (compact mode). Shows above the regular dashboard when
+   any setup step is still incomplete. Strip layout, one row of pill-shaped
+   step buttons. Dismissable; closed state persists in localStorage. */
+.onboarding-banner {
+  display: grid;
+  gap: 10px;
+  padding: 12px 16px;
+}
+.onboarding-banner-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+.onboarding-banner-head strong {
+  align-items: center;
+  display: inline-flex;
+  font-size: 0.92rem;
+  gap: 6px;
+}
+.onboarding-banner-head .muted { font-size: 0.82rem; margin-left: auto; }
+.onboarding-dismiss {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+}
+.onboarding-dismiss:hover { background: #f1f5fb; color: var(--text); }
+.onboarding-banner-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.onboarding-banner-steps button {
+  align-items: center;
+  background: #f3f6fa;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.84rem;
+  gap: 6px;
+  padding: 4px 12px;
+}
+.onboarding-banner-steps button:hover { background: #e8eef9; border-color: #cfe0fb; }
+.onboarding-banner-steps li.is-done button {
+  background: #eafaf0;
+  border-color: #c7e9d4;
+  color: #135c2f;
+  cursor: default;
+}
+.onboarding-banner-check {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--blue);
+  display: inline-flex;
+  height: 16px;
+  justify-content: center;
+  width: 16px;
+}
+.onboarding-banner-steps li.is-done .onboarding-banner-check {
+  background: #2e7d4a;
+  border-color: #2e7d4a;
+  color: #fff;
+}
+
+/* Segments page. Three-column layout: saved list, composer, live preview.
+   Collapses to single-column on narrow viewports so the composer stays
+   usable on tablets. */
+.segments-page { display: grid; gap: 16px; }
+.segments-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.segments-header h2 { margin: 0 0 4px; }
+.segments-header p { margin: 0; max-width: 60ch; }
+.segments-header .primary {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+.segments-shell {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 240px minmax(0, 1fr) 280px;
+}
+@media (max-width: 1180px) {
+  .segments-shell { grid-template-columns: 1fr; }
+}
+.segments-list-pane,
+.segments-composer,
+.segments-preview-pane { padding: 16px; }
+.segments-list-pane h3,
+.segments-preview-pane h3 { margin: 0 0 10px; }
+.segments-list { display: grid; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.segment-row {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  text-align: left;
+  width: 100%;
+}
+.segment-row:hover { background: #f1f5fb; }
+.segment-row.is-active { background: #eef4ff; color: var(--blue); }
+.segment-row-name { font-weight: 500; }
+.segment-row-meta { font-size: 0.78rem; }
+
+.composer-body { display: grid; gap: 18px; }
+.composer-name-row {
+  align-items: flex-end;
+  display: flex;
+  gap: 12px;
+}
+.composer-name-row > label { display: grid; flex: 1; gap: 4px; }
+.composer-name-row input { min-height: 38px; }
+.composer-actions { display: flex; gap: 8px; }
+.composer-actions .primary,
+.composer-actions .danger {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+.composer-fieldset {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+.composer-fieldset legend {
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0 6px;
+}
+.composer-combinator {
+  align-items: center;
+  display: flex;
+  font-size: 0.92rem;
+  gap: 6px;
+}
+.composer-combinator select { min-height: 28px; padding: 2px 8px; }
+.composer-empty { font-size: 0.9rem; margin: 0; }
+.composer-rule {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 130px 150px minmax(0, 1fr) 32px;
+}
+.composer-rule select,
+.composer-rule input { min-height: 34px; }
+.composer-rule-spacer { display: block; }
+.composer-rule-remove {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+.composer-rule-remove:hover { background: #fef2f2; color: #9f1d1d; }
+.composer-add-rule {
+  align-items: center;
+  background: #f3f6fa;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--blue);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.88rem;
+  gap: 6px;
+  justify-self: start;
+  padding: 6px 12px;
+}
+.composer-date-row { display: flex; gap: 12px; }
+.composer-date-row label { display: grid; gap: 4px; font-size: 0.88rem; }
+.composer-date-row input { min-height: 34px; }
+.composer-group-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.composer-group-chip {
+  align-items: center;
+  background: #f3f6fa;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.84rem;
+  gap: 6px;
+  padding: 4px 12px;
+}
+.composer-group-chip.is-checked { background: #eef4ff; border-color: #cfe0fb; color: var(--blue); }
+.composer-group-chip input { margin: 0; }
+.composer-checkbox-row {
+  align-items: center;
+  display: flex;
+  font-size: 0.9rem;
+  gap: 8px;
+}
+
+.segments-preview-count {
+  align-items: baseline;
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.segments-preview-count strong { font-size: 1.6rem; }
+.segments-preview-list { display: grid; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.segments-preview-list li {
+  background: #fbfcfd;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+}
+.segments-preview-list .muted { font-size: 0.78rem; }
+
 /* Modal */
 .modal-backdrop {
   align-items: center;
@@ -731,6 +1781,61 @@
   justify-content: flex-end;
   margin-top: 4px;
 }
+
+/* Inbox preview modal. Wider and taller than the standard confirm dialog so
+   the iframe device frame has room to breathe. The internal EmailPreview is
+   already a `.surface` with its own padding; we just give the modal card
+   enough viewport real estate. */
+.inbox-preview-card {
+  background: var(--surface);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100vh - 32px);
+  max-width: min(1100px, 100%);
+  overflow: auto;
+  padding: 18px;
+}
+.inbox-preview-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.inbox-preview-head h2 { margin: 0; }
+.inbox-preview-head p { margin: 2px 0 0; }
+.inbox-preview-head code {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  font-size: 0.88em;
+  padding: 1px 5px;
+}
+.modal-close {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 4px;
+}
+.modal-close:hover { background: #f1f5fb; color: var(--text); }
+
+/* Dark-mode toggle inside the preview toolbar. Same height as the device
+   segmented control + client picker so the toolbar stays one tidy row. */
+.preview-dark-toggle {
+  align-items: center;
+  background: #f3f6fa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: inline-flex;
+  font-size: 0.84rem;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 10px;
+}
+.preview-dark-toggle[aria-pressed="true"] { background: #15151a; border-color: #15151a; color: #fff; }
 
 /* Group selector (searchable, scales to many groups) */
 .group-selector-v2 {
@@ -825,6 +1930,9 @@
 }
 .group-selector-row:hover { background: #f1f5fb; }
 .group-selector-row.is-checked { background: #eef4ff; color: var(--blue); }
+/* The "All contacts" pseudo-row sits above real groups so a subtle divider
+   helps the eye separate "send to everyone" from "send to a named group". */
+.group-selector-row-all { border-bottom: 1px dashed var(--line); border-radius: 6px 6px 0 0; }
 .group-selector-check {
   align-items: center;
   background: #fff;
@@ -1063,6 +2171,7 @@
   border-color: var(--blue);
   box-shadow: 0 0 0 2px rgba(36, 89, 154, 0.1);
 }
+.send-recipients-trigger.is-placeholder .send-recipients-trigger-text { color: var(--muted); }
 .send-recipients-trigger-text {
   flex: 1;
   min-width: 0;
@@ -1089,6 +2198,35 @@
   z-index: 20;
 }
 .send-recipients-hint { font-size: 0.78rem; line-height: 1.4; }
+
+/* Segments section inside the recipients popover. Sits beneath the group
+   selector, separated by a hairline so the two feel like distinct lists. */
+.recipients-segments {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 8px;
+}
+.recipients-segments-head {
+  display: grid;
+  gap: 2px;
+  padding: 0 4px;
+}
+.recipients-segments-head strong { font-size: 0.92rem; }
+.recipients-segments-head .muted { font-size: 0.78rem; }
+.recipients-segments-list { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.recipients-segment-row {
+  align-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 4px 8px;
+}
+.recipients-segment-row:hover { background: #f1f5fb; }
+.recipients-segment-row.is-checked { background: #eef4ff; color: var(--blue); }
+.recipients-segment-row input { margin: 0; }
 
 /* Compact GroupSelector. Used inside the recipients popover. No chips, no
    search bar (unless many groups), just the checkbox list. */
@@ -1138,9 +2276,30 @@
   grid-template-columns: minmax(0, 1fr) 320px;
 }
 .campaigns-main { display: grid; gap: 16px; }
-.campaigns-drafts { align-self: start; }
+/* Drafts rail. Sticks to the top of the viewport as the user scrolls through
+   campaigns. The inner list scrolls within its own bounded box so a long
+   list (10+ drafts) doesn't dangle below the main column and leave a tall
+   patch of empty space next to the pagination footer. */
+.campaigns-drafts {
+  align-self: start;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+.campaigns-drafts .draft-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px; /* breathing room so cards don't kiss the scrollbar */
+}
 @media (max-width: 1080px) {
   .campaigns-shell { grid-template-columns: 1fr; }
+  /* On narrow screens the rail stacks under the main list; sticky positioning
+     stops being useful, and the height cap would clip the list awkwardly. */
+  .campaigns-drafts { position: static; max-height: none; }
+  .campaigns-drafts .draft-list { overflow-y: visible; max-height: none; }
 }
 
 /* Pagination controls. Prev / status / Next, anchored to the bottom of the

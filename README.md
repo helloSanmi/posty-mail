@@ -9,6 +9,24 @@ backend, Brevo for transactional sends and click tracking.
 
 ![Posty dashboard](docs/screenshot.png)
 
+## Try it without installing
+
+A public demo lives at **demo.posty.dev** (hosted separately; visit the link
+to confirm it's up). Sandboxed: every send is dry-run, the database resets
+every hour. To host your own demo, see [`docs/DEMO.md`](docs/DEMO.md).
+
+## One-click deploy
+
+| Platform | |
+| --- | --- |
+| Render | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/helloSanmi/posty-mail) |
+| Railway | [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/helloSanmi/posty-mail) |
+| Coolify | See the [self-host guide](https://coolify.io/docs/applications/git#deploy-from-a-repository). Point at this repo, set the env vars below. |
+
+After deploying, add a Postgres add-on (each platform offers one) and set
+`DATABASE_URL`, `JWT_SECRET`, `BREVO_API_KEY`, and `PUBLIC_BASE_URL`. The
+first user to sign up becomes admin.
+
 ---
 
 ## Why use Posty instead of Brevo's own UI
@@ -182,6 +200,29 @@ In `localStorage` (browser-only):
 
 Switching browsers, clearing site data, or moving devices loses nothing
 recoverable: log in again, hit Drafts, click Resume on the unfinished draft.
+
+### Posty does not push your contacts to Brevo
+
+Imports, edits, deletes. They all stay in your Postgres. Posty never calls
+Brevo's `/contacts` API. You can grep the backend for it: there are zero hits.
+
+You will, however, see recipient addresses appear in Brevo's own contact list
+over time. That is **Brevo's side effect**, not Posty's. When you send a
+transactional email through `/smtp/email`, Brevo auto-creates a contact row
+for the `to:` address so it can attach engagement events (opens, clicks,
+bounces) to a contact id. Every transactional-email API works this way and
+there is no opt-out at the API level.
+
+Practical implications:
+
+- Your list of truth is the `Contact` table in your own Postgres. Brevo's
+  copy is read-only telemetry from Brevo's point of view.
+- If you swap providers (Mailgun, SES, Postmark), you lose nothing. The
+  contacts table goes with you; only the transactional pipe changes.
+- Deleting a contact in Posty does not delete it from Brevo's contact list.
+  If you need that, clear it from Brevo's UI separately. Posty intentionally
+  does not touch Brevo's list so a bug here can never wipe data you wanted to
+  keep on their side.
 
 ---
 

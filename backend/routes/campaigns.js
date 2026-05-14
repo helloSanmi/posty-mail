@@ -12,10 +12,12 @@ import {
   upsertDraft,
 } from '../lib/db.js';
 import { recordAudit } from '../lib/audit.js';
+import { checkDeliverability } from '../lib/deliverability.js';
+import { runSendChecks } from '../lib/preflight.js';
 import { sanitizeEmailHtml, sanitizeSubject } from '../lib/sanitize.js';
 import { createCampaignPayload, scheduleCampaignJob } from '../lib/scheduler.js';
 import { findUnreachableImageUrls } from '../lib/urlReachability.js';
-import { readSenderSetting, resolveSender, writeSenderSetting } from '../lib/sender.js';
+import { readSenderSetting, requireSender, resolveSender, writeSenderSetting } from '../lib/sender.js';
 
 // Brevo's webhook event names come in variants. Use these to classify them
 // once, in one place, so metrics counts don't silently drop opens/clicks just
@@ -58,7 +60,12 @@ const scheduleSchema = z.object({
   variants: z.array(variantSchema).max(4).optional(),
   batchSize: z.number().int().min(1).max(1000).optional(),
   delayMinutes: z.number().min(0).max(60).optional(),
-  scheduledAt: z.string().datetime().optional(),
+  // Accepts BOTH full ISO instants ("...Z" / offset) and local-naive datetime
+  // strings ("2026-05-13T09:00"). The latter is used for send-time-per-
+  // timezone mode where the digits are the per-recipient wall-clock target.
+  scheduledAt: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/, 'Invalid datetime')
+    .optional(),
   schedule: z.object({
     frequency: z.enum(['once', 'daily', 'weekly', 'monthly']).optional(),
     timezone: z.string().optional(),
@@ -68,6 +75,7 @@ const scheduleSchema = z.object({
     gdprMode: z.boolean().optional(),
   }).optional(),
   unsubscribeBaseUrl: z.string().url().optional(),
+  useRecipientTimezone: z.boolean().optional(),
 });
 
 const draftSchema = z.object({
@@ -99,10 +107,12 @@ export function registerCampaignRoutes(app) {
           html: variant.html != null ? sanitizeEmailHtml(variant.html) : null,
         })),
       };
-      // Resolve sender at request time so any UI-saved value wins over env.
-      // Passed into createCampaignPayload as `sender` to keep the scheduler
-      // helper synchronous.
-      safeBody.sender = await resolveSender();
+      // Sender must be configured before scheduling. We resolve it here for
+      // the audit snapshot, but runCampaign re-resolves at fire time so a
+      // Settings change between schedule and run takes effect. If nothing is
+      // configured we 400 with a clear message instead of letting a placeholder
+      // through.
+      safeBody.sender = await requireSender();
       const campaign = createCampaignPayload(safeBody);
       await upsertCampaign(campaign);
       scheduleCampaignJob(campaign, upsertCampaign);
@@ -459,16 +469,23 @@ export function registerCampaignRoutes(app) {
       const renderedHtml = merge(template.html, previewContact);
       const result = await sendTestEmail({
         toEmail,
-        sender: await resolveSender(),
+        sender: await requireSender(),
         subject: merge(template.subject, previewContact),
         htmlContent: renderedHtml,
         textContent: merge(template.text, previewContact),
       });
-      // Surface URLs the recipient's mail client won't be able to fetch (localhost,
-      // private IPs, .local, etc.). Common cause: PUBLIC_BASE_URL not set, so the
-      // asset upload returned an http://localhost URL that's now embedded in the
-      // email. Send still goes out. We just warn so the user knows why images
-      // appear broken in Gmail.
+      // Full preflight (subject / merge tags / unsub / size / spam-score / images)
+      // for the rendered preview. We keep the legacy `warnings` array for
+      // backward-compat (older UI builds key off it) and add `preflight` with
+      // the structured checklist so newer UI can render the full list.
+      const preflight = runSendChecks({
+        template: {
+          subject: merge(template.subject, previewContact),
+          html: renderedHtml,
+          text: merge(template.text, previewContact),
+          logoUrl: template.logoUrl,
+        },
+      });
       const unreachable = findUnreachableImageUrls(renderedHtml, template.logoUrl);
       const warnings = unreachable.length
         ? [{
@@ -477,7 +494,27 @@ export function registerCampaignRoutes(app) {
             urls: unreachable,
           }]
         : [];
-      res.json({ sent: true, dryRun: !process.env.BREVO_API_KEY, result, warnings });
+      res.json({
+        sent: true,
+        dryRun: !process.env.BREVO_API_KEY,
+        result,
+        warnings,
+        preflight,
+      });
+    }),
+  );
+
+  // Pre-send lint. Called from the Builder before "Send now" fires, so the
+  // admin sees a checklist of fail/warn rows and can fix them before the
+  // campaign is committed. Returns `{ ok, checks }`. No side effects.
+  app.post(
+    '/api/campaigns/preflight',
+    validate(z.object({ template: templateSchema })),
+    asyncRoute(async (req, res) => {
+      // Use the as-saved subject/html/text. Merge tags stay literal here so
+      // the checklist surfaces unsubscribe-tag warnings even before send.
+      const preflight = runSendChecks({ template: req.body.template });
+      res.json(preflight);
     }),
   );
 
@@ -485,14 +522,19 @@ export function registerCampaignRoutes(app) {
   // admins can edit via the UI instead of touching env vars. resolveSender()
   // reads this first, falls back to env, then to a placeholder.
   app.get('/api/settings/sender', asyncRoute(async (_req, res) => {
+    // resolved is null when nothing real is configured. The UI uses that to
+    // show "Not configured" instead of a placeholder address.
     const resolved = await resolveSender();
     const stored = await readSenderSetting();
+    const source = stored?.email
+      ? 'database'
+      : (process.env.BREVO_SENDER_EMAIL ? 'env' : 'unset');
     res.json({
-      // What sends actually use right now (after merging stored + env + defaults)
+      // What sends actually use right now. null = nothing configured yet.
       effective: resolved,
-      // Whether the value comes from the DB or the env fallback. Helps the UI
-      // tell the user "you have an env override active".
-      source: stored?.email ? 'database' : (process.env.BREVO_SENDER_EMAIL ? 'env' : 'default'),
+      // 'database' | 'env' | 'unset'. Helps the UI show an accurate status pill
+      // and an env-override note when the DB row is empty but env is set.
+      source,
       // The raw stored override, so the UI can pre-fill the form with what's
       // actually editable (not the env fallback).
       stored: stored || null,
@@ -529,6 +571,24 @@ export function registerCampaignRoutes(app) {
       // to free-text input and the admin can still save.
       res.json({ senders: [], dryRun: !process.env.BREVO_API_KEY, error: error.message });
     }
+  }));
+
+  // Deliverability self-check. Resolves SPF / DKIM / DMARC for the sender
+  // domain and classifies each. Used by the Settings page to show the admin
+  // what DNS work is still needed before sending at volume. Read-only.
+  // 400s if the sender isn't configured yet, so the UI can prompt for setup
+  // first.
+  app.get('/api/settings/sender/deliverability', asyncRoute(async (_req, res) => {
+    const sender = await resolveSender();
+    if (!sender?.email) {
+      res.status(400).json({
+        error: 'Configure your sender email first, then re-run the deliverability check.',
+        code: 'SENDER_NOT_CONFIGURED',
+      });
+      return;
+    }
+    const result = await checkDeliverability(sender.email);
+    res.json(result);
   }));
 }
 

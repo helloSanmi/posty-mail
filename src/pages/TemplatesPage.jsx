@@ -9,6 +9,7 @@ import {
   deleteTemplate,
   getHiddenBuiltinTemplates,
   getSavedTemplates,
+  getUnsubscribeCategories,
   saveTemplate,
 } from '../services/brevoApi';
 import { API_URL } from '../services/apiClient';
@@ -22,6 +23,8 @@ const SELECTED_TEMPLATE_KEY = 'campaign-templates:selectedId';
 export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   const [previewDevice, setPreviewDevice] = useState('desktop');
   const [previewClient, setPreviewClient] = useState('gmail');
+  const [previewDark, setPreviewDark] = useState(false);
+  const [categories, setCategories] = useState([]);
   const [activeTab, setActiveTab] = useState('edit');
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
@@ -35,13 +38,14 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   const previewData = buildPreviewData(contacts, template.logoUrl);
   const subject = renderTemplate(template.subject, previewData);
   const html = renderTemplate(template.html, previewData);
-  const previewHtml = buildEmailPreviewDocument(html, previewClient);
+  const previewHtml = buildEmailPreviewDocument(html, previewClient, { dark: previewDark });
 
   useEffect(() => {
     getSavedTemplates().then(setSavedTemplates).catch(() => setSavedTemplates([]));
     getHiddenBuiltinTemplates()
       .then((ids) => setHiddenBuiltins(new Set(Array.isArray(ids) ? ids : [])))
       .catch(() => setHiddenBuiltins(new Set()));
+    getUnsubscribeCategories().then(setCategories).catch(() => setCategories([]));
   }, []);
 
   // Restore the previously-selected template once savedTemplates loads, so a
@@ -203,6 +207,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
               canDelete={Boolean(selectedTemplateId)}
               onDelete={requestDeleteTemplate}
               onDuplicate={duplicateTemplate}
+              categories={categories}
             />
           ) : (
             <EmailPreview
@@ -212,6 +217,8 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
               previewDevice={previewDevice}
               setPreviewDevice={setPreviewDevice}
               previewHtml={previewHtml}
+              previewDark={previewDark}
+              setPreviewDark={setPreviewDark}
             />
           )}
         </section>

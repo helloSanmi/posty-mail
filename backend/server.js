@@ -14,6 +14,8 @@ import { registerCampaignRoutes, restoreCampaignJobs } from './routes/campaigns.
 import { registerContactRoutes } from './routes/contacts.js';
 import { registerNotificationRoutes } from './routes/notifications.js';
 import { registerSegmentRoutes } from './routes/segments.js';
+import { registerSequenceRoutes } from './routes/sequences.js';
+import { registerSequenceRunner } from './lib/sequenceRunner.js';
 import {
   registerIntegrationRoutes,
   registerPublicIntegrationRoutes,
@@ -84,8 +86,20 @@ const webhookLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Public subscribe widget. Lower cap than the general API since this is
+// open to the world: 30 attempts per IP per minute is enough for a legitimate
+// busy form, well short of what a scraper would need to harvest a list.
+const subscribeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many subscribe attempts. Try again in a minute.' },
+});
+
 app.use('/api', apiLimiter);
 app.use('/api/webhooks', webhookLimiter);
+app.use('/api/public/subscribe', subscribeLimiter);
 
 app.get('/api/health', asyncRoute(async (_req, res) => {
   let databaseConnected = false;
@@ -99,6 +113,10 @@ app.get('/api/health', asyncRoute(async (_req, res) => {
     ok: true,
     databaseConnected,
     brevoConfigured: Boolean(process.env.BREVO_API_KEY),
+    // DEMO_MODE flips the UI into a "this is a sandbox" state. The flag
+    // also makes the Brevo client refuse real sends (dry-run only) — see
+    // brevoClient.js — so it's safe to expose unauthenticated.
+    demoMode: Boolean(process.env.DEMO_MODE),
   });
 }));
 
@@ -112,6 +130,7 @@ registerAdminRoutes(app);
 registerContactRoutes(app);
 registerNotificationRoutes(app);
 registerSegmentRoutes(app);
+registerSequenceRoutes(app);
 registerAudienceRoutes(app);
 registerCampaignRoutes(app);
 registerTemplateRoutes(app);
@@ -131,6 +150,12 @@ app.listen(port, () => {
 restoreCampaignJobs().catch((error) => {
   console.error('Could not restore scheduled campaigns', error);
 });
+
+// Drip-sequence runner. Fires every 5 minutes via node-cron; reads
+// SequenceEnrollment rows whose nextRunAt has elapsed and sends the next
+// step. Safe to start unconditionally — if no sequences exist, every tick
+// is a cheap no-op SELECT.
+registerSequenceRunner();
 
 // Catch up on any Brevo events that fired while we were down. Non-blocking.
 // startup is unaffected if Brevo is unreachable. Idempotent thanks to the

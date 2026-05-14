@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronRight,
   Inbox,
   MailCheck,
   Send,
@@ -13,11 +12,16 @@ import {
   getEvents,
   getUnsubscribes,
 } from '../services/brevoApi';
+import { OnboardingChecklist } from '../components/OnboardingChecklist';
 import { SkeletonCard } from '../components/Skeleton';
 import { useAuth } from '../auth/AuthContext';
 import { eventLabel, eventPill, isBotEvent } from '../utils/brevoEvents';
 
-export function DashboardPage({ contacts, template, setPage }) {
+// `template` and `setPage` were threaded through the legacy first-run
+// <Onboarding> component. Both are unused now that the onboarding lives in
+// its own component and routes via useNavigate. Kept off the destructure so
+// lint stays happy; if main.jsx still passes them, they're harmless.
+export function DashboardPage({ contacts }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
@@ -48,13 +52,23 @@ export function DashboardPage({ contacts, template, setPage }) {
   const isFirstRun = !loading && contacts.length === 0 && campaigns.length === 0;
 
   if (isFirstRun) {
-    return <Onboarding contacts={contacts} template={template} setPage={setPage} />;
+    // First-run dashboard. Just the onboarding card; nothing else to show
+    // until the user has actual data to summarize.
+    return (
+      <div className="page-stack overview-page home-page">
+        <OnboardingChecklist mode="full" contacts={contacts} campaigns={campaigns} />
+      </div>
+    );
   }
 
   const firstName = (user?.name || '').trim().split(/\s+/)[0] || null;
 
   return (
     <div className="page-stack content-page dashboard-page">
+      {/* Onboarding banner. Shows above the dashboard until every setup step
+          is complete OR the user dismisses it. Lets people who jumped in
+          via "Add audience" still see the "Configure sender" nudge. */}
+      <OnboardingChecklist mode="banner" contacts={contacts} campaigns={campaigns} />
       {/* Hero. Greets the user, summarises state in one line, surfaces the
           single most likely next action. Replaces the loose row of buttons
           that lived above the KPI strip; those duplicate the sidebar nav. */}
@@ -253,71 +267,6 @@ function KpiCard({ icon, label, value, onClick }) {
         <strong>{Number(value).toLocaleString()}</strong>
       </div>
     </Tag>
-  );
-}
-
-function Onboarding({ contacts, template, setPage }) {
-  const hasAudience = contacts.length > 0;
-  const steps = [
-    {
-      label: 'Add audience',
-      detail: hasAudience ? `${contacts.length} people saved` : 'Upload your CSV',
-      done: hasAudience,
-      target: 'contacts',
-    },
-    {
-      label: 'Create email',
-      detail: template?.name || 'Pick or edit a template',
-      done: Boolean(template?.subject && template?.html && template?.text),
-      target: 'templates',
-    },
-    {
-      label: 'Schedule send',
-      detail: 'Choose date and time',
-      done: false,
-      target: 'builder',
-    },
-  ];
-
-  return (
-    <div className="page-stack overview-page home-page">
-      <section className="surface home-board">
-        <div className="home-lead">
-          <h2>{hasAudience ? 'Ready to send.' : 'Start with your audience.'}</h2>
-          <p>
-            {hasAudience
-              ? 'Send your first campaign to see analytics, recent activity, and stats here.'
-              : 'Add people first. Your contacts are saved in this app.'}
-          </p>
-          <div className="hero-actions">
-            <button
-              className="primary"
-              onClick={() => setPage(hasAudience ? 'builder' : 'contacts')}
-            >
-              {hasAudience ? 'Schedule send' : 'Add audience'}
-              <ChevronRight size={18} aria-hidden="true" />
-            </button>
-            <button onClick={() => setPage('templates')}>Edit email</button>
-          </div>
-        </div>
-        <div className="home-setup">
-          <div className="workflow-list home-workflow">
-            {steps.map((step, index) => (
-              <button key={step.label} type="button" onClick={() => setPage(step.target)}>
-                <span className={step.done ? 'step-index complete' : 'step-index'}>
-                  {index + 1}
-                </span>
-                <span>
-                  <strong>{step.label}</strong>
-                  <small>{step.detail}</small>
-                </span>
-                <ChevronRight size={16} aria-hidden="true" />
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-    </div>
   );
 }
 

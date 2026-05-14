@@ -12,9 +12,15 @@ const blankContact = {
   region: 'US',
 };
 
-export function AddContactModal({ groups, onCreate, onCancel }) {
+export function AddContactModal({ groups, onCreate, onCancel, defaultGroupId }) {
   const [draft, setDraft] = useState(blankContact);
-  const [selectedGroupIds, setSelectedGroupIds] = useState([]);
+  // Pre-select the group the admin is currently viewing (if any). Matches
+  // the CSV-import behavior where the viewed group acts as a fallback
+  // destination. If `defaultGroupId` isn't passed (no group in view), the
+  // picker starts empty.
+  const [selectedGroupIds, setSelectedGroupIds] = useState(
+    defaultGroupId ? [defaultGroupId] : [],
+  );
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const cancelRef = useRef(null);

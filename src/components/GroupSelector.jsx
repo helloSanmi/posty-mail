@@ -3,7 +3,14 @@ import { Check, Search, X } from 'lucide-react';
 
 const MAX_VISIBLE = 200;
 
-export function GroupSelector({ groups, selectedIds, onChange, emptyMessage, compact = false }) {
+export function GroupSelector({
+  groups,
+  selectedIds,
+  onChange,
+  emptyMessage,
+  compact = false,
+  showAllContactsOption = false,
+}) {
   const [query, setQuery] = useState('');
 
   const selectedSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
@@ -17,6 +24,10 @@ export function GroupSelector({ groups, selectedIds, onChange, emptyMessage, com
   // because the trigger button already shows the selection summary.
   const showSearch = !compact || (groups || []).length > 10;
   const showChips = !compact && selectedGroups.length > 0;
+  // "All contacts" is rendered as a sticky top row when the parent asks for it.
+  // Hidden while the search box is active so the user can find groups by name.
+  const showAllContacts = showAllContactsOption && !query.trim();
+  const allSelected = (selectedIds || []).length === 0;
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -35,6 +46,34 @@ export function GroupSelector({ groups, selectedIds, onChange, emptyMessage, com
   }
 
   if (!groups?.length) {
+    // No groups exist yet, but the parent still wants to let the admin pick
+    // "All contacts" explicitly so the recipients field can move out of its
+    // placeholder state.
+    if (showAllContactsOption) {
+      return (
+        <div className={`group-selector-v2${compact ? ' is-compact' : ''}`}>
+          <ul className="group-selector-list" role="listbox" aria-label="Recipients">
+            <li>
+              <button
+                type="button"
+                role="option"
+                aria-selected={allSelected}
+                className={`group-selector-row${allSelected ? ' is-checked' : ''}`}
+                onClick={() => onChange([])}
+              >
+                <span className="group-selector-check" aria-hidden="true">
+                  {allSelected && <Check size={12} />}
+                </span>
+                <span className="group-selector-name">All contacts</span>
+              </button>
+            </li>
+          </ul>
+          <p className="muted group-selector-empty">
+            {emptyMessage || 'No groups yet. Create one from the Audience page.'}
+          </p>
+        </div>
+      );
+    }
     return (
       <p className="muted group-selector-empty">
         {emptyMessage || 'No groups yet. Create one from the Audience page.'}
@@ -78,6 +117,23 @@ export function GroupSelector({ groups, selectedIds, onChange, emptyMessage, com
       )}
 
       <ul className="group-selector-list" role="listbox" aria-label="Groups">
+        {showAllContacts && (
+          <li>
+            <button
+              type="button"
+              role="option"
+              aria-selected={allSelected}
+              className={`group-selector-row group-selector-row-all${allSelected ? ' is-checked' : ''}`}
+              onClick={() => onChange([])}
+            >
+              <span className="group-selector-check" aria-hidden="true">
+                {allSelected && <Check size={12} />}
+              </span>
+              <span className="group-selector-name">All contacts</span>
+              <span className="muted group-selector-meta">Everyone</span>
+            </button>
+          </li>
+        )}
         {visible.length === 0 ? (
           <li className="muted group-selector-no-match">No groups match &quot;{query}&quot;.</li>
         ) : (

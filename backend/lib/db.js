@@ -10,6 +10,7 @@ export function contactFromDb(contact) {
     lastname: contact.lastname || '',
     consent: contact.consent || '',
     region: contact.region || '',
+    timezone: contact.timezone || '',
     savedAt: contact.savedAt?.toISOString?.() || contact.savedAt,
     updatedAt: contact.updatedAt?.toISOString?.() || contact.updatedAt,
   };
@@ -33,8 +34,32 @@ export function audienceFromDb(audience) {
     id: audience.id,
     name: audience.name,
     contactEmails: audience.contactEmails,
+    disabled: Boolean(audience.disabled),
     updatedAt: audience.updatedAt?.toISOString?.() || audience.updatedAt,
   };
+}
+
+// Toggle the "disabled" flag on a group. Disabled groups stay in the DB
+// (members, send history references) but get filtered out of the campaign
+// recipient picker. Used by the Audience admin to retire an old group
+// without losing its data.
+export async function setAudienceDisabled(id, disabled) {
+  const row = await prisma.audience.update({
+    where: { id },
+    data: { disabled: Boolean(disabled) },
+  });
+  return audienceFromDb(row);
+}
+
+// Rename only. Kept separate from upsertAudience because that one rewrites
+// the membership list too, which is the wrong behavior for an in-place
+// rename triggered from the Groups sidebar.
+export async function renameAudience(id, name) {
+  const row = await prisma.audience.update({
+    where: { id },
+    data: { name },
+  });
+  return audienceFromDb(row);
 }
 
 export function campaignFromDb(campaign) {
@@ -79,30 +104,16 @@ export async function listContacts() {
   return rows.map(contactFromDb);
 }
 
-export function buildContactWhere(filter = {}) {
-  const where = {};
-  const search = filter.search?.trim();
-  const region = filter.region?.trim();
-  const consent = filter.consent?.trim();
-
-  if (search) {
-    where.OR = [
-      { email: { contains: search, mode: 'insensitive' } },
-      { firstname: { contains: search, mode: 'insensitive' } },
-      { lastname: { contains: search, mode: 'insensitive' } },
-    ];
-  }
-  if (region) where.region = region;
-  if (consent) where.consent = consent;
-  if (filter.excludeUnsubscribed) {
-    where.email = { notIn: filter._unsubscribedEmails || [] };
-  }
-
-  return where;
-}
+// Backward-compat thin wrapper around the pure filterToWhere translator in
+// lib/segmentFilter.js. Old call sites pass `{ search, region, consent,
+// excludeUnsubscribed }` and that still works; new call sites can also pass
+// `rules`, `addedAfter`, `addedBefore`, and `_inAnyGroupEmails` via the same
+// shape. See segmentFilter.js for the full grammar.
+import { filterToWhere } from './segmentFilter.js';
+export { filterToWhere as buildContactWhere };
 
 export async function queryContacts({ filter = {}, page = 1, pageSize = 50, sort = 'savedAt' } = {}) {
-  const where = buildContactWhere(filter);
+  const where = filterToWhere(filter);
   const safePageSize = Math.min(Math.max(Number(pageSize) || 50, 1), 500);
   const safePage = Math.max(Number(page) || 1, 1);
 
@@ -286,8 +297,25 @@ export async function listUnsubscribes() {
   return rows.map(unsubscribeFromDb);
 }
 
-export async function listEvents() {
-  const rows = await prisma.event.findMany({ orderBy: { receivedAt: 'desc' }, take: 500 });
+// Read events for the Reports page. With no args, returns the latest 500 —
+// the historical default that kept the page snappy for installs with years
+// of accumulated webhook traffic. When `since` / `until` are provided we
+// raise the cap to 5000 so a date-filtered query (e.g. "last 7 days") can
+// return everything in that window even on a high-volume install.
+export async function listEvents({ since, until } = {}) {
+  const where = {};
+  if (since instanceof Date && !Number.isNaN(since.getTime())) {
+    where.receivedAt = { ...(where.receivedAt || {}), gte: since };
+  }
+  if (until instanceof Date && !Number.isNaN(until.getTime())) {
+    where.receivedAt = { ...(where.receivedAt || {}), lte: until };
+  }
+  const hasFilter = Object.keys(where).length > 0;
+  const rows = await prisma.event.findMany({
+    where,
+    orderBy: { receivedAt: 'desc' },
+    take: hasFilter ? 5000 : 500,
+  });
   return rows.map(eventFromDb);
 }
 
@@ -320,6 +348,10 @@ export async function upsertContacts(contacts) {
       // value the row already has.
       consent: contact.consent || 'yes',
       region: contact.region || '',
+      // Timezone is opt-in. Stored as an IANA string ('America/New_York').
+      // Empty = "unknown" which the scheduler treats as UTC. We never
+      // overwrite a stored timezone with empty on UPDATE.
+      ...(contact.timezone ? { timezone: contact.timezone } : {}),
       data: contact,
     },
     update: {
@@ -331,6 +363,7 @@ export async function upsertContacts(contacts) {
       // no consent column will not silently re-opt-in someone who said "no".
       ...(contact.consent ? { consent: contact.consent } : {}),
       region: contact.region || '',
+      ...(contact.timezone ? { timezone: contact.timezone } : {}),
       data: contact,
     },
   }));
@@ -422,6 +455,34 @@ export async function addEmailsToAudience(id, emails) {
           where: { id: other.id },
           data: { contactEmails: after },
         });
+      }
+    }
+
+    // Drip-sequence trigger: enroll each newly-added email into any active
+    // sequence configured to fire on "added to this group". Fire-and-forget
+    // because enrollment is idempotent (unique constraint dedupes) and we
+    // don't want the audience write to block on it. Guarded against an
+    // un-migrated install (no Sequence model on the Prisma client).
+    if (prisma.sequence) {
+      try {
+        const sequences = await prisma.sequence.findMany({
+          where: {
+            triggerType: 'group_added',
+            triggerGroupId: id,
+            status: 'active',
+          },
+        });
+        if (sequences.length) {
+          for (const seq of sequences) {
+            for (const email of normalized) {
+              try { await enrollInSequence(seq.id, email); } catch { /* idempotent */ }
+            }
+          }
+        }
+      } catch (error) {
+        // Don't fail the group-add just because the sequence enrollment
+        // sidecar broke. Log and continue.
+        console.error('[audience] sequence trigger failed:', error.message);
       }
     }
   }
@@ -684,3 +745,92 @@ export async function pruneEventsToLatest(limit = 500) {
     await prisma.event.deleteMany({ where: { receivedAt: { lt: cutoff[0].receivedAt } } });
   }
 }
+
+// ---- Drip sequences ------------------------------------------------------
+
+export function sequenceFromDb(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    status: row.status,
+    triggerType: row.triggerType,
+    triggerGroupId: row.triggerGroupId,
+    steps: Array.isArray(row.steps) ? row.steps : [],
+    createdAt: row.createdAt?.toISOString?.() || row.createdAt,
+    updatedAt: row.updatedAt?.toISOString?.() || row.updatedAt,
+  };
+}
+
+export async function listSequences() {
+  const rows = await prisma.sequence.findMany({ orderBy: { updatedAt: "desc" } });
+  return rows.map(sequenceFromDb);
+}
+
+export async function getSequence(id) {
+  const row = await prisma.sequence.findUnique({ where: { id } });
+  return row ? sequenceFromDb(row) : null;
+}
+
+export async function upsertSequence(seq) {
+  const data = {
+    name: seq.name,
+    status: seq.status || "active",
+    triggerType: seq.triggerType || "group_added",
+    triggerGroupId: seq.triggerGroupId || null,
+    steps: seq.steps || [],
+  };
+  const row = await prisma.sequence.upsert({
+    where: { id: seq.id },
+    create: { id: seq.id, ...data },
+    update: data,
+  });
+  return sequenceFromDb(row);
+}
+
+export async function deleteSequence(id) {
+  return prisma.sequence.deleteMany({ where: { id } });
+}
+
+// Enrolls one contact in one sequence. Idempotent: if already enrolled, this
+// is a no-op (the @@unique constraint prevents duplicates). Sets nextRunAt
+// based on step 0 delayDays.
+export async function enrollInSequence(sequenceId, email) {
+  const seq = await prisma.sequence.findUnique({ where: { id: sequenceId } });
+  if (!seq || seq.status !== "active") return null;
+  const steps = Array.isArray(seq.steps) ? seq.steps : [];
+  if (!steps.length) return null;
+  const firstDelayMs = (Number(steps[0].delayDays) || 0) * 24 * 60 * 60 * 1000;
+  const nextRunAt = new Date(Date.now() + firstDelayMs);
+  try {
+    return await prisma.sequenceEnrollment.create({
+      data: { sequenceId, email, nextStepIndex: 0, nextRunAt, status: "active" },
+    });
+  } catch (error) {
+    // P2002 = unique violation (already enrolled). Treat as a no-op.
+    if (error?.code === "P2002") return null;
+    throw error;
+  }
+}
+
+export async function listDueEnrollments(now = new Date()) {
+  return prisma.sequenceEnrollment.findMany({
+    where: { status: "active", nextRunAt: { lte: now } },
+    take: 100, // batch cap per runner tick
+  });
+}
+
+export async function advanceEnrollment(id, { nextStepIndex, nextRunAt, status, lastError }) {
+  return prisma.sequenceEnrollment.update({
+    where: { id },
+    data: { nextStepIndex, nextRunAt, status, lastError: lastError ?? null },
+  });
+}
+
+export async function listEnrollmentsForSequence(sequenceId) {
+  return prisma.sequenceEnrollment.findMany({
+    where: { sequenceId },
+    orderBy: { enrolledAt: "desc" },
+    take: 500,
+  });
+}
+

@@ -16,9 +16,18 @@ export function CampaignForm({
   templateOptions,
   selectedTemplateId,
   onSelectTemplate,
+  templateChosen = true,
   groups = [],
   selectedGroupIds = [],
   onSelectGroups,
+  // Segments: optional. When passed, the recipients popover gets a "Segments"
+  // section below the groups list so the admin can union a dynamic segment
+  // into the audience. Omitting these props hides the section entirely,
+  // keeping older call sites unchanged.
+  segments = [],
+  selectedSegmentIds = [],
+  onSelectSegments,
+  recipientsChosen = true,
   recipientCount = 0,
   recipientLoading = false,
 }) {
@@ -73,11 +82,21 @@ export function CampaignForm({
     return `${formatted} (${timezone}) · ${FREQUENCY_LABEL[form.frequency] || 'Once'}`;
   }, [form.sendMode, form.scheduledAt, form.frequency, timezone]);
 
-  const recipientsSummary = recipientLoading
-    ? 'Counting…'
-    : selectedGroupIds.length === 0
-      ? `All contacts · ${recipientCount.toLocaleString()} ${recipientCount === 1 ? 'person' : 'people'}`
-      : `${selectedGroupIds.length} group${selectedGroupIds.length === 1 ? '' : 's'} · ${recipientCount.toLocaleString()} ${recipientCount === 1 ? 'person' : 'people'}`;
+  const recipientsSummary = !recipientsChosen
+    ? 'Select recipients'
+    : recipientLoading
+      ? 'Counting…'
+      : (() => {
+          const parts = [];
+          if (selectedGroupIds.length === 0 && selectedSegmentIds.length === 0) {
+            parts.push('All contacts');
+          } else {
+            if (selectedGroupIds.length) parts.push(`${selectedGroupIds.length} group${selectedGroupIds.length === 1 ? '' : 's'}`);
+            if (selectedSegmentIds.length) parts.push(`${selectedSegmentIds.length} segment${selectedSegmentIds.length === 1 ? '' : 's'}`);
+          }
+          parts.push(`${recipientCount.toLocaleString()} ${recipientCount === 1 ? 'person' : 'people'}`);
+          return parts.join(' · ');
+        })();
 
   return (
     <div className="send-form">
@@ -89,12 +108,16 @@ export function CampaignForm({
           id={nameId}
           value={form.name}
           onChange={(event) => setForm({ ...form, name: event.target.value })}
+          placeholder="Name this campaign"
         />
       </div>
 
       <div className="form-field">
         <label htmlFor={templateId}>Email template</label>
         <select id={templateId} value={selectedTemplateId} onChange={onSelectTemplate}>
+          {!templateChosen && (
+            <option value="" disabled>Select template…</option>
+          )}
           {templateOptions.map((item) => (
             <option key={item.id} value={item.id}>{item.name}</option>
           ))}
@@ -106,7 +129,7 @@ export function CampaignForm({
         <button
           id={recipientsId}
           type="button"
-          className="send-recipients-trigger"
+          className={`send-recipients-trigger${!recipientsChosen ? ' is-placeholder' : ''}`}
           onClick={() => setRecipientsOpen((value) => !value)}
           aria-expanded={recipientsOpen}
           aria-haspopup="dialog"
@@ -122,8 +145,39 @@ export function CampaignForm({
               groups={groups}
               selectedIds={selectedGroupIds}
               onChange={(ids) => onSelectGroups?.(ids)}
+              showAllContactsOption
               emptyMessage="No groups yet. This campaign will go to All contacts."
             />
+            {segments.length > 0 && (
+              <div className="recipients-segments">
+                <div className="recipients-segments-head">
+                  <strong>Segments</strong>
+                  <span className="muted">Add a dynamic list. Re-evaluated at send time.</span>
+                </div>
+                <ul className="recipients-segments-list">
+                  {segments.map((segment) => {
+                    const checked = selectedSegmentIds.includes(segment.id);
+                    return (
+                      <li key={segment.id}>
+                        <label className={`recipients-segment-row${checked ? ' is-checked' : ''}`}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              const next = checked
+                                ? selectedSegmentIds.filter((id) => id !== segment.id)
+                                : [...selectedSegmentIds, segment.id];
+                              onSelectSegments?.(next);
+                            }}
+                          />
+                          <span>{segment.name}</span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -179,6 +233,20 @@ export function CampaignForm({
           {scheduleSummary && (
             <p className="send-form-full schedule-summary">{scheduleSummary}</p>
           )}
+          {/* Send-time per recipient timezone. Treats the chosen hour as a
+              local-clock target. Each contact receives when their wall clock
+              hits that time. Contacts with no stored timezone fall back to UTC. */}
+          <label className="checkbox-line send-form-full">
+            <input
+              type="checkbox"
+              checked={Boolean(form.useRecipientTimezone)}
+              onChange={(event) => setForm({ ...form, useRecipientTimezone: event.target.checked })}
+            />
+            Send at each recipient&apos;s local time
+            <span className="muted" style={{ marginLeft: 6 }}>
+              (uses the stored timezone on each contact; UTC otherwise)
+            </span>
+          </label>
         </>
       )}
     </div>

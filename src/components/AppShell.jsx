@@ -3,6 +3,7 @@ import { LogOut, PanelLeft, X } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { navItems, pageTitles } from '../data/navigation';
 import { useAuth } from '../auth/AuthContext';
+import { DemoBanner } from './DemoBanner';
 import { NotificationBell } from './NotificationBell';
 
 export function AppShell({ children }) {
@@ -28,6 +29,7 @@ export function AppShell({ children }) {
   return (
     <main className="app-shell">
       <a className="skip-link" href="#main-content">Skip to main content</a>
+      <DemoBanner />
       <aside
         className={`sidebar${drawerOpen ? ' open' : ''}`}
         aria-label="Primary navigation"

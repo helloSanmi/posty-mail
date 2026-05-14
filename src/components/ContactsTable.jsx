@@ -224,7 +224,12 @@ export function ContactsTable({
           const result = await bulkDeleteContacts(Array.from(selected));
           notify(`${result.deleted} deleted`);
           setSelected(new Set());
+          // Refresh both the contact list AND the groups sidebar — deleted
+          // contacts cascade out of their group memberships server-side, so
+          // the per-group counts need to re-fetch or they'd look stale.
           refresh();
+          await refreshGroups();
+          onGroupsChange?.();
         } catch (error) {
           notify(error.response?.data?.error || 'Bulk delete failed', 'error');
         }
@@ -242,7 +247,11 @@ export function ContactsTable({
         try {
           await deleteContact(email);
           notify('Person deleted');
+          // Same as bulk-delete: refresh groups so the sidebar counts are
+          // honest about the new membership.
           refresh();
+          await refreshGroups();
+          onGroupsChange?.();
         } catch (error) {
           notify(error.response?.data?.error || 'Could not delete', 'error');
         }
@@ -550,6 +559,7 @@ function ContactReadRow({
             onClick={onOptIn}
             title="Mark as opted in"
             aria-label="Mark as opted in"
+            data-tooltip="Mark as opted in"
           >
             <Check size={14} aria-hidden="true" />
           </button>
@@ -563,6 +573,7 @@ function ContactReadRow({
             aria-label="Add to group"
             aria-expanded={groupMenuOpen}
             aria-haspopup="menu"
+            data-tooltip="Add to group"
           >
             <FolderPlus size={14} aria-hidden="true" />
           </button>
@@ -600,32 +611,39 @@ function ContactReadRow({
           type="button"
           className="row-action"
           onClick={onEdit}
-          title="Edit"
+          title="Edit contact"
           aria-label="Edit contact"
+          data-tooltip="Edit contact"
         >
           <Pencil size={14} aria-hidden="true" />
         </button>
-        {viewingGroupId ? (
+        {/* When viewing a specific group, surface BOTH actions: remove from
+            this group (contact stays in audience) and delete the contact
+            entirely. The two are easy to confuse if only one is shown, so
+            we keep them adjacent and rely on the tooltips + the
+            visually-distinct icons (FolderMinus vs. Trash2) to disambiguate. */}
+        {viewingGroupId && (
           <button
             type="button"
             className="row-action row-action-danger"
             onClick={onRemoveFromGroup}
-            title="Remove from group"
+            title="Remove from this group"
             aria-label="Remove from group"
+            data-tooltip="Remove from group"
           >
             <FolderMinus size={14} aria-hidden="true" />
           </button>
-        ) : (
-          <button
-            type="button"
-            className="row-action row-action-danger"
-            onClick={onDelete}
-            title="Delete contact"
-            aria-label="Delete contact"
-          >
-            <Trash2 size={14} aria-hidden="true" />
-          </button>
         )}
+        <button
+          type="button"
+          className="row-action row-action-danger"
+          onClick={onDelete}
+          title="Delete contact from audience"
+          aria-label="Delete contact"
+          data-tooltip="Delete contact"
+        >
+          <Trash2 size={14} aria-hidden="true" />
+        </button>
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ import {
   listAudiences,
   listAudienceContacts,
   patchAudienceMembers,
+  renameAudience,
+  setAudienceDisabled,
   upsertAudience,
 } from '../lib/db.js';
 import { recordAudit } from '../lib/audit.js';
@@ -87,4 +89,53 @@ export function registerAudienceRoutes(app) {
     if (result.count) await recordAudit(req, 'audience.delete', 'audience', req.params.id);
     res.json({ deleted: result.count });
   }));
+
+  // Rename a group. Only the name changes. Membership and disabled state
+  // are untouched. Separate from the POST upsert because that one also
+  // rewrites the member list.
+  app.patch(
+    '/api/audiences/:id/name',
+    validate(z.object({ name: z.string().min(1).max(120) })),
+    asyncRoute(async (req, res) => {
+      try {
+        const updated = await renameAudience(req.params.id, req.body.name.trim());
+        await recordAudit(req, 'audience.rename', 'audience', updated.id, {
+          name: updated.name,
+        });
+        res.json(updated);
+      } catch (error) {
+        if (error.code === 'P2025') {
+          res.status(404).json({ error: 'Group not found' });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
+
+  // Toggle disabled. Disabled groups are kept in the DB (members, send
+  // history references) but excluded from the campaign recipient picker.
+  // Used to retire a group without losing its data.
+  app.patch(
+    '/api/audiences/:id/disabled',
+    validate(z.object({ disabled: z.boolean() })),
+    asyncRoute(async (req, res) => {
+      try {
+        const updated = await setAudienceDisabled(req.params.id, req.body.disabled);
+        await recordAudit(
+          req,
+          req.body.disabled ? 'audience.disable' : 'audience.enable',
+          'audience',
+          updated.id,
+        );
+        res.json(updated);
+      } catch (error) {
+        if (error.code === 'P2025') {
+          res.status(404).json({ error: 'Group not found' });
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
 }

@@ -11,6 +11,7 @@
 
 import { fetchTransactionalEvents } from './brevoClient.js';
 import { getLatestEventDate, recordEvent } from './db.js';
+import { isPostyEvent } from './eventScope.js';
 
 // Reach back this far before the latest stored event to catch any events we
 // might have missed in a small overlap window (clock skew, late-arriving
@@ -46,9 +47,13 @@ export async function syncBrevoEvents({ logger = console } = {}) {
 
   let inserted = 0;
   let skipped = 0;
+  let foreign = 0;
   for (const apiEvent of events) {
     const payload = normaliseApiEvent(apiEvent);
     if (!payload) { skipped += 1; continue; }
+    // Drop events for emails not sent by Posty. Brevo's API returns the entire
+    // account's history including other systems on the same key.
+    if (!isPostyEvent(payload)) { foreign += 1; continue; }
     try {
       await recordEvent({
         provider: 'brevo',
@@ -64,8 +69,11 @@ export async function syncBrevoEvents({ logger = console } = {}) {
     }
   }
 
-  logger.log(`[sync] Brevo events: fetched ${events.length}, inserted ${inserted}, skipped/dup ${skipped}.`);
-  return { fetched: events.length, inserted, skipped };
+  logger.log(
+    `[sync] Brevo events: fetched ${events.length}, inserted ${inserted}, ` +
+    `skipped/dup ${skipped}, foreign-dropped ${foreign}.`,
+  );
+  return { fetched: events.length, inserted, skipped, foreign };
 }
 
 // Brevo's API response uses slightly different field names than the webhook
