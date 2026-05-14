@@ -124,7 +124,7 @@ export function ContactsTable({
 
   // Clear the selection whenever the visible set changes. Paging, filtering,
   // or switching the viewed group. Carrying over invisible selections meant
-  // "Add 40 to group" could quietly fire against rows the user can no longer
+  // "Move 40 to group" could quietly fire against rows the user can no longer
   // see. With this, "selected" always corresponds to rows currently on screen
   // (or what the user explicitly ticked on this page).
   useEffect(() => {
@@ -154,9 +154,12 @@ export function ContactsTable({
     setPage(1);
   }
 
-  // Groups are exclusive: an add to group A also removes the email from group B
-  // in the DB. The single-row response from patchGroupMembers only carries A,
-  // so we always re-fetch the full list afterwards to keep local counts honest.
+  // Groups are exclusive: moving a contact into group A also removes them from
+  // group B in the DB. The single-row response from patchGroupMembers only
+  // carries A, so we always re-fetch the full list afterwards to keep local
+  // counts honest. (The UI calls this "Move" everywhere; the underlying API
+  // method name is still patchGroupMembers with an `add` list because that's
+  // what the backend route expects — exclusivity is enforced server-side.)
   async function refreshGroups() {
     try {
       const fresh = await getGroups();
@@ -173,9 +176,9 @@ export function ContactsTable({
       onGroupsChange?.();
       setSelected(new Set());
       setGroupMenuOpen(false);
-      notify(`Added ${emails.length} ${emails.length === 1 ? 'contact' : 'contacts'} to "${group.name}"`);
+      notify(`Moved ${emails.length} ${emails.length === 1 ? 'contact' : 'contacts'} to "${group.name}"`);
     } catch (error) {
-      notify(error.response?.data?.error || 'Could not add to group', 'error');
+      notify(error.response?.data?.error || 'Could not move to group', 'error');
     }
   }
 
@@ -184,9 +187,9 @@ export function ContactsTable({
       await patchGroupMembers(group.id, { add: [email] });
       await refreshGroups();
       onGroupsChange?.();
-      notify(`Added to "${group.name}"`);
+      notify(`Moved to "${group.name}"`);
     } catch (error) {
-      notify(error.response?.data?.error || 'Could not add to group', 'error');
+      notify(error.response?.data?.error || 'Could not move to group', 'error');
     }
   }
 
@@ -335,17 +338,17 @@ export function ContactsTable({
                   aria-expanded={groupMenuOpen}
                   aria-haspopup="menu"
                 >
-                  <FolderPlus size={14} aria-hidden="true" /> Add {selected.size} to group
+                  <FolderPlus size={14} aria-hidden="true" /> Move {selected.size} to group
                 </button>
                 {groupMenuOpen && (
                   <div className="segment-menu-panel" role="menu">
                     {groups.length === 0 ? (
                       <p className="muted segment-menu-hint">
-                        No groups yet. Create one above to add contacts to it.
+                        No groups yet. Create one above to move contacts into it.
                       </p>
                     ) : (
                       <div className="segment-menu-section">
-                        <span className="segment-menu-heading">Add to</span>
+                        <span className="segment-menu-heading">Move to</span>
                         {groups.map((group) => (
                           <button
                             key={group.id}
@@ -570,11 +573,11 @@ function ContactReadRow({
             type="button"
             className="row-action"
             onClick={() => setGroupMenuOpen((value) => !value)}
-            title="Add to group"
-            aria-label="Add to group"
+            title="Move to group"
+            aria-label="Move to group"
             aria-expanded={groupMenuOpen}
             aria-haspopup="menu"
-            data-tooltip="Add to group"
+            data-tooltip="Move to group"
           >
             <FolderPlus size={14} aria-hidden="true" />
           </button>
@@ -584,11 +587,11 @@ function ContactReadRow({
                 <p className="muted segment-menu-hint">
                   {groups.length === 0
                     ? 'No groups yet. Create one above.'
-                    : 'Already in every group.'}
+                    : 'No other group to move to. Create another first.'}
                 </p>
               ) : (
                 <div className="segment-menu-section">
-                  <span className="segment-menu-heading">Add to</span>
+                  <span className="segment-menu-heading">Move to</span>
                   {availableGroups.map((group) => (
                     <button
                       key={group.id}
