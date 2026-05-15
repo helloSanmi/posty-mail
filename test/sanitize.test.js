@@ -22,6 +22,25 @@ test('sanitizeEmailHtml strips inline event handlers', () => {
   assert.equal(result.includes('src="https://example.com/x.png"'), true);
 });
 
+// Regression for GHSA-rpr9-rxv7-x643 / CVE-2026-44990. sanitize-html <= 2.17.3
+// had a default sanitizer bypass where the content of a disallowed <xmp> tag
+// was appended unescaped to the output (raw-text element with a special
+// case in ontext). Adding 'xmp' to nonTextTags closes the bypass — verify
+// that markup smuggled inside <xmp> is fully discarded.
+test('sanitizeEmailHtml strips <xmp> wrapper AND its content (CVE-2026-44990)', () => {
+  const payloads = [
+    '<xmp><script>alert(1)</script></xmp>',
+    '<xmp><img src=x onerror=alert(1)></xmp>',
+    '<xmp><svg><script>alert(1)</script></svg></xmp>',
+  ];
+  for (const payload of payloads) {
+    const result = sanitizeEmailHtml(payload);
+    assert.equal(result.includes('<script>'), false, `<script> survived in: ${payload}`);
+    assert.equal(result.includes('onerror'), false, `onerror= survived in: ${payload}`);
+    assert.equal(result.includes('alert(1)'), false, `alert payload survived in: ${payload}`);
+  }
+});
+
 test('sanitizeEmailHtml forces rel="noopener noreferrer" on anchors', () => {
   const html = '<a href="https://example.com">link</a>';
   const result = sanitizeEmailHtml(html);
