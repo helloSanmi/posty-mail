@@ -21,6 +21,32 @@ import { SkeletonList } from './Skeleton';
 // group" workflow: selecting a screenful at a time without endless scrolling.
 const PAGE_SIZE = 40;
 
+// Client-side mirror of the backend's filter rules (backend/lib/segmentFilter.js
+// filterToWhere — search across email/firstname/lastname case-insensitive,
+// region exact, consent exact). Used only on the group-view branch because
+// the /api/groups/:id/contacts endpoint returns the full member list without
+// applying query filters. excludeUnsubscribed isn't honored here — that would
+// require fetching the unsubscribe set; the toolbar checkbox is hidden when
+// viewing a group anyway.
+function applyClientFilter(rows, filter) {
+  const search = (filter.search || '').trim().toLowerCase();
+  const region = (filter.region || '').trim().toLowerCase();
+  const consent = (filter.consent || '').trim().toLowerCase();
+  if (!search && !region && !consent) return rows;
+  return rows.filter((row) => {
+    if (search) {
+      const haystack = [row.email, row.firstname, row.lastname]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    if (region && String(row.region || '').toLowerCase() !== region) return false;
+    if (consent && String(row.consent || '').toLowerCase() !== consent) return false;
+    return true;
+  });
+}
+
 export function ContactsTable({
   notify,
   groupsRefreshTick = 0,
@@ -68,10 +94,13 @@ export function ContactsTable({
     setLoadError('');
     try {
       if (viewingGroupId) {
-        // The group endpoint returns the full member list; slice client-side
-        // so the same 40-per-page UX applies whether the user is browsing all
-        // contacts or a specific group.
-        const rows = await getGroupContacts(viewingGroupId);
+        // The group endpoint returns the full member list. Slice client-side
+        // for the same 40-per-page UX, AND apply the search/region/consent
+        // filters here too — the group endpoint doesn't support them
+        // server-side, so without this the filter bar would silently no-op
+        // while viewing a group.
+        const allRows = await getGroupContacts(viewingGroupId);
+        const rows = applyClientFilter(allRows, filter);
         const total = rows.length;
         const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
         const safePage = Math.min(Math.max(page, 1), totalPages);
