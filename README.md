@@ -9,23 +9,9 @@ backend, Brevo for transactional sends and click tracking.
 
 ![Posty dashboard](docs/screenshot.png)
 
-## Try it without installing
-
-A public demo lives at **demo.posty.dev** (hosted separately; visit the link
-to confirm it's up). Sandboxed: every send is dry-run, the database resets
-every hour. To host your own demo, see [`docs/DEMO.md`](docs/DEMO.md).
-
-## One-click deploy
-
-| Platform | |
-| --- | --- |
-| Render | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/helloSanmi/posty-mail) |
-| Railway | [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/helloSanmi/posty-mail) |
-| Coolify | See the [self-host guide](https://coolify.io/docs/applications/git#deploy-from-a-repository). Point at this repo, set the env vars below. |
-
-After deploying, add a Postgres add-on (each platform offers one) and set
-`DATABASE_URL`, `JWT_SECRET`, `BREVO_API_KEY`, and `PUBLIC_BASE_URL`. The
-first user to sign up becomes admin.
+> No hosted demo yet. Run it locally with the [Quick start](#quick-start-local-dev)
+> below; it's a five-minute setup. If you want to host your own public demo,
+> see [`docs/DEMO.md`](docs/DEMO.md) for the dry-run / reset-hourly recipe.
 
 ---
 
