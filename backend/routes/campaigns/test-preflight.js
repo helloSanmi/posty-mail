@@ -13,6 +13,7 @@ import { requireSender } from '../../lib/sender.js';
 import { findUnreachableImageUrls } from '../../lib/urlReachability.js';
 import { validate, z } from '../../lib/validate.js';
 import { asyncRoute } from '../../utils/store.js';
+import { withPreheader } from '../../../shared/campaignUtils.js';
 import { merge, templateSchema, testEmailSchema } from './schemas.js';
 
 export function registerTestAndPreflightRoutes(app) {
@@ -27,10 +28,21 @@ export function registerTestAndPreflightRoutes(app) {
         ...contact,
         email: toEmail,
       };
-      const renderedHtml = merge(template.html, previewContact);
+      // Inject the preview text (preheader) as the first thing in the HTML
+      // so the test render shows the same inbox-preview behavior real sends
+      // will get. merge() runs the same firstname/unsubscribeUrl
+      // substitutions on the preview text.
+      const renderedPreview = merge(template.previewText || '', previewContact);
+      const renderedHtml = withPreheader(
+        merge(template.html, previewContact),
+        renderedPreview,
+      );
       const result = await sendTestEmail({
         toEmail,
         sender: await requireSender(),
+        // replyTo is an "advanced setting" on the template — when set,
+        // recipients' replies route here instead of the From address.
+        replyTo: template.replyTo || null,
         subject: merge(template.subject, previewContact),
         htmlContent: renderedHtml,
         textContent: merge(template.text, previewContact),

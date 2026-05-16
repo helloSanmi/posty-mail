@@ -6,6 +6,7 @@
 import {
   complianceIssues,
   renderTemplate,
+  withPreheader,
 } from '../../../shared/campaignUtils.js';
 import { sendTransactionalEmail } from '../brevoClient.js';
 import { resolveSender } from '../sender.js';
@@ -229,12 +230,25 @@ export async function runCampaign(campaign, onUpdate) {
 
       try {
         await markSendAttempt(campaign.id, contact.email);
+        // Inject the preview text (preheader) as a hidden block at the
+        // start of the rendered HTML. Inbox previews (Gmail/Outlook/Apple)
+        // read it; the message body looks unchanged. Personalization tags
+        // inside the preview text get rendered too, so {{firstname}} works.
+        const renderedPreview = renderTemplate(template.previewText || '', enriched);
+        const renderedHtml = withPreheader(
+          renderTemplate(template.html, enriched),
+          renderedPreview,
+        );
         const response = await withRetry(() =>
           sendTransactionalEmail({
             contact,
             sender: liveSender,
+            // replyTo is a Brevo "advanced setting" — when set, recipients'
+            // replies route here instead of the From address. Validated and
+            // dropped silently inside the provider if malformed.
+            replyTo: template.replyTo || null,
             subject: renderTemplate(template.subject, enriched),
-            htmlContent: renderTemplate(template.html, enriched),
+            htmlContent: renderedHtml,
             textContent: renderTemplate(template.text, enriched),
             idempotencyKey: `${campaign.id}:${contact.email}`,
             campaignId: campaign.id,

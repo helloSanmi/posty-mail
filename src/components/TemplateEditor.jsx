@@ -80,6 +80,9 @@ export function TemplateEditor({
   }
   const nameId = useId();
   const subjectId = useId();
+  const previewId = useId();
+  const replyEmailId = useId();
+  const replyNameId = useId();
   // htmlId removed: CodeArea owns its own label/id now.
   const textId = useId();
 
@@ -213,6 +216,54 @@ export function TemplateEditor({
             placeholder="e.g. A quick update for {{firstname}}"
           />
         </label>
+        {/* Preview / preheader text. Shown in inbox previews under the
+            subject line in Gmail/Outlook/Apple Mail. Injected at send time
+            as a hidden div near the top of the HTML; never visible in the
+            rendered email body. Merge tags like {{firstname}} render too. */}
+        <label htmlFor={previewId}>
+          Preview text
+          <input
+            id={previewId}
+            value={template.previewText || ''}
+            onChange={(event) => setTemplate({ ...template, previewText: event.target.value })}
+            placeholder="Shown under the subject line in inbox previews"
+            maxLength={200}
+          />
+        </label>
+        {/* Reply-to (Brevo "advanced setting"). Optional override — when
+            set, recipients' replies go here instead of the From address.
+            Useful for routing replies to a shared inbox / helpdesk address
+            while keeping the From identity branded. */}
+        <fieldset className="template-replyto-fieldset">
+          <legend>Reply-to (optional)</legend>
+          <label htmlFor={replyEmailId}>
+            Email
+            <input
+              id={replyEmailId}
+              type="email"
+              value={template.replyTo?.email || ''}
+              onChange={(event) => setTemplate({
+                ...template,
+                replyTo: { ...(template.replyTo || {}), email: event.target.value },
+              })}
+              placeholder="replies@yourdomain.com"
+              autoComplete="off"
+            />
+          </label>
+          <label htmlFor={replyNameId}>
+            Display name
+            <input
+              id={replyNameId}
+              value={template.replyTo?.name || ''}
+              onChange={(event) => setTemplate({
+                ...template,
+                replyTo: { ...(template.replyTo || {}), name: event.target.value },
+              })}
+              placeholder="e.g. Support team"
+              autoComplete="off"
+            />
+          </label>
+        </fieldset>
         {/* Category gate. When the admin has defined preference-center
             categories AND tags this template with one, sends skip
             recipients who opted out of that topic via the unsubscribe page.

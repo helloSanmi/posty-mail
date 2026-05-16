@@ -6,6 +6,7 @@ import {
   estimateDurationMinutes,
   renderTemplate,
   validateContacts,
+  withPreheader,
 } from '../shared/campaignUtils.js';
 
 test('validates contacts and reports duplicates', () => {
@@ -38,4 +39,23 @@ test('flags missing consent for GDPR contacts', () => {
 
 test('estimates campaign duration from batches and delay', () => {
   assert.equal(estimateDurationMinutes(650, 300, 2), 4);
+});
+
+test('withPreheader prepends a hidden div containing the preview text', () => {
+  const result = withPreheader('<p>Hi</p>', 'See you tonight');
+  assert.match(result, /^<div style="display:none/);
+  assert.match(result, /See you tonight<\/div><p>Hi<\/p>$/);
+});
+
+test('withPreheader no-ops on empty / whitespace-only preview text', () => {
+  assert.equal(withPreheader('<p>Hi</p>', ''), '<p>Hi</p>');
+  assert.equal(withPreheader('<p>Hi</p>', '   '), '<p>Hi</p>');
+  assert.equal(withPreheader('<p>Hi</p>', null), '<p>Hi</p>');
+});
+
+test('withPreheader escapes HTML in the preview text', () => {
+  // A <script> in the preview text must not become a live script tag.
+  const result = withPreheader('<p>Hi</p>', '<script>alert(1)</script>');
+  assert.equal(result.includes('<script>alert(1)</script>'), false);
+  assert.match(result, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
 });

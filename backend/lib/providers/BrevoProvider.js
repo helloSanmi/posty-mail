@@ -60,12 +60,25 @@ function buildRecipientName(contact) {
   return local || 'Subscriber';
 }
 
+// Trim + validate a replyTo before handing it to Brevo. Brevo wants
+// `{ email, name? }`, rejects payloads with malformed email. Returns
+// null when the input is missing or unusable so the caller can omit
+// the field cleanly.
+function buildReplyTo(replyTo) {
+  if (!replyTo || typeof replyTo !== 'object') return null;
+  const email = String(replyTo.email || '').trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  const name = String(replyTo.name || '').trim();
+  return name ? { email, name } : { email };
+}
+
 async function sendTransactionalEmail({
   contact,
   subject,
   htmlContent,
   textContent,
   sender,
+  replyTo,
   idempotencyKey,
   campaignId,
   variantId,
@@ -82,6 +95,8 @@ async function sendTransactionalEmail({
     textContent,
     tags,
   };
+  const validReplyTo = buildReplyTo(replyTo);
+  if (validReplyTo) payload.replyTo = validReplyTo;
   if (idempotencyKey) {
     payload.headers = { 'X-Campaign-Idempotency-Key': idempotencyKey };
   }
@@ -91,23 +106,26 @@ async function sendTransactionalEmail({
   });
 }
 
-async function sendTestEmail({ toEmail, subject, htmlContent, textContent, sender }) {
+async function sendTestEmail({ toEmail, subject, htmlContent, textContent, sender, replyTo }) {
   // Subject is sent as-is. We used to prepend `[TEST] ` but it confused
   // admins ("the campaign I sent has TEST in the subject") and the
   // recipient already knows it's a test — they typed their own address
   // into the "Send test" box and clicked it themselves. The 'campaign-suite-
   // test' tag is enough to keep the engagement events out of real-campaign
   // reports.
+  const payload = {
+    sender,
+    to: [{ email: toEmail, name: buildRecipientName({ email: toEmail }) }],
+    subject,
+    htmlContent,
+    textContent,
+    tags: ['posty', 'campaign-suite-test'],
+  };
+  const validReplyTo = buildReplyTo(replyTo);
+  if (validReplyTo) payload.replyTo = validReplyTo;
   return brevoFetch('/smtp/email', {
     method: 'POST',
-    body: JSON.stringify({
-      sender,
-      to: [{ email: toEmail, name: buildRecipientName({ email: toEmail }) }],
-      subject,
-      htmlContent,
-      textContent,
-      tags: ['posty', 'campaign-suite-test'],
-    }),
+    body: JSON.stringify(payload),
   });
 }
 

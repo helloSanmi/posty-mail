@@ -1712,6 +1712,28 @@
   font-weight: 600;
   padding: 0 6px;
 }
+/* Reply-to fieldset in the template editor. Inline two-column layout
+   for email + display-name on wide screens, stacks below 600px so a
+   narrow editor pane still reads cleanly. */
+.template-replyto-fieldset {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1.4fr 1fr;
+  padding: 12px 14px;
+}
+.template-replyto-fieldset legend {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0 6px;
+  text-transform: uppercase;
+}
+@media (max-width: 600px) {
+  .template-replyto-fieldset { grid-template-columns: 1fr; }
+}
 .composer-combinator {
   align-items: center;
   display: flex;

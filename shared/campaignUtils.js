@@ -75,6 +75,28 @@ export function renderTemplate(template, contact) {
   });
 }
 
+// Prepend a hidden preheader/preview block to the rendered HTML. Mail
+// clients (Gmail/Outlook/Apple) read this as the inbox-preview text under
+// the subject line while keeping it invisible in the rendered email body.
+// The style soup is the standard preheader recipe — `mso-hide:all` is for
+// Outlook, the other props handle every other client. Empty/whitespace
+// preheaders no-op so the caller can pass `template.previewText` blindly.
+export function withPreheader(html, previewText) {
+  const text = String(previewText || '').trim();
+  if (!text) return html;
+  // Escape angle brackets + ampersands so a stray < doesn't break the
+  // hidden div's parsing. (No need to escape quotes — we're in element
+  // content, not an attribute.)
+  const safe = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  const preheader = '<div style="display:none;font-size:1px;color:#fff;line-height:1px;'
+    + 'max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">'
+    + `${safe}</div>`;
+  return preheader + String(html || '');
+}
+
 export function complianceIssues(contact, settings = {}) {
   const issues = [];
   const euRegions = new Set([
