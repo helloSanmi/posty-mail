@@ -1,52 +1,41 @@
-// Country/region picker data.
+// Region picker data.
 //
-// Three "priority" regions are pinned to the top of every dropdown because
-// they're the bulk of who we email today. Everything else is grouped under
-// "Other regions" and sorted alphabetically by label so users can scan it
-// naturally. New additions to the long-tail list don't need a new commit
-// here — they sort themselves into the right place at render time.
+// Deliberately short list: three countries Posty is actively used in (UK,
+// US, Nigeria) plus five continent buckets to cover everywhere else. A
+// full ISO 3166-1 list of 250 entries was rejected as overkill for the
+// volumes we email — most admins know the country of their audience
+// without needing a deep dropdown. If you genuinely need finer-grained
+// region targeting later, swap this for the ISO list + a searchable
+// picker component.
 //
-// Codes follow ISO 3166-1 alpha-2 (with "EU" as a regional aggregate).
+// Country codes are ISO 3166-1 alpha-2. Continent codes use UPPERCASE
+// readable names ("AFRICA" etc.) to make them obviously NOT ISO country
+// codes and to sidestep collisions with real country codes (e.g. AF would
+// clash with Afghanistan, NA with Namibia).
 const PRIORITY_CODES = ['GB', 'US', 'NG'];
 
-const ALL_COUNTRIES = [
-  ['US', 'United States'],
+const ALL_REGIONS = [
   ['GB', 'United Kingdom'],
+  ['US', 'United States'],
   ['NG', 'Nigeria'],
-  ['CA', 'Canada'],
-  ['AU', 'Australia'],
-  ['IE', 'Ireland'],
-  ['DE', 'Germany'],
-  ['FR', 'France'],
-  ['NL', 'Netherlands'],
-  ['ES', 'Spain'],
-  ['IT', 'Italy'],
-  ['SE', 'Sweden'],
-  ['DK', 'Denmark'],
-  ['NO', 'Norway'],
-  ['FI', 'Finland'],
-  ['ZA', 'South Africa'],
-  ['GH', 'Ghana'],
-  ['KE', 'Kenya'],
-  ['IN', 'India'],
-  ['AE', 'United Arab Emirates'],
-  ['SG', 'Singapore'],
-  ['BR', 'Brazil'],
-  ['MX', 'Mexico'],
-  ['EU', 'European Union'],
+  ['AFRICA', 'Africa'],
+  ['AMERICAS', 'Americas'],
+  ['ASIA', 'Asia'],
+  ['EUROPE', 'Europe'],
+  ['OCEANIA', 'Oceania'],
 ];
 
-// Priority list in the explicit order PRIORITY_CODES defines (GB, US, NG).
+// Priority list in the explicit order PRIORITY_CODES defines (UK, US, NG).
 export const priorityCountryOptions = PRIORITY_CODES
-  .map((code) => ALL_COUNTRIES.find(([value]) => value === code))
+  .map((code) => ALL_REGIONS.find(([value]) => value === code))
   .filter(Boolean);
 
-// Long-tail list, sorted alphabetically by label.
-export const otherCountryOptions = ALL_COUNTRIES
+// Continent buckets, sorted alphabetically by label.
+export const otherCountryOptions = ALL_REGIONS
   .filter(([value]) => !PRIORITY_CODES.includes(value))
   .sort((a, b) => a[1].localeCompare(b[1]));
 
-// Flat list, priority first, "other" second. Kept for any caller that
+// Flat list, priority first, continents second. Kept for any caller that
 // needs a single array (lookups, validation, etc).
 export const countryOptions = [...priorityCountryOptions, ...otherCountryOptions];
 
