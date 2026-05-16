@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import { countryOptions } from '../data/countries';
+import { otherCountryOptions, priorityCountryOptions } from '../data/countries';
 import { EMAIL_PATTERN } from '../../shared/campaignUtils.js';
 import { GroupSelector } from './GroupSelector';
 
@@ -87,9 +87,14 @@ export function ContactEditModal({ contact, groups = [], onSave, onCancel }) {
               value={draft.region || 'US'}
               onChange={(event) => setDraft({ ...draft, region: event.target.value })}
             >
-              {countryOptions.map(([value, label]) => (
+              {priorityCountryOptions.map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
+              <optgroup label="Other regions">
+                {otherCountryOptions.map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </optgroup>
             </select>
           </label>
 

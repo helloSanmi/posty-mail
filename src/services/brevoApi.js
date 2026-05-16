@@ -47,6 +47,13 @@ export async function bulkDeleteContacts(emails) {
   return data;
 }
 
+// Patch a narrow set of fields (region, consent) across many contacts in
+// one server call. Backed by /api/contacts/bulk-update (Prisma updateMany).
+export async function bulkUpdateContacts(emails, patch) {
+  const { data } = await apiClient.post('/api/contacts/bulk-update', { emails, patch });
+  return data;
+}
+
 export function contactExportUrl(filter = {}) {
   const params = new URLSearchParams();
   Object.entries(filter).forEach(([key, value]) => {

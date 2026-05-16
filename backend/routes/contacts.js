@@ -40,6 +40,21 @@ const bulkDeleteSchema = z.object({
   emails: z.array(z.string().email()).min(1).max(10000),
 });
 
+// Bulk patch a field across many contacts at once. Currently used by the
+// "Set region for N selected" action in the contacts table. `patch` is
+// kept narrow on purpose — only fields the UI surfaces today — so a
+// poisoned payload can't rewrite arbitrary columns. Add fields here as
+// new bulk actions land.
+const bulkUpdateSchema = z.object({
+  emails: z.array(z.string().email()).min(1).max(10000),
+  patch: z.object({
+    region: z.string().max(40).optional(),
+    consent: z.string().max(40).optional(),
+  }).refine((value) => Object.keys(value).length > 0, {
+    message: 'patch must contain at least one field',
+  }),
+});
+
 const filterSchema = z.object({
   search: z.string().optional(),
   region: z.string().optional(),
@@ -156,6 +171,33 @@ export function registerContactRoutes(app) {
       const total = await prisma.contact.count();
       if (deleted) await recordAudit(req, 'contact.bulk_delete', 'contact', null, { deleted });
       res.json({ deleted, total });
+    }),
+  );
+
+  // Bulk patch a narrow set of fields on many contacts at once. The
+  // `patch` shape is enforced by bulkUpdateSchema above — currently
+  // region + consent. We use Prisma updateMany, which is a single SQL
+  // statement and so much faster than looping per email even at small
+  // sizes.
+  app.post(
+    '/api/contacts/bulk-update',
+    validate(bulkUpdateSchema),
+    asyncRoute(async (req, res) => {
+      const emails = req.body.emails.map((value) => value.trim().toLowerCase());
+      const patch = {};
+      if (typeof req.body.patch.region === 'string') patch.region = req.body.patch.region;
+      if (typeof req.body.patch.consent === 'string') patch.consent = req.body.patch.consent;
+      const result = await prisma.contact.updateMany({
+        where: { email: { in: emails } },
+        data: patch,
+      });
+      if (result.count) {
+        await recordAudit(req, 'contact.bulk_update', 'contact', null, {
+          updated: result.count,
+          fields: Object.keys(patch),
+        });
+      }
+      res.json({ updated: result.count });
     }),
   );
 

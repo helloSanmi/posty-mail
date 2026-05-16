@@ -1,10 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Download, FolderMinus, FolderPlus, Pencil, Trash2, X } from 'lucide-react';
-import { countryName } from '../data/countries';
+import {
+  Check, Download, FolderMinus, FolderPlus, Globe2, Pencil, Trash2, X,
+} from 'lucide-react';
+import { countryName, otherCountryOptions, priorityCountryOptions } from '../data/countries';
 import { complianceIssues, validateContacts } from '../../shared/campaignUtils.js';
 import {
   bulkDeleteContacts,
+  bulkUpdateContacts,
   deleteContact,
   downloadContactsCsv,
   getGroupContacts,
@@ -67,6 +70,11 @@ export function ContactsTable({
   const [editContact, setEditContact] = useState(null);
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const groupMenuRef = useRef(null);
+  // Same dropdown pattern as the "Move N to group" menu — open state + a
+  // click-outside listener — but for the bulk "Set region for N selected"
+  // action.
+  const [regionMenuOpen, setRegionMenuOpen] = useState(false);
+  const regionMenuRef = useRef(null);
 
   useEffect(() => {
     if (!groupMenuOpen) return undefined;
@@ -78,6 +86,17 @@ export function ContactsTable({
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [groupMenuOpen]);
+
+  useEffect(() => {
+    if (!regionMenuOpen) return undefined;
+    function handleOutside(event) {
+      if (!regionMenuRef.current?.contains(event.target)) {
+        setRegionMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [regionMenuOpen]);
 
   const params = useMemo(() => ({
     ...filter,
@@ -209,6 +228,23 @@ export function ContactsTable({
       notify(`Moved ${emails.length} ${emails.length === 1 ? 'contact' : 'contacts'} to "${group.name}"`);
     } catch (error) {
       notify(error.response?.data?.error || 'Could not move to group', 'error');
+    }
+  }
+
+  // Bulk set region across selected contacts. The user's most common
+  // workflow is "select a whole group → set region to UK" so this lives
+  // alongside the Move-to-group bulk action. Backend uses Prisma
+  // updateMany so even thousands of rows are one SQL statement.
+  async function setRegionForSelected(regionCode, regionLabel) {
+    const emails = Array.from(selected);
+    if (!emails.length) return;
+    try {
+      const result = await bulkUpdateContacts(emails, { region: regionCode });
+      setRegionMenuOpen(false);
+      refresh();
+      notify(`Set region to ${regionLabel} for ${result.updated} ${result.updated === 1 ? 'contact' : 'contacts'}`);
+    } catch (error) {
+      notify(error.response?.data?.error || 'Could not set region', 'error');
     }
   }
 
@@ -392,6 +428,46 @@ export function ContactsTable({
                         ))}
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+              <div className="segment-menu" ref={regionMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setRegionMenuOpen((value) => !value)}
+                  aria-expanded={regionMenuOpen}
+                  aria-haspopup="menu"
+                >
+                  <Globe2 size={14} aria-hidden="true" /> Set region for {selected.size}
+                </button>
+                {regionMenuOpen && (
+                  <div className="segment-menu-panel" role="menu">
+                    <div className="segment-menu-section">
+                      <span className="segment-menu-heading">Set region to</span>
+                      {priorityCountryOptions.map(([code, label]) => (
+                        <button
+                          key={code}
+                          type="button"
+                          className="segment-menu-apply"
+                          onClick={() => setRegionForSelected(code, label)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="segment-menu-section">
+                      <span className="segment-menu-heading">Other regions</span>
+                      {otherCountryOptions.map(([code, label]) => (
+                        <button
+                          key={code}
+                          type="button"
+                          className="segment-menu-apply"
+                          onClick={() => setRegionForSelected(code, label)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
