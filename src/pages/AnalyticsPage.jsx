@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { getCampaigns, getEvents } from '../services/brevoApi';
 import { SkeletonCard } from '../components/Skeleton';
+import { ActivityChart } from '../components/analytics/ActivityChart';
+import { EngagementFunnel } from '../components/analytics/EngagementFunnel';
+import { TopLinks } from '../components/analytics/TopLinks';
 import { eventLabel, eventPill, isBotEvent } from '../utils/brevoEvents';
 
 // Date-range presets for the Reports filter. Each one returns
@@ -331,6 +334,60 @@ export function AnalyticsPage() {
           onCampaignClick={(id) => navigate(`/campaigns/${id}`)}
         />
       )}
+
+      {/* Activity over time — daily opens + clicks chart across the
+          selected window. Hand-built SVG so we don't ship chart.js for
+          one visualization. Hidden when loading so users don't see a
+          flicker of empty chart while the request lands. */}
+      <section className="surface analytics-block">
+        <div className="section-heading">
+          <h2>Activity over time</h2>
+          <span className="muted">
+            {realEvents.length === 0 ? 'No events yet' : `${realEvents.length} events`}
+          </span>
+        </div>
+        {loading ? (
+          <SkeletonCard />
+        ) : (
+          <ActivityChart
+            events={realEvents}
+            since={range.since}
+            until={range.until}
+          />
+        )}
+      </section>
+
+      {/* Two-column row with the funnel + top links side-by-side on
+          wide screens; stacks below 760px. Both are computed from the
+          same realEvents + totals so they refresh together. */}
+      <div className="analytics-insight-grid">
+        <section className="surface analytics-block">
+          <div className="section-heading">
+            <h2>Engagement funnel</h2>
+            <span className="muted">Drop-off across the window</span>
+          </div>
+          {loading ? (
+            <SkeletonCard />
+          ) : (
+            <EngagementFunnel
+              sent={totals.sent}
+              opens={totals.opens}
+              clicks={totals.clicks}
+            />
+          )}
+        </section>
+        <section className="surface analytics-block">
+          <div className="section-heading">
+            <h2>Top clicked links</h2>
+            <span className="muted">By click count</span>
+          </div>
+          {loading ? (
+            <SkeletonCard />
+          ) : (
+            <TopLinks events={realEvents} />
+          )}
+        </section>
+      </div>
 
       <section className="surface">
         <div className="section-heading">

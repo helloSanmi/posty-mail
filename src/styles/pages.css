@@ -3008,6 +3008,177 @@
 }
 .kpi-card > div strong { font-size: 1.4rem; line-height: 1.1; }
 
+/* Reports page — insight blocks (activity chart, funnel, top links).
+   .analytics-block is a thin wrapper on .surface; the .section-heading
+   inside owns the title bar so the layout stays consistent with the
+   other Reports sections. */
+.analytics-block { display: grid; gap: 16px; }
+.analytics-insight-grid {
+  display: grid;
+  gap: 16px;
+  /* Funnel + top links side by side on wide screens. Stacks at the
+     standard "narrow" breakpoint so each block keeps a readable width. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+@media (max-width: 980px) {
+  .analytics-insight-grid { grid-template-columns: 1fr; }
+}
+
+/* Activity chart — two-line SVG, opens (blue) layered over clicks
+   (green). Lines are crisp at any width because the SVG uses
+   preserveAspectRatio="none" + width:100%; the parent sets the height. */
+.activity-chart {
+  display: grid;
+  gap: 10px;
+}
+.activity-chart-legend {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.78rem;
+  gap: 14px;
+}
+.activity-chart-swatch {
+  border-radius: 2px;
+  display: inline-block;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: middle;
+  width: 10px;
+}
+.activity-chart-swatch.is-opens { background: #2563eb; }
+.activity-chart-swatch.is-clicks { background: #15803d; }
+.activity-chart-svg {
+  display: block;
+  height: 200px;
+  width: 100%;
+}
+.activity-chart-grid {
+  stroke: #eef2f6;
+  stroke-width: 1;
+}
+.activity-chart-axis {
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.activity-chart-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+.activity-chart-line.is-opens { stroke: #2563eb; }
+.activity-chart-line.is-clicks { stroke: #15803d; }
+.activity-chart-area {
+  stroke: none;
+}
+.activity-chart-area.is-opens { fill: rgba(37, 99, 235, 0.10); }
+.activity-chart-area.is-clicks { fill: rgba(21, 128, 61, 0.10); }
+
+/* Engagement funnel — three horizontal bars (Sent / Opened / Clicked),
+   each scaled to a percent of Sent. Drop-off rate sits to the right
+   of each bar as small muted text. */
+.funnel { display: grid; gap: 14px; }
+.funnel-row { display: grid; gap: 4px; }
+.funnel-row-head {
+  align-items: baseline;
+  display: flex;
+  font-size: 0.84rem;
+  justify-content: space-between;
+}
+.funnel-row-label {
+  color: var(--text);
+  font-weight: 600;
+}
+.funnel-row-value {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.funnel-bar {
+  background: #f1f5f9;
+  border-radius: 8px;
+  height: 28px;
+  overflow: hidden;
+  position: relative;
+}
+.funnel-bar-fill {
+  height: 100%;
+  transition: width 0.4s ease-out;
+}
+.funnel-bar-neutral .funnel-bar-fill { background: #cbd5e1; }
+.funnel-bar-good .funnel-bar-fill    { background: #93c5fd; }
+.funnel-bar-great .funnel-bar-fill   { background: #86efac; }
+.funnel-bar-percent {
+  color: #1f2937;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  left: 10px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.funnel-row-drop { font-size: 0.74rem; }
+
+/* Top clicked links — ranked list with a horizontal bar per row scaled
+   to the leader. Compact rank + URL + count layout. */
+.top-links {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.top-links-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+}
+.top-links-rank {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.top-links-body {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.top-links-url {
+  align-items: center;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 500;
+  gap: 6px;
+  overflow: hidden;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.top-links-url:hover { color: var(--blue); text-decoration: underline; }
+.top-links-bar {
+  background: #f1f5f9;
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+  width: 100%;
+}
+.top-links-bar-fill {
+  background: linear-gradient(90deg, #93c5fd 0%, #2563eb 100%);
+  height: 100%;
+  transition: width 0.4s ease-out;
+}
+.top-links-count {
+  color: var(--text);
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 /* Campaign-performance table — rate-aware cells. Each numeric column
    shows the raw count + a small % rate underneath. */
 .reports-table-rates .reports-cell-stat {
