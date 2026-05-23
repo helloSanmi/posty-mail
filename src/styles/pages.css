@@ -2395,32 +2395,85 @@
 .pagination button:disabled { opacity: 0.45; }
 .pagination-status { font-size: 0.84rem; }
 
+/* Campaigns grid. Each card splits into:
+   - .campaign-card-body  (full-width clickable area → opens details)
+   - .campaign-card-actions (compact icon row: Edit, Clone, Delete)
+   This mirrors the Drafts redesign and keeps each card short — the old
+   4-button row + stacked meta blocks pushed each card past 200px tall. */
 .campaigns-grid {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 .campaign-card {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  display: grid;
-  gap: 16px;
-  padding: 18px;
-}
-.campaign-card header {
-  align-items: flex-start;
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  overflow: hidden;
+}
+.campaign-card-body {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  flex: 1 1 auto;
+  font: inherit;
+  gap: 8px;
+  padding: 12px 14px;
+  text-align: left;
+}
+.campaign-card-body:hover { background: #f8fafc; }
+.campaign-card-body:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+.campaign-card-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
   justify-content: space-between;
 }
-.campaign-card-title strong { display: block; font-size: 1.05rem; }
-.campaign-card-title .muted { font-size: 0.82rem; }
-.campaign-card-meta {
-  display: grid;
-  gap: 8px;
+.campaign-card-head strong {
+  font-size: 0.96rem;
+  line-height: 1.3;
+  /* Clamp to two lines so a long campaign name doesn't stretch the
+     card. word-break keeps unbreakable words wrapping cleanly. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
 }
+.campaign-card-meta-inline {
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
+  gap: 4px 14px;
+}
+.campaign-card-meta-inline em {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  margin-right: 6px;
+  text-transform: uppercase;
+}
+.campaign-card-actions {
+  align-items: center;
+  border-top: 1px solid #eef2f6;
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+  padding: 4px 6px;
+}
+/* Legacy classes kept for any other surface that still uses .meta-pair
+   or .card-actions. Campaign cards now use the inline / actions
+   variants above. */
 .meta-pair { display: grid; gap: 2px; }
 .meta-pair .muted {
   font-size: 0.74rem;

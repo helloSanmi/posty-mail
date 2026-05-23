@@ -153,42 +153,65 @@ export function CampaignsPage({ notify }) {
               <div className="campaigns-grid">
                 {campaigns.map((campaign) => (
                   <article key={campaign.id} className="campaign-card">
-                    <header>
-                      <div className="campaign-card-title">
+                    {/* Whole body is the "Details" affordance, same pattern
+                        as the Drafts redesign — click anywhere on the title
+                        / meta row to open the per-campaign metrics page.
+                        Action buttons (Edit, Clone, Delete) sit OUTSIDE the
+                        body button so the nesting stays valid. */}
+                    <button
+                      type="button"
+                      className="campaign-card-body"
+                      onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                      aria-label={`View details for "${campaign.name}"`}
+                    >
+                      <div className="campaign-card-head">
                         <strong>{campaign.name}</strong>
-                        <span className="muted">{formatDate(campaign.createdAt)}</span>
+                        <span className={`pill ${statusPill(campaign.status)}`}>
+                          {labelStatus(campaign.status)}
+                        </span>
                       </div>
-                      <span className={`pill ${statusPill(campaign.status)}`}>
-                        {labelStatus(campaign.status)}
-                      </span>
-                    </header>
-                    <div className="campaign-card-meta">
-                      {campaign.scheduledAt && (
-                        <Meta label="Scheduled" value={formatDate(campaign.scheduledAt)} />
-                      )}
-                      <Meta
-                        label="Progress"
-                        value={progressLine(campaign.progress)}
-                      />
-                    </div>
-                    <div className="card-actions">
-                      <button type="button" onClick={() => navigate(`/campaigns/${campaign.id}`)}>
-                        Details
-                      </button>
+                      <div className="campaign-card-meta-inline">
+                        {campaign.scheduledAt && (
+                          <span>
+                            <em>Scheduled</em>
+                            {formatDate(campaign.scheduledAt)}
+                          </span>
+                        )}
+                        <span>
+                          <em>Progress</em>
+                          {progressLine(campaign.progress)}
+                        </span>
+                      </div>
+                    </button>
+                    <div className="campaign-card-actions">
                       {campaign.status !== 'running' && (
-                        <button type="button" onClick={() => setEditing(campaign)}>
-                          <Pencil size={14} aria-hidden="true" /> Edit
+                        <button
+                          type="button"
+                          className="row-action"
+                          onClick={() => setEditing(campaign)}
+                          title="Edit campaign"
+                          aria-label="Edit campaign"
+                        >
+                          <Pencil size={14} aria-hidden="true" />
                         </button>
                       )}
-                      <button type="button" onClick={() => handleClone(campaign.id)}>
-                        <Copy size={14} aria-hidden="true" /> Clone
+                      <button
+                        type="button"
+                        className="row-action"
+                        onClick={() => handleClone(campaign.id)}
+                        title="Clone campaign"
+                        aria-label="Clone campaign"
+                      >
+                        <Copy size={14} aria-hidden="true" />
                       </button>
                       <button
                         type="button"
-                        className="danger"
+                        className="row-action row-action-danger"
                         onClick={() => handleDeleteCampaign(campaign)}
+                        title="Delete campaign"
+                        aria-label="Delete campaign"
                       >
-                        <Trash2 size={14} aria-hidden="true" /> Delete
+                        <Trash2 size={14} aria-hidden="true" />
                       </button>
                     </div>
                   </article>
@@ -288,15 +311,6 @@ export function CampaignsPage({ notify }) {
           onCancel={() => setEditing(null)}
         />
       )}
-    </div>
-  );
-}
-
-function Meta({ label, value }) {
-  return (
-    <div className="meta-pair">
-      <span className="muted">{label}</span>
-      <span>{value}</span>
     </div>
   );
 }
