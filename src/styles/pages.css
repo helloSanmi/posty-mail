@@ -2821,19 +2821,30 @@
 .dashboard-kpi {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
+/* KPI card layout. Vertical stack:
+   [icon] LABEL
+   42px value      [+12% chip]
+   12.3% open rate
+   Cards are also used on the Dashboard via .dashboard-kpi (single-row
+   flex), so the new vertical layout is scoped via the head / value-row /
+   rate sub-elements. Old kpi-card flat children still work for the
+   Dashboard usage. */
 .kpi-card {
-  align-items: center;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 12px;
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
   padding: 14px 16px;
   text-align: left;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .kpi-card.is-link { cursor: pointer; }
-.kpi-card.is-link:hover { border-color: #cfe0fb; }
+.kpi-card.is-link:hover {
+  border-color: #cfe0fb;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
 .kpi-icon {
   align-items: center;
   background: #eef4ff;
@@ -2841,17 +2852,81 @@
   color: var(--blue);
   display: flex;
   flex-shrink: 0;
-  height: 32px;
+  height: 30px;
   justify-content: center;
-  width: 32px;
+  width: 30px;
 }
-.kpi-card > div { display: grid; gap: 2px; }
-.kpi-card .muted {
+.kpi-card-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+.kpi-card-label {
   font-size: 0.74rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.kpi-card strong { font-size: 1.4rem; line-height: 1.1; }
+.kpi-card-value-row {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+.kpi-card-value {
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+.kpi-card-rate { font-size: 0.78rem; }
+.kpi-card-rate > span { color: var(--muted); }
+
+/* Delta chip — small pill showing % change vs previous period. Good/bad
+   tones map by metric (more bounces = bad even though it's a positive
+   delta). Neutral is for 0% no-change. */
+.kpi-delta {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  gap: 2px;
+  padding: 2px 6px;
+}
+.kpi-delta-good { background: #e7f6ec; color: #15803d; }
+.kpi-delta-bad  { background: #fdecec; color: #b91c1c; }
+.kpi-delta-neutral { background: #f1f5f9; color: var(--muted); }
+
+/* Fallback for any legacy KPI card that still uses the old flat
+   structure (single <div> inside). Dashboard probably still wants the
+   simpler horizontal layout. */
+.kpi-card > div:not(.kpi-card-head):not(.kpi-card-value-row) {
+  display: grid;
+  gap: 2px;
+}
+.kpi-card > div .muted {
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.kpi-card > div strong { font-size: 1.4rem; line-height: 1.1; }
+
+/* Campaign-performance table — rate-aware cells. Each numeric column
+   shows the raw count + a small % rate underneath. */
+.reports-table-rates .reports-cell-stat {
+  display: grid;
+  gap: 1px;
+}
+.reports-table-rates .reports-cell-stat > strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.reports-cell-rate {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+.reports-cell-rate.is-bad { color: #b91c1c; }
 
 .dashboard-grid {
   display: grid;

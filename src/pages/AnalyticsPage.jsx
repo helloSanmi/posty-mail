@@ -3,10 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
+  ArrowDownRight,
+  ArrowUpRight,
   ChevronRight,
   ExternalLink,
   MailCheck,
   MailOpen,
+  Minus,
   MousePointer,
   ShieldOff,
   X,
@@ -60,6 +63,23 @@ function resolveRange(id) {
   }
 }
 
+// Compute the "previous period" window of the same length as `range` so
+// KPI cards can show a vs-previous delta. Returns null for "all time"
+// (there's nothing meaningful before "everything"). The current
+// window's `until` is treated as `now` when null, so a rolling "Last 7
+// days" compares against the 7 days before that.
+function resolvePreviousRange(range) {
+  if (!range.since) return null;
+  const endOfCurrent = range.until || new Date();
+  const startOfCurrent = range.since;
+  const lengthMs = endOfCurrent.getTime() - startOfCurrent.getTime();
+  if (lengthMs <= 0) return null;
+  return {
+    since: new Date(startOfCurrent.getTime() - lengthMs),
+    until: startOfCurrent,
+  };
+}
+
 // Filter a list of items by a date field. Used for the per-campaign table
 // so a "Last 7 days" view only shows campaigns sent (or created) in that
 // window. Items with no/unparseable date pass through (defensive — we'd
@@ -92,6 +112,9 @@ export function AnalyticsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [campaigns, setCampaigns] = useState([]);
   const [events, setEvents] = useState([]);
+  // Events from the period preceding the selected window. Used to compute
+  // a vs-previous delta on each KPI card. Empty array for "all time".
+  const [prevEvents, setPrevEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   // Which KPI is currently expanded into the drill-down panel below the grid.
@@ -101,12 +124,13 @@ export function AnalyticsPage() {
     ? searchParams.get('range')
     : DEFAULT_RANGE;
   const range = useMemo(() => resolveRange(rangeId), [rangeId]);
+  const prevRange = useMemo(() => resolvePreviousRange(range), [range]);
 
   async function refresh() {
     setLoading(true);
     setLoadError('');
     try {
-      const [c, e] = await Promise.all([
+      const [c, e, pe] = await Promise.all([
         getCampaigns(),
         // Server-side date filter so a "Last 7 days" view doesn't get
         // truncated by the 500-event default cap. Returns up to 5000 when
@@ -115,9 +139,15 @@ export function AnalyticsPage() {
           since: range.since || undefined,
           until: range.until || undefined,
         }),
+        // Previous period of equal length, so KPI cards can show a delta.
+        // Skip entirely on "All time" (prevRange is null) — no events fetched.
+        prevRange
+          ? getEvents({ since: prevRange.since, until: prevRange.until })
+          : Promise.resolve([]),
       ]);
       setCampaigns(c);
       setEvents(e);
+      setPrevEvents(pe);
     } catch (error) {
       setLoadError(error.response?.data?.error || 'Could not load analytics');
     } finally {
@@ -187,6 +217,34 @@ export function AnalyticsPage() {
     return { sent, failed, opens, clicks, bounces, unsubscribes };
   }, [rangedCampaigns, realEvents]);
 
+  // Same shape as `totals`, but for the previous-period window.
+  // `prevSent` reads from campaigns whose scheduledAt fell in the prev
+  // window — mirrors how the current `sent` total is computed so deltas
+  // compare like-for-like.
+  const prevTotals = useMemo(() => {
+    if (!prevRange) return null;
+    let sent = 0;
+    let opens = 0;
+    let clicks = 0;
+    let bounces = 0;
+    let unsubscribes = 0;
+    campaigns.forEach((campaign) => {
+      if (withinRange(campaign.scheduledAt || campaign.createdAt, prevRange.since, prevRange.until)) {
+        sent += campaign.progress?.sent || 0;
+      }
+    });
+    prevEvents
+      .filter((event) => !isBotEvent(event.payload))
+      .forEach((event) => {
+        const name = String(event.payload?.event || '').toLowerCase();
+        if (OPEN_NAMES.has(name)) opens += 1;
+        if (CLICK_NAMES.has(name)) clicks += 1;
+        if (BOUNCE_NAMES.has(name)) bounces += 1;
+        if (name === 'unsubscribed') unsubscribes += 1;
+      });
+    return { sent, opens, clicks, bounces, unsubscribes };
+  }, [campaigns, prevEvents, prevRange]);
+
   const drillEvents = useMemo(() => {
     if (!drilledMetric) return [];
     const def = METRIC_DEFINITIONS[drilledMetric];
@@ -227,11 +285,15 @@ export function AnalyticsPage() {
           icon={<MailCheck size={16} aria-hidden="true" />}
           label="Sent"
           value={totals.sent}
+          delta={deltaPercent(totals.sent, prevTotals?.sent)}
         />
         <KpiCard
           icon={<MailOpen size={16} aria-hidden="true" />}
           label="Opens"
           value={totals.opens}
+          rate={ratePercent(totals.opens, totals.sent)}
+          rateLabel="open rate"
+          delta={deltaPercent(totals.opens, prevTotals?.opens)}
           onClick={() => toggleDrill('opens')}
           active={drilledMetric === 'opens'}
         />
@@ -239,6 +301,9 @@ export function AnalyticsPage() {
           icon={<MousePointer size={16} aria-hidden="true" />}
           label="Clicks"
           value={totals.clicks}
+          rate={ratePercent(totals.clicks, totals.sent)}
+          rateLabel="click rate"
+          delta={deltaPercent(totals.clicks, prevTotals?.clicks)}
           onClick={() => toggleDrill('clicks')}
           active={drilledMetric === 'clicks'}
         />
@@ -246,6 +311,10 @@ export function AnalyticsPage() {
           icon={<AlertTriangle size={16} aria-hidden="true" />}
           label="Bounces"
           value={totals.bounces}
+          rate={ratePercent(totals.bounces, totals.sent)}
+          rateLabel="bounce rate"
+          delta={deltaPercent(totals.bounces, prevTotals?.bounces)}
+          deltaIsBadWhenPositive
           onClick={() => toggleDrill('bounces')}
           active={drilledMetric === 'bounces'}
         />
@@ -253,6 +322,10 @@ export function AnalyticsPage() {
           icon={<ShieldOff size={16} aria-hidden="true" />}
           label="Unsubscribes"
           value={totals.unsubscribes}
+          rate={ratePercent(totals.unsubscribes, totals.sent)}
+          rateLabel="unsub rate"
+          delta={deltaPercent(totals.unsubscribes, prevTotals?.unsubscribes)}
+          deltaIsBadWhenPositive
           onClick={() => toggleDrill('unsubscribes')}
           active={drilledMetric === 'unsubscribes'}
         />
@@ -288,7 +361,7 @@ export function AnalyticsPage() {
               : `No campaigns in this window. Try a wider range like "All time".`}
           </p>
         ) : (
-          <div className="reports-table">
+          <div className="reports-table reports-table-rates">
             <div className="reports-table-head">
               <span>Campaign</span>
               <span>Status</span>
@@ -300,6 +373,7 @@ export function AnalyticsPage() {
             </div>
             {rangedCampaigns.map((campaign) => {
               const stats = perCampaignStats(realEvents, campaign.id);
+              const sent = campaign.progress?.sent || 0;
               return (
                 <button
                   key={campaign.id}
@@ -314,10 +388,12 @@ export function AnalyticsPage() {
                   <span className={`pill ${pillFor(campaign.status)}`}>
                     {labelFor(campaign.status)}
                   </span>
-                  <span>{campaign.progress?.sent || 0}</span>
-                  <span>{stats.opens}</span>
-                  <span>{stats.clicks}</span>
-                  <span>{stats.bounces}</span>
+                  <span className="reports-cell-stat">
+                    <strong>{sent}</strong>
+                  </span>
+                  <RateCell count={stats.opens} sent={sent} />
+                  <RateCell count={stats.clicks} sent={sent} />
+                  <RateCell count={stats.bounces} sent={sent} tone="bad" />
                   <ChevronRight size={14} aria-hidden="true" className="muted" />
                 </button>
               );
@@ -356,8 +432,37 @@ export function AnalyticsPage() {
   );
 }
 
-function KpiCard({ icon, label, value, onClick, active }) {
+// Compute a percent rate as a string with one decimal, or null when there's
+// no denominator. Caller decides how to render null (we show "-" in the UI).
+function ratePercent(numerator, denominator) {
+  if (!denominator) return null;
+  return ((numerator / denominator) * 100).toFixed(1);
+}
+
+// Percentage change from `prev` to `current`. Returns null when there's
+// nothing to compare against (no previous data, or both sides are 0).
+// 0 → N is treated as "+100%" by convention — most reporting tools do
+// the same so an audit reader's eye can find new spikes quickly.
+function deltaPercent(current, prev) {
+  if (prev == null) return null;
+  if (current === prev) return 0;
+  if (prev === 0) return current === 0 ? 0 : 100;
+  return Math.round(((current - prev) / prev) * 100);
+}
+
+function KpiCard({
+  icon, label, value, rate, rateLabel, delta, deltaIsBadWhenPositive, onClick, active,
+}) {
   const Tag = onClick ? 'button' : 'div';
+  // Pick a tone for the delta chip. "Bad when positive" applies to
+  // metrics where MORE is worse (bounces, unsubscribes) — a +10% there
+  // is red, not green. Sent/Opens/Clicks are the opposite.
+  let deltaTone = 'neutral';
+  if (typeof delta === 'number' && delta !== 0) {
+    const isPositive = delta > 0;
+    if (deltaIsBadWhenPositive) deltaTone = isPositive ? 'bad' : 'good';
+    else deltaTone = isPositive ? 'good' : 'bad';
+  }
   return (
     <Tag
       type={onClick ? 'button' : undefined}
@@ -365,12 +470,44 @@ function KpiCard({ icon, label, value, onClick, active }) {
       onClick={onClick}
       aria-pressed={onClick ? Boolean(active) : undefined}
     >
-      <span className="kpi-icon" aria-hidden="true">{icon}</span>
-      <div>
-        <span className="muted">{label}</span>
-        <strong>{Number(value).toLocaleString()}</strong>
+      <div className="kpi-card-head">
+        <span className="kpi-icon" aria-hidden="true">{icon}</span>
+        <span className="muted kpi-card-label">{label}</span>
       </div>
+      <div className="kpi-card-value-row">
+        <strong className="kpi-card-value">{Number(value).toLocaleString()}</strong>
+        {typeof delta === 'number' && (
+          <span className={`kpi-delta kpi-delta-${deltaTone}`} title="vs previous period">
+            {delta > 0 && <ArrowUpRight size={11} aria-hidden="true" />}
+            {delta < 0 && <ArrowDownRight size={11} aria-hidden="true" />}
+            {delta === 0 && <Minus size={11} aria-hidden="true" />}
+            {Math.abs(delta)}%
+          </span>
+        )}
+      </div>
+      {rate != null && (
+        <span className="muted kpi-card-rate">
+          {rate}% <span>{rateLabel}</span>
+        </span>
+      )}
     </Tag>
+  );
+}
+
+// Cell for the campaign-performance table. Shows the raw count plus a
+// small percent rate (count / sent) underneath. tone="bad" colors the
+// rate red when relevant (used for the Bounces column).
+function RateCell({ count, sent, tone }) {
+  const rate = ratePercent(count, sent);
+  return (
+    <span className="reports-cell-stat">
+      <strong>{count}</strong>
+      {rate != null && (
+        <span className={`reports-cell-rate${tone === 'bad' ? ' is-bad' : ''}`}>
+          {rate}%
+        </span>
+      )}
+    </span>
   );
 }
 
