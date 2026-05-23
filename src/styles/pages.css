@@ -3024,9 +3024,11 @@
   .analytics-insight-grid { grid-template-columns: 1fr; }
 }
 
-/* Activity chart — two-line SVG, opens (blue) layered over clicks
-   (green). Lines are crisp at any width because the SVG uses
-   preserveAspectRatio="none" + width:100%; the parent sets the height. */
+/* Activity chart — stacked bar chart of daily engagement.
+   HTML/CSS grid instead of SVG so it stays sharp at any container
+   width (no preserveAspectRatio stretching). One column per day.
+   Opens stack on the bottom, clicks on top. Hover a bar for a
+   floating tooltip with exact date + counts. */
 .activity-chart {
   display: grid;
   gap: 10px;
@@ -3038,43 +3040,158 @@
   font-size: 0.78rem;
   gap: 14px;
 }
+.activity-chart-legend > span {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
 .activity-chart-swatch {
   border-radius: 2px;
   display: inline-block;
+  flex-shrink: 0;
   height: 10px;
-  margin-right: 6px;
-  vertical-align: middle;
   width: 10px;
 }
 .activity-chart-swatch.is-opens { background: #2563eb; }
 .activity-chart-swatch.is-clicks { background: #15803d; }
-.activity-chart-svg {
-  display: block;
+
+/* The chart "frame" stacks gridlines + bars in the same box so the
+   gridlines sit behind the bars at exactly the same y-positions. */
+.activity-chart-frame {
   height: 200px;
+  padding: 4px 0 4px 36px;
+  position: relative;
+}
+/* Gridlines layer. Pointer-events: none so it doesn't intercept the
+   bar hovers behind it. */
+.activity-chart-grid {
+  bottom: 4px;
+  left: 36px;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 4px;
+}
+.activity-chart-gridline {
+  border-top: 1px dashed #eef2f6;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+.activity-chart-gridline:first-child { border-top-style: solid; }
+.activity-chart-axis {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  left: -32px;
+  position: absolute;
+  text-align: right;
+  top: -8px;
+  width: 28px;
+}
+
+/* Bars layer — equal-width columns, one per day. min-height of 1px on
+   the cell ensures even an empty day renders a hover target. */
+.activity-chart-bars {
+  display: grid;
+  gap: 2px;
+  height: 100%;
+  position: relative;
+}
+.activity-chart-bar {
+  align-items: flex-end;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column-reverse;
+  height: 100%;
+  justify-content: flex-start;
+  padding: 0;
+  position: relative;
+}
+.activity-chart-bar:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+.activity-chart-bar-segment {
+  display: block;
+  transition: opacity 0.12s, filter 0.12s;
   width: 100%;
 }
-.activity-chart-grid {
-  stroke: #eef2f6;
-  stroke-width: 1;
+.activity-chart-bar-segment.is-opens {
+  background: #2563eb;
 }
-.activity-chart-axis {
-  fill: var(--muted);
-  font-size: 11px;
+.activity-chart-bar-segment.is-clicks {
+  background: #15803d;
+}
+.activity-chart-bar:first-child .activity-chart-bar-segment,
+.activity-chart-bar:last-child .activity-chart-bar-segment {
+  /* keep edge bars looking full-bleed against the frame edges */
+}
+.activity-chart-bar:hover .activity-chart-bar-segment,
+.activity-chart-bar.is-hovered .activity-chart-bar-segment {
+  filter: brightness(1.15);
+}
+.activity-chart-bar-empty {
+  background: #e5edf5;
+  display: block;
+  height: 2px;
+  width: 100%;
+}
+
+/* Floating tooltip. Anchored to the top of the hovered bar via
+   bottom: 100%. Uses pointer-events: none so it doesn't interfere with
+   the bar's mouseleave when the cursor crosses through. */
+.activity-chart-tooltip {
+  background: #0f172a;
+  border-radius: 8px;
+  bottom: calc(100% + 8px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  color: #fff;
+  display: grid;
+  font-size: 0.74rem;
+  gap: 3px;
+  left: 50%;
+  min-width: 150px;
+  padding: 8px 10px;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 5;
+}
+.activity-chart-tooltip strong {
+  color: #fff;
+  display: block;
+  font-size: 0.78rem;
+  margin-bottom: 2px;
+}
+.activity-chart-tooltip > span {
+  align-items: center;
+  color: #cbd5e1;
+  display: flex;
+  gap: 6px;
+}
+.activity-chart-tooltip b {
+  color: #fff;
   font-variant-numeric: tabular-nums;
+  margin-left: auto;
 }
-.activity-chart-line {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
+
+/* X-axis row — same grid template as the bars so the (sparse) date
+   labels sit directly under their day column. */
+.activity-chart-xaxis {
+  display: grid;
+  gap: 2px;
+  padding-left: 36px;
 }
-.activity-chart-line.is-opens { stroke: #2563eb; }
-.activity-chart-line.is-clicks { stroke: #15803d; }
-.activity-chart-area {
-  stroke: none;
+.activity-chart-xlabel {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
-.activity-chart-area.is-opens { fill: rgba(37, 99, 235, 0.10); }
-.activity-chart-area.is-clicks { fill: rgba(21, 128, 61, 0.10); }
 
 /* Engagement funnel — three horizontal bars (Sent / Opened / Clicked),
    each scaled to a percent of Sent. Drop-off rate sits to the right
