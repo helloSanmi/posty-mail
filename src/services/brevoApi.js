@@ -197,8 +197,12 @@ export async function deleteDraft(id) {
   return data;
 }
 
-export async function getCampaignRecipients(id) {
-  const { data } = await apiClient.get(`/api/campaigns/${id}/recipients`);
+export async function getCampaignRecipients(id, { page = 1, pageSize = 50 } = {}) {
+  const { data } = await apiClient.get(`/api/campaigns/${id}/recipients`, {
+    params: { page, pageSize },
+  });
+  // Returns { rows, total, page, pageSize, totalPages } since pagination
+  // was added — the old plain-array shape is no longer emitted.
   return data;
 }
 

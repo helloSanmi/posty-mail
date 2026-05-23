@@ -29,6 +29,14 @@ export function registerMetricsRoutes(app) {
   }));
 
   app.get('/api/campaigns/:id/recipients', asyncRoute(async (req, res) => {
+    // Pagination params. pageSize is capped so a malicious / careless
+    // caller can't ask for 100,000 rows in one shot. Default 50 matches
+    // other paginated list endpoints in this app. Aggregate totals come
+    // from /api/campaigns/:id/metrics (already a separate call) — this
+    // endpoint just returns one slice + the count.
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(Math.max(Number(req.query.pageSize) || 50, 1), 500);
+
     const [sends, events] = await Promise.all([
       listCampaignSends(req.params.id),
       listEventsForCampaign(req.params.id, 5000),
@@ -82,8 +90,16 @@ export function registerMetricsRoutes(app) {
       summaryByEmail.set(email, summary);
     });
 
-    res.json(Array.from(summaryByEmail.values())
-      .sort((a, b) => (b.lastEventAt || '').localeCompare(a.lastEventAt || '')));
+    const all = Array.from(summaryByEmail.values())
+      .sort((a, b) => (b.lastEventAt || '').localeCompare(a.lastEventAt || ''));
+    const total = all.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    // Clamp the page index server-side — if the caller asks for page 99
+    // and only 3 exist, return the last page instead of an empty result.
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * pageSize;
+    const rows = all.slice(start, start + pageSize);
+    res.json({ rows, total, page: safePage, pageSize, totalPages });
   }));
 
   app.get('/api/campaigns/:id/links', asyncRoute(async (req, res) => {

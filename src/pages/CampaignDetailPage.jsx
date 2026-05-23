@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
 import {
   getCampaignLinks,
   getCampaignMetrics,
@@ -9,10 +9,21 @@ import {
 } from '../services/brevoApi';
 import { SkeletonCard } from '../components/Skeleton';
 
+// 50-per-page matches the other paginated list endpoints. Picked so a
+// typical campaign of a few hundred recipients fits in 2-5 pages — few
+// enough that paging through is realistic, big enough that you can scan.
+const RECIPIENTS_PAGE_SIZE = 50;
+
 export function CampaignDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [recipients, setRecipients] = useState([]);
+  // Paginated recipients response: { rows, total, page, pageSize, totalPages }.
+  // Default shape keeps the initial render from blowing up before the first
+  // fetch lands.
+  const [recipientsPage, setRecipientsPage] = useState({
+    rows: [], total: 0, page: 1, totalPages: 1,
+  });
+  const [page, setPage] = useState(1);
   const [links, setLinks] = useState({ totalClicks: 0, links: [] });
   const [variants, setVariants] = useState({ variants: [] });
   const [metrics, setMetrics] = useState(null);
@@ -20,35 +31,77 @@ export function CampaignDetailPage() {
   const [loadError, setLoadError] = useState('');
   const [tab, setTab] = useState('recipients');
 
-  async function refresh() {
-    setLoading(true);
-    setLoadError('');
+  // Fetch the per-campaign things that don't depend on the recipients
+  // page index: links, variants, aggregate metrics. Re-runs only when
+  // the route id changes so paging doesn't refetch them.
+  async function refreshSummary() {
     try {
-      const [r, l, v, m] = await Promise.all([
-        getCampaignRecipients(id),
+      const [l, v, m] = await Promise.all([
         getCampaignLinks(id),
         getCampaignVariants(id),
         getCampaignMetrics(id),
       ]);
-      setRecipients(r);
       setLinks(l);
       setVariants(v);
       setMetrics(m);
     } catch (error) {
       setLoadError(error.response?.data?.error || 'Could not load campaign details');
-    } finally {
-      setLoading(false);
     }
   }
 
-  useEffect(() => { refresh(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Fetch ONE page of recipients. Called on mount + every time the user
+  // pages. Keeps the network cost of paging down to a single endpoint
+  // instead of refetching links / variants / metrics every page click.
+  async function refreshRecipients() {
+    try {
+      const r = await getCampaignRecipients(id, { page, pageSize: RECIPIENTS_PAGE_SIZE });
+      setRecipientsPage(r);
+    } catch (error) {
+      setLoadError(error.response?.data?.error || 'Could not load recipients');
+    }
+  }
 
-  const totals = useMemo(() => recipients.reduce((acc, r) => ({
-    sent: acc.sent + (r.status === 'sent' ? 1 : 0),
-    opens: acc.opens + (r.opens ? 1 : 0),
-    clicks: acc.clicks + (r.clicks ? 1 : 0),
-    bounces: acc.bounces + (r.bounces ? 1 : 0),
-  }), { sent: 0, opens: 0, clicks: 0, bounces: 0 }), [recipients]);
+  // Manual refresh button — re-fetch everything from scratch.
+  async function refresh() {
+    setLoading(true);
+    setLoadError('');
+    await Promise.all([refreshSummary(), refreshRecipients()]);
+    setLoading(false);
+  }
+
+  // Reset to page 1 when the route id changes — guards against landing
+  // on "page 7" of a campaign that only has 2 pages.
+  useEffect(() => { setPage(1); }, [id]);
+
+  // Summary refetch — links + variants + metrics. Only when id changes,
+  // not on page changes (paging doesn't affect any of these).
+  useEffect(() => {
+    setLoading(true);
+    setLoadError('');
+    refreshSummary().finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Recipients refetch — runs on mount AND on page change. Decoupled
+  // from the summary effect so paging stays cheap (one endpoint, not
+  // four). When switching campaigns, both this and the id-reset above
+  // fire, costing one extra fetch with the stale page value before
+  // setPage(1) lands; acceptable for an admin UI.
+  useEffect(() => {
+    refreshRecipients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, page]);
+
+  // Aggregate counts come from /api/campaigns/:id/metrics (a separate
+  // endpoint, fetched in the same Promise.all). Reading them here instead
+  // of reducing the per-row recipients list means the KPI cards stay
+  // accurate even when only one page worth of recipients is loaded.
+  const totals = {
+    sent: metrics?.sent ?? 0,
+    opens: metrics?.uniqueOpens ?? 0,
+    clicks: metrics?.uniqueClicks ?? 0,
+    bounces: metrics?.bounces ?? 0,
+  };
 
   return (
     <div className="page-stack content-page">
@@ -75,7 +128,9 @@ export function CampaignDetailPage() {
           className={tab === 'recipients' ? 'active' : ''}
           onClick={() => setTab('recipients')}
         >
-          Recipients ({recipients.length})
+          {/* Recipient tab count comes from the server-paginated total,
+              not from the rows on the current page. */}
+          Recipients ({recipientsPage.total})
         </button>
         <button
           type="button"
@@ -103,7 +158,34 @@ export function CampaignDetailPage() {
         ) : loading ? (
           <SkeletonCard />
         ) : tab === 'recipients' ? (
-          <RecipientsTable rows={recipients} />
+          <>
+            <RecipientsTable rows={recipientsPage.rows} />
+            {recipientsPage.totalPages > 1 && (
+              <nav className="pagination" aria-label="Recipients pagination">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={14} aria-hidden="true" /> Prev
+                </button>
+                <span className="muted pagination-status">
+                  Page {recipientsPage.page} of {recipientsPage.totalPages}
+                  {' · '}
+                  {recipientsPage.total} recipient{recipientsPage.total === 1 ? '' : 's'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(recipientsPage.totalPages, p + 1))}
+                  disabled={page >= recipientsPage.totalPages}
+                  aria-label="Next page"
+                >
+                  Next <ChevronRight size={14} aria-hidden="true" />
+                </button>
+              </nav>
+            )}
+          </>
         ) : tab === 'links' ? (
           <LinksTable links={links} />
         ) : (
