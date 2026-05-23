@@ -1,21 +1,39 @@
 import { useEffect, useState } from 'react';
-import { LogOut, PanelLeft, X } from 'lucide-react';
+import { LogOut, PanelLeft, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { navItems, pageTitles } from '../data/navigation';
 import { useAuth } from '../auth/AuthContext';
 import { DemoBanner } from './DemoBanner';
 import { NotificationBell } from './NotificationBell';
 
+// localStorage key for the collapsed-sidebar preference. Persisted so the
+// admin's choice survives reloads. Keyed under the same `posty.*` prefix
+// other UI prefs use.
+const SIDEBAR_COLLAPSED_KEY = 'posty.sidebar.collapsed';
+
 export function AppShell({ children }) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Collapsed sidebar state. Lazy initializer so we read localStorage
+  // once on mount; persisted back via the effect below whenever the
+  // user toggles. SSR-safe via the `typeof window` guard so a future
+  // server render doesn't crash.
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+  });
   const meta = pageTitles[location.pathname] || pageTitles['/'];
   const visibleNav = navItems.filter((item) => !item.adminOnly || user?.role === 'admin');
 
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+  }, [collapsed]);
 
   useEffect(() => {
     if (!drawerOpen) return undefined;
@@ -27,19 +45,35 @@ export function AppShell({ children }) {
   }, [drawerOpen]);
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${collapsed ? ' sidebar-collapsed' : ''}`}>
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <DemoBanner />
       <aside
-        className={`sidebar${drawerOpen ? ' open' : ''}`}
+        className={`sidebar${drawerOpen ? ' open' : ''}${collapsed ? ' collapsed' : ''}`}
         aria-label="Primary navigation"
       >
         <div className="brand">
           <img src="/posty-mark.svg" alt="" className="brand-mark" aria-hidden="true" />
-          <div>
+          <div className="brand-text">
             <strong>Posty</strong>
             <span>Send a little something.</span>
           </div>
+          {/* Collapse / expand toggle. Hidden on mobile (where the sidebar
+              is a drawer instead of a persistent column) via the @media
+              rule on .sidebar-toggle. Title + aria-label flip with state
+              so screen readers + native tooltips announce the action. */}
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={() => setCollapsed((value) => !value)}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-pressed={collapsed}
+          >
+            {collapsed
+              ? <PanelLeftOpen size={18} aria-hidden="true" />
+              : <PanelLeftClose size={18} aria-hidden="true" />}
+          </button>
           <button
             type="button"
             className="drawer-close"
@@ -58,6 +92,9 @@ export function AppShell({ children }) {
                 to={item.path}
                 end={item.path === '/'}
                 className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+                // title attribute surfaces the label as a native tooltip
+                // when the sidebar is collapsed and only the icon shows.
+                title={collapsed ? item.label : undefined}
               >
                 <Icon size={18} aria-hidden="true" />
                 <span>{item.label}</span>
@@ -67,11 +104,16 @@ export function AppShell({ children }) {
         </nav>
         {user && (
           <div className="sidebar-user">
-            <div>
+            <div className="sidebar-user-text">
               <strong>{user.name || user.email}</strong>
               <span>{user.role}</span>
             </div>
-            <button type="button" onClick={logout} aria-label="Sign out">
+            <button
+              type="button"
+              onClick={logout}
+              aria-label="Sign out"
+              title={collapsed ? 'Sign out' : undefined}
+            >
               <LogOut size={16} aria-hidden="true" />
             </button>
           </div>

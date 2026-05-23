@@ -2,6 +2,14 @@
   display: grid;
   grid-template-columns: 252px minmax(0, 1fr);
   min-height: 100vh;
+  /* Transition column widths so collapsing the sidebar slides the
+     workspace into the freed space instead of snapping. Inner element
+     fades + visibility transitions are tuned to overlap, so labels
+     disappear as the column finishes shrinking. */
+  transition: grid-template-columns 0.22s ease-out;
+}
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 68px minmax(0, 1fr);
 }
 
 .skip-link {
@@ -102,6 +110,67 @@ nav button.active, nav .nav-link.active {
 }
 .sidebar-user strong { display: block; font-size: 0.92rem; }
 .sidebar-user span { color: var(--muted); font-size: 0.78rem; text-transform: capitalize; }
+
+/* Sidebar collapse toggle. Sits at the right edge of the brand row on
+   desktop, hidden on mobile (where the sidebar IS the drawer and the
+   drawer-close X handles closing). Icon-only, sized to match the other
+   row-action style buttons elsewhere in the app. */
+.sidebar-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 28px;
+  justify-content: center;
+  margin-left: auto;
+  padding: 0;
+  transition: background 0.12s, color 0.12s;
+  width: 28px;
+}
+.sidebar-toggle:hover { background: #eef4ff; color: var(--blue); }
+@media (max-width: 720px) {
+  .sidebar-toggle { display: none; }
+}
+
+/* Collapsed sidebar state. Hides the wordmark + tagline + nav labels +
+   user identity text, leaves the icons / brand-mark / sign-out button
+   visible. Nav links center their icon. Scoped to min-width: 981px
+   because below that breakpoint the sidebar turns into a drawer (see
+   the @media (max-width: 980px) block below) and should always show
+   full labels regardless of the persisted collapsed preference. */
+@media (min-width: 981px) {
+  .sidebar.collapsed {
+    padding: 24px 8px;
+    gap: 20px;
+  }
+  .sidebar.collapsed .brand {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sidebar.collapsed .brand-text,
+  .sidebar.collapsed .sidebar-user-text {
+    display: none;
+  }
+  .sidebar.collapsed .sidebar-toggle {
+    margin: 0;
+  }
+  .sidebar.collapsed nav .nav-link {
+    gap: 0;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .sidebar.collapsed nav .nav-link > span {
+    display: none;
+  }
+  .sidebar.collapsed .sidebar-user {
+    justify-content: center;
+  }
+}
+
 .workspace { min-width: 0; }
 
 .topbar {
