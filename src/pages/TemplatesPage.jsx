@@ -33,7 +33,24 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   // by default; populated on mount via getHiddenBuiltinTemplates().
   const [hiddenBuiltins, setHiddenBuiltins] = useState(new Set());
   const visibleDefaults = defaultTemplates.filter((t) => !hiddenBuiltins.has(t.id));
-  const templateOptions = [...visibleDefaults, ...savedTemplates];
+  // When the user clicks "+ New", createTemplate() seeds an empty template
+  // with a fresh custom-* id that's not yet in savedTemplates. Without
+  // adding it to the dropdown options, the <select value> would point at
+  // a non-existent option and HTML would silently fall back to showing the
+  // first option's label — making the dropdown look like nothing happened
+  // even though the editor was cleared. Surfacing it as a "draft" option
+  // keeps the picker honest. The draft disappears once the user saves
+  // (savedTemplates picks up the same id) or switches away.
+  const isUnsavedDraft = Boolean(
+    template.id
+    && String(template.id).startsWith('custom-')
+    && !savedTemplates.some((item) => item.id === template.id)
+    && !defaultTemplates.some((item) => item.id === template.id),
+  );
+  const draftOption = isUnsavedDraft
+    ? [{ ...template, name: template.name || 'Untitled template (unsaved)' }]
+    : [];
+  const templateOptions = [...visibleDefaults, ...draftOption, ...savedTemplates];
   const selectedTemplateId = template.id || templateOptions[0]?.id || '';
   const previewData = buildPreviewData(contacts, template.logoUrl);
   const subject = renderTemplate(template.subject, previewData);
