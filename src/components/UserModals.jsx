@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { PasswordInput } from './PasswordInput';
 
 const ROLES = ['admin', 'editor', 'viewer'];
 
@@ -64,9 +65,8 @@ export function CreateUserModal({ onCreate, onCancel }) {
           </label>
           <label htmlFor={passwordId}>
             Initial password
-            <input
+            <PasswordInput
               id={passwordId}
-              type="password"
               required
               minLength={8}
               autoComplete="new-password"
@@ -179,9 +179,8 @@ export function EditUserModal({ user, isSelf, onSave, onResetPassword, onCancel 
           <label htmlFor={passwordId}>
             New password <span className="muted">(leave blank to keep current)</span>
           </label>
-          <input
+          <PasswordInput
             id={passwordId}
-            type="password"
             minLength={8}
             autoComplete="new-password"
             value={newPassword}

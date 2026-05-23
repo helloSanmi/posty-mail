@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { PasswordInput } from '../components/PasswordInput';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -155,9 +156,8 @@ export function LoginPage() {
           <label htmlFor={passwordId}>
             {isForgot ? 'New password' : 'Password'}
           </label>
-          <input
+          <PasswordInput
             id={passwordId}
-            type="password"
             required
             minLength={minPasswordLength}
             value={password}
@@ -174,9 +174,8 @@ export function LoginPage() {
           {isForgot && (
             <>
               <label htmlFor={confirmId}>Confirm new password</label>
-              <input
+              <PasswordInput
                 id={confirmId}
-                type="password"
                 required
                 minLength={8}
                 value={confirmPassword}

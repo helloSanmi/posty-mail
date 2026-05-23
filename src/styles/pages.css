@@ -2506,6 +2506,43 @@
 .admin-user-info .muted { font-size: 0.82rem; }
 .admin-user-actions { align-items: center; display: flex; gap: 4px; }
 
+/* Password input with show/hide eye toggle. The input fills the wrapper;
+   the toggle button overlays the right edge so it looks like a single
+   field. Same height as a normal <input> so wherever it drops in (login,
+   signup, forgot, change-password) the form layout is unchanged. */
+.password-input {
+  display: block;
+  position: relative;
+}
+.password-input > input {
+  /* Reserve room on the right for the toggle button so the dots/text
+     never sit underneath it. */
+  padding-right: 40px;
+  width: 100%;
+}
+.password-input-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+}
+.password-input-toggle:hover { background: #f1f5fb; color: var(--blue); }
+.password-input-toggle:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
 /* User modals (Add / Edit) */
 .user-modal { max-width: 520px; }
 .user-modal-password-field { margin: 0; }
