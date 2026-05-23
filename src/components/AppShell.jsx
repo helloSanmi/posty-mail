@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import { LogOut, PanelLeft, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
+import {
+  LogOut, PanelLeft, PanelLeftClose, PanelLeftOpen, Search, X,
+} from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { navItems, pageTitles } from '../data/navigation';
 import { useAuth } from '../auth/AuthContext';
 import { DemoBanner } from './DemoBanner';
+import { GlobalSearch } from './GlobalSearch';
 import { NotificationBell } from './NotificationBell';
 
 // localStorage key for the collapsed-sidebar preference. Persisted so the
@@ -23,6 +26,9 @@ export function AppShell({ children }) {
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
   });
+  // Cmd/Ctrl+K opens the global search palette. Also toggled by the
+  // search button in the topbar.
+  const [searchOpen, setSearchOpen] = useState(false);
   // Resolve a page title for the current route. Exact match wins; otherwise
   // strip the trailing segments one at a time and try again so dynamic
   // routes like /campaigns/:id fall back to /campaigns ("Campaigns"). This
@@ -57,6 +63,28 @@ export function AppShell({ children }) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [drawerOpen]);
+
+  // Global Cmd/Ctrl+K shortcut for the search palette. Captured at the
+  // document level so it works regardless of which field has focus. The
+  // palette's own Escape handler closes it; we only toggle open here.
+  // Browsers reserve Cmd+K for the URL bar in Safari/Firefox but inside
+  // a focused app it gets through. We also intercept "/" when nothing
+  // editable has focus, matching the GitHub / Notion convention.
+  useEffect(() => {
+    const onKey = (event) => {
+      const inEditable = ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target?.tagName)
+        || event.target?.isContentEditable;
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen((value) => !value);
+      } else if (event.key === '/' && !inEditable) {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <main className={`app-shell${collapsed ? ' sidebar-collapsed' : ''}`}>
@@ -156,12 +184,34 @@ export function AppShell({ children }) {
             <p className="eyebrow">{meta.label}</p>
             <h1>{meta.title}</h1>
           </div>
+          {/* Global search trigger. Renders the keyboard shortcut hint
+              on wider screens; on mobile it collapses to an icon-only
+              button via the .topbar-search CSS @media rule. */}
+          {user && (
+            <button
+              type="button"
+              className="topbar-search"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Open search"
+              title="Open search (⌘K)"
+            >
+              <Search size={14} aria-hidden="true" />
+              <span className="topbar-search-label">Search</span>
+              <kbd className="topbar-search-kbd">⌘K</kbd>
+            </button>
+          )}
           {user && <NotificationBell />}
         </header>
         <div id="main-content" tabIndex={-1}>
           {children}
         </div>
       </section>
+      {user && (
+        <GlobalSearch
+          open={searchOpen}
+          onClose={() => setSearchOpen(false)}
+        />
+      )}
     </main>
   );
 }
