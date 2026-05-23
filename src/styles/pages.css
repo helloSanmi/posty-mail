@@ -2469,19 +2469,84 @@
   white-space: nowrap;
 }
 .pill.muted { background: #eef2f6; color: var(--muted); }
+/* Drafts list. Each row is split into two flush buttons:
+   - .draft-resume fills the row, click anywhere to open the builder
+   - .draft-delete is a small icon button on the right
+   The old layout had a heavy primary "Resume" + danger "Delete" button
+   stacked next to the title, which forced long names like
+   "12-Weeks DevOps Registration 1" to wrap to three lines. With the
+   buttons demoted (one to a chevron, the other to an icon), the title
+   takes the full row width and only ever needs one or two lines. */
 .draft-list { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
 .draft-list li {
-  align-items: center;
   background: #fbfcfd;
   border: 1px solid var(--line);
   border-radius: 10px;
   display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  padding: 10px 12px;
+  overflow: hidden;
+  padding: 0;
 }
-.draft-list strong { display: block; }
-.draft-list .muted { font-size: 0.82rem; }
+.draft-resume {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex: 1 1 auto;
+  font: inherit;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  text-align: left;
+}
+.draft-resume:hover { background: #eef4ff; }
+.draft-resume:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+.draft-resume-text {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+.draft-resume-text strong {
+  color: var(--text);
+  /* Clamp the title to two lines max so very long campaign names
+     (e.g., "12-Weeks DevOps Registration 1") don't blow up the
+     row height. Words still break cleanly. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  overflow: hidden;
+  word-break: break-word;
+}
+.draft-resume-text .muted { font-size: 0.78rem; }
+.draft-resume-chevron {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.draft-resume:hover .draft-resume-chevron { color: var(--blue); }
+.draft-delete {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  justify-content: center;
+  padding: 0 12px;
+}
+.draft-delete:hover { background: #fef2f2; color: #9f1d1d; }
+.draft-delete:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
 
 /* Admin */
 .admin-user-list {

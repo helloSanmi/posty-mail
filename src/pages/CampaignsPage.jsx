@@ -233,22 +233,36 @@ export function CampaignsPage({ notify }) {
             <ul className="draft-list">
               {drafts.map((draft) => (
                 <li key={draft.id}>
-                  <div>
-                    <strong>{draft.name || 'Untitled draft'}</strong>
-                    <span className="muted">Updated {formatDate(draft.updatedAt)}</span>
-                  </div>
-                  <div className="table-actions">
-                    <button
-                      type="button"
-                      className="primary"
-                      onClick={() => navigate('/builder', { state: { draft } })}
-                    >
-                      Resume
-                    </button>
-                    <button type="button" className="danger" onClick={() => handleDeleteDraft(draft.id)}>
-                      <Trash2 size={14} aria-hidden="true" /> Delete
-                    </button>
-                  </div>
+                  {/* The whole card is the "Resume" affordance — clicking
+                      anywhere in the title area opens the builder. Avoids
+                      the old layout's heavy primary button competing with
+                      the title for space (titles like "12-Weeks DevOps
+                      Registration 1" wrapped to three lines). */}
+                  <button
+                    type="button"
+                    className="draft-resume"
+                    onClick={() => navigate('/builder', { state: { draft } })}
+                    aria-label={`Resume draft "${draft.name || 'Untitled draft'}"`}
+                  >
+                    <span className="draft-resume-text">
+                      <strong>{draft.name || 'Untitled draft'}</strong>
+                      <span className="muted">Updated {formatDate(draft.updatedAt)}</span>
+                    </span>
+                    <ChevronRight
+                      size={14}
+                      aria-hidden="true"
+                      className="draft-resume-chevron"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    className="draft-delete"
+                    onClick={() => handleDeleteDraft(draft.id)}
+                    aria-label={`Delete draft "${draft.name || 'Untitled draft'}"`}
+                    title="Delete draft"
+                  >
+                    <Trash2 size={14} aria-hidden="true" />
+                  </button>
                 </li>
               ))}
             </ul>
