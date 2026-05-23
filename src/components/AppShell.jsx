@@ -23,7 +23,21 @@ export function AppShell({ children }) {
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
   });
-  const meta = pageTitles[location.pathname] || pageTitles['/'];
+  // Resolve a page title for the current route. Exact match wins; otherwise
+  // strip the trailing segments one at a time and try again so dynamic
+  // routes like /campaigns/:id fall back to /campaigns ("Campaigns"). This
+  // is why the topbar was reading "Home" on the campaign detail page — the
+  // exact pathname (/campaigns/abc) wasn't in pageTitles and we landed on
+  // the '/' default.
+  const meta = (() => {
+    if (pageTitles[location.pathname]) return pageTitles[location.pathname];
+    const segments = location.pathname.split('/').filter(Boolean);
+    for (let i = segments.length - 1; i >= 1; i -= 1) {
+      const candidate = `/${segments.slice(0, i).join('/')}`;
+      if (pageTitles[candidate]) return pageTitles[candidate];
+    }
+    return pageTitles['/'];
+  })();
   const visibleNav = navItems.filter((item) => !item.adminOnly || user?.role === 'admin');
 
   useEffect(() => {
