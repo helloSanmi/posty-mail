@@ -2,16 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Activity,
-  AlertTriangle,
   ArrowDownRight,
   ArrowUpRight,
   ChevronRight,
   ExternalLink,
-  MailCheck,
-  MailOpen,
   Minus,
-  MousePointer,
-  ShieldOff,
   X,
 } from 'lucide-react';
 import { getCampaigns, getEvents } from '../services/brevoApi';
@@ -280,50 +275,46 @@ export function AnalyticsPage() {
         </div>
       </section>
 
-      <section className="kpi-grid reports-kpi">
-        <KpiCard
-          icon={<MailCheck size={16} aria-hidden="true" />}
+      {/* One unified summary band instead of five disconnected cards.
+          Each metric is a column with vertical dividers between them;
+          the engagement columns are clickable to open the drill-down.
+          Reads as a single dashboard header strip rather than a row of
+          separate widgets. */}
+      <section className="surface reports-summary">
+        <SummaryStat
           label="Sent"
           value={totals.sent}
           delta={deltaPercent(totals.sent, prevTotals?.sent)}
         />
-        <KpiCard
-          icon={<MailOpen size={16} aria-hidden="true" />}
+        <SummaryStat
           label="Opens"
           value={totals.opens}
           rate={ratePercent(totals.opens, totals.sent)}
-          rateLabel="open rate"
           delta={deltaPercent(totals.opens, prevTotals?.opens)}
           onClick={() => toggleDrill('opens')}
           active={drilledMetric === 'opens'}
         />
-        <KpiCard
-          icon={<MousePointer size={16} aria-hidden="true" />}
+        <SummaryStat
           label="Clicks"
           value={totals.clicks}
           rate={ratePercent(totals.clicks, totals.sent)}
-          rateLabel="click rate"
           delta={deltaPercent(totals.clicks, prevTotals?.clicks)}
           onClick={() => toggleDrill('clicks')}
           active={drilledMetric === 'clicks'}
         />
-        <KpiCard
-          icon={<AlertTriangle size={16} aria-hidden="true" />}
+        <SummaryStat
           label="Bounces"
           value={totals.bounces}
           rate={ratePercent(totals.bounces, totals.sent)}
-          rateLabel="bounce rate"
           delta={deltaPercent(totals.bounces, prevTotals?.bounces)}
           deltaIsBadWhenPositive
           onClick={() => toggleDrill('bounces')}
           active={drilledMetric === 'bounces'}
         />
-        <KpiCard
-          icon={<ShieldOff size={16} aria-hidden="true" />}
+        <SummaryStat
           label="Unsubscribes"
           value={totals.unsubscribes}
           rate={ratePercent(totals.unsubscribes, totals.sent)}
-          rateLabel="unsub rate"
           delta={deltaPercent(totals.unsubscribes, prevTotals?.unsubscribes)}
           deltaIsBadWhenPositive
           onClick={() => toggleDrill('unsubscribes')}
@@ -450,13 +441,16 @@ function deltaPercent(current, prev) {
   return Math.round(((current - prev) / prev) * 100);
 }
 
-function KpiCard({
-  icon, label, value, rate, rateLabel, delta, deltaIsBadWhenPositive, onClick, active,
+// One column inside the unified summary band. No icon, no boxed chrome —
+// the wrapping surface provides the border. Click-target ones get a
+// hover background + active state ring. Reads as a horizontal stat
+// strip (label / value / delta / rate), divider-separated from the
+// neighbors via CSS.
+function SummaryStat({
+  label, value, rate, delta, deltaIsBadWhenPositive, onClick, active,
 }) {
   const Tag = onClick ? 'button' : 'div';
-  // Pick a tone for the delta chip. "Bad when positive" applies to
-  // metrics where MORE is worse (bounces, unsubscribes) — a +10% there
-  // is red, not green. Sent/Opens/Clicks are the opposite.
+  // "More is worse" metrics (bounces, unsubscribes) flip the tone.
   let deltaTone = 'neutral';
   if (typeof delta === 'number' && delta !== 0) {
     const isPositive = delta > 0;
@@ -466,18 +460,23 @@ function KpiCard({
   return (
     <Tag
       type={onClick ? 'button' : undefined}
-      className={`kpi-card${onClick ? ' is-link' : ''}${active ? ' is-active' : ''}`}
+      className={`summary-stat${onClick ? ' is-link' : ''}${active ? ' is-active' : ''}`}
       onClick={onClick}
       aria-pressed={onClick ? Boolean(active) : undefined}
     >
-      <div className="kpi-card-head">
-        <span className="kpi-icon" aria-hidden="true">{icon}</span>
-        <span className="muted kpi-card-label">{label}</span>
-      </div>
-      <div className="kpi-card-value-row">
-        <strong className="kpi-card-value">{Number(value).toLocaleString()}</strong>
+      <span className="summary-stat-label">{label}</span>
+      <span className="summary-stat-value">{Number(value).toLocaleString()}</span>
+      <div className="summary-stat-foot">
+        {rate != null ? (
+          <span className="summary-stat-rate">{rate}%</span>
+        ) : (
+          <span className="summary-stat-rate-blank" aria-hidden="true" />
+        )}
         {typeof delta === 'number' && (
-          <span className={`kpi-delta kpi-delta-${deltaTone}`} title="vs previous period">
+          <span
+            className={`summary-stat-delta summary-stat-delta-${deltaTone}`}
+            title="vs previous period"
+          >
             {delta > 0 && <ArrowUpRight size={11} aria-hidden="true" />}
             {delta < 0 && <ArrowDownRight size={11} aria-hidden="true" />}
             {delta === 0 && <Minus size={11} aria-hidden="true" />}
@@ -485,11 +484,6 @@ function KpiCard({
           </span>
         )}
       </div>
-      {rate != null && (
-        <span className="muted kpi-card-rate">
-          {rate}% <span>{rateLabel}</span>
-        </span>
-      )}
     </Tag>
   );
 }
