@@ -2,3 +2,7 @@
 @import "./styles/layout.css";
 @import "./styles/pages.css";
 @import "./styles/templates.css";
+/* App-wide motion system. Subtle entrance + hover animations across
+   surfaces, cards, modals, toasts, buttons. Honors prefers-reduced-motion
+   so the whole layer collapses to instant for users who opt out. */
+@import "./styles/animations.css";

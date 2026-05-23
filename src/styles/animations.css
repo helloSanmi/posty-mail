@@ -1,0 +1,189 @@
+/* App-wide motion system.
+ *
+ * Goals:
+ *   - "Snappy, modern, quiet" — entrances are short (160-220ms) so they
+ *     don't slow the UI down; hover effects are subtle (no big scale jumps).
+ *   - One pass through this file is enough to disable all of it via the
+ *     prefers-reduced-motion media query at the bottom. Anything inside
+ *     this file should be safe to drop on accessibility grounds.
+ *   - No JS, no animation lib. Pure CSS keyframes + transitions.
+ *
+ * Keyframes are shared so multiple selectors can reuse them without
+ * defining identical animations. Stagger is achieved via :nth-child
+ * delays where it reads naturally (sidebar nav, kpi grid, list cards).
+ */
+
+/* ---- keyframes -------------------------------------------------------- */
+
+@keyframes posty-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes posty-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes posty-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes posty-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+/* ---- entrance animations --------------------------------------------- */
+
+/* Surface cards land with a subtle slide+fade. Lists of cards stagger
+   slightly so the eye reads them top-down rather than all at once.
+   Animation is `forwards` so the final state sticks after the keyframe
+   completes (no flash of opacity: 0 if the element re-renders). */
+.surface,
+.kpi-card,
+.campaign-card,
+.draft-list li,
+.contact-row,
+.reports-table-row,
+.template-card,
+.template-asset-row,
+.segment-card {
+  animation: posty-slide-up 0.22s ease-out both;
+}
+
+/* Stagger inside common card grids. Up to 8 children get incrementing
+   delays so a tall list doesn't trickle in for a long time. Anything
+   beyond the 8th lands instantly with the rest of the page. */
+.kpi-grid > .kpi-card:nth-child(2)        { animation-delay: 0.04s; }
+.kpi-grid > .kpi-card:nth-child(3)        { animation-delay: 0.08s; }
+.kpi-grid > .kpi-card:nth-child(4)        { animation-delay: 0.12s; }
+.campaigns-grid > .campaign-card:nth-child(2) { animation-delay: 0.04s; }
+.campaigns-grid > .campaign-card:nth-child(3) { animation-delay: 0.08s; }
+.campaigns-grid > .campaign-card:nth-child(4) { animation-delay: 0.12s; }
+.campaigns-grid > .campaign-card:nth-child(5) { animation-delay: 0.16s; }
+.campaigns-grid > .campaign-card:nth-child(6) { animation-delay: 0.20s; }
+
+/* Modals fade + scale in. Backdrop fades separately so a slow scale-in
+   doesn't keep the page visibly bare for a noticeable beat. */
+.modal-backdrop {
+  animation: posty-fade-in 0.16s ease-out both;
+}
+.modal-backdrop > * {
+  animation: posty-scale-in 0.18s ease-out both;
+}
+
+/* Drilldown panel in Reports appears with the same slide-up as cards. */
+.analytics-drill {
+  animation: posty-slide-up 0.2s ease-out both;
+}
+
+/* Toasts / notifications slide in from the bottom-right (or wherever
+   the toast container is positioned). Generic target so any future
+   toast library swap still picks this up by class. */
+.notification,
+.toast {
+  animation: posty-slide-up 0.22s ease-out both;
+}
+
+/* The status pill on "running" campaigns gets a soft pulse so the eye
+   notices that something live is happening. Other pill statuses stay
+   static — pulsing every pill would just be noise. */
+.pill.amber,
+.pill.blue,
+.pill.is-running {
+  animation: posty-pulse-soft 2s ease-in-out infinite;
+  animation-play-state: running;
+}
+/* Static green/red/grey pills should NOT pulse — they represent a
+   resolved state. Override the broad rule above. */
+.pill.green,
+.pill.red,
+.pill.muted {
+  animation: none;
+}
+
+/* ---- hover lifts ----------------------------------------------------- */
+
+/* Clickable cards lift a hair on hover. Transition (not animation) so
+   the hover-out reverses smoothly. Sub-pixel translateY avoids janky
+   layout shifts on borders / shadows. */
+.campaign-card,
+.draft-list li,
+.template-card,
+.segment-card,
+.kpi-card.is-link {
+  transition:
+    transform 0.16s ease-out,
+    box-shadow 0.16s ease-out,
+    border-color 0.16s ease-out;
+}
+.campaign-card:hover,
+.draft-list li:hover,
+.template-card:hover,
+.segment-card:hover,
+.kpi-card.is-link:hover {
+  border-color: #d8e0ea;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+/* ---- buttons + inputs ------------------------------------------------ */
+
+/* Universal button "press" feedback. Tiny scale-down on :active so any
+   click has a confirming tactile beat. Hover transitions on color /
+   background already exist scattered across pages.css — we only add
+   what's missing. */
+button,
+.row-action,
+.text-button {
+  transition:
+    background-color 0.12s ease-out,
+    color 0.12s ease-out,
+    border-color 0.12s ease-out,
+    transform 0.08s ease-out;
+}
+button:active:not(:disabled),
+.row-action:active:not(:disabled),
+.text-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Inputs / selects pick up a soft focus transition so the focus ring
+   doesn't snap in abruptly. */
+input,
+select,
+textarea {
+  transition:
+    border-color 0.15s ease-out,
+    box-shadow 0.15s ease-out;
+}
+
+/* ---- reduced motion --------------------------------------------------- */
+
+/* Honor user preference. Every animation / transition we added gets
+   neutralized; the UI snaps to its final state instantly. Skeleton
+   pulses + the loading bar already opt out elsewhere — this is a
+   blanket safety net for the additions above. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
