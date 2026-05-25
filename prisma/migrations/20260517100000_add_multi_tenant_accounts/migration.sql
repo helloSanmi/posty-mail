@@ -9,8 +9,9 @@
 --   3. For each data table: ADD COLUMN accountId nullable → UPDATE to
 --      point at Default → ALTER COLUMN to NOT NULL.
 --   4. Add FK constraints + accountId indexes.
---   5. Setting gets a composite PK (key, accountId) so the same key
---      can live both globally (accountId = NULL) and per-account.
+--   5. Setting stays global — per-account preferences move into
+--      Account.data JSON instead (Prisma rejects nullable fields in
+--      composite PKs).
 --
 -- What this migration does NOT do:
 --   - Change Contact / Unsubscribe primary key. Both still keyed on
@@ -110,16 +111,7 @@ ALTER TABLE "Asset" ALTER COLUMN "accountId" SET NOT NULL;
 -- AuditLog (nullable: super-admin actions have no parent account)
 ALTER TABLE "AuditLog" ADD COLUMN "accountId" TEXT;
 
--- 4. Setting rewrite: composite PK (key, accountId) -------------------
--- The current Setting table has `key` as the sole PK. Multi-tenancy
--- needs the same key to live both globally (accountId NULL) and
--- per-account. Postgres treats NULLs as distinct in unique indexes,
--- so a composite PK works.
-ALTER TABLE "Setting" DROP CONSTRAINT "Setting_pkey";
-ALTER TABLE "Setting" ADD COLUMN "accountId" TEXT;
-ALTER TABLE "Setting" ADD CONSTRAINT "Setting_pkey" PRIMARY KEY ("key", "accountId");
-
--- 5. Foreign keys ------------------------------------------------------
+-- 4. Foreign keys ------------------------------------------------------
 -- Every per-account FK cascades on Account delete so wiping a tenant
 -- cleans up all of its rows in one statement. AuditLog uses SET NULL
 -- because super-admin audit history outlives a deleted account.
@@ -135,10 +127,9 @@ ALTER TABLE "CampaignSend" ADD CONSTRAINT "CampaignSend_accountId_fkey" FOREIGN 
 ALTER TABLE "Segment"      ADD CONSTRAINT "Segment_accountId_fkey"      FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE CASCADE  ON UPDATE CASCADE;
 ALTER TABLE "Sequence"     ADD CONSTRAINT "Sequence_accountId_fkey"     FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE CASCADE  ON UPDATE CASCADE;
 ALTER TABLE "Asset"        ADD CONSTRAINT "Asset_accountId_fkey"        FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE CASCADE  ON UPDATE CASCADE;
-ALTER TABLE "Setting"      ADD CONSTRAINT "Setting_accountId_fkey"      FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE CASCADE  ON UPDATE CASCADE;
 ALTER TABLE "AuditLog"     ADD CONSTRAINT "AuditLog_accountId_fkey"     FOREIGN KEY ("accountId") REFERENCES "Account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- 6. Indexes -----------------------------------------------------------
+-- 5. Indexes -----------------------------------------------------------
 CREATE INDEX "Contact_accountId_idx"      ON "Contact"("accountId");
 CREATE INDEX "Audience_accountId_idx"     ON "Audience"("accountId");
 CREATE INDEX "Template_accountId_idx"     ON "Template"("accountId");
@@ -151,5 +142,4 @@ CREATE INDEX "CampaignSend_accountId_idx" ON "CampaignSend"("accountId");
 CREATE INDEX "Segment_accountId_idx"      ON "Segment"("accountId");
 CREATE INDEX "Sequence_accountId_idx"     ON "Sequence"("accountId");
 CREATE INDEX "Asset_accountId_idx"        ON "Asset"("accountId");
-CREATE INDEX "Setting_accountId_idx"      ON "Setting"("accountId");
 CREATE INDEX "AuditLog_accountId_idx"     ON "AuditLog"("accountId");

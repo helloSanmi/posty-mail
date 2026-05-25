@@ -45,7 +45,6 @@ model Account {
   sequences     Sequence[]
   assets        Asset[]
   auditLogs     AuditLog[]
-  settings      Setting[]
 }
 
 model Contact {
@@ -161,19 +160,17 @@ model Event {
   @@index([accountId])
 }
 
-// Settings table mixes global config (one row keyed by `key`) with
-// per-account preferences (same `key`, different `accountId`). Null
-// accountId = global. Composite PK lets the same key coexist across
-// accounts without collision.
+// Setting stays global. Per-account preferences (sender, hidden
+// built-ins, unsubscribe categories, bounce-sync toggle, etc.) live
+// either in dedicated Account columns or under Account.data JSON.
+// Prisma doesn't allow nullable fields in composite primary keys,
+// which ruled out a (key, accountId?) shape — splitting into two
+// tables (global Setting + per-account AccountSetting) would have
+// worked too, but using Account.data is fewer moving parts for v1.
 model Setting {
-  key       String
+  key       String   @id
   value     Json
   updatedAt DateTime @updatedAt
-  accountId String?
-  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
-
-  @@id([key, accountId])
-  @@index([accountId])
 }
 
 model User {
