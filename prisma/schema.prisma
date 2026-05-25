@@ -7,6 +7,47 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Workspace / tenant. One Account groups a set of Users and all of their
+// data (contacts, campaigns, templates, etc). Inviting teammates puts
+// them on the same Account; everything below scoped by accountId.
+//
+// Sender config lives directly on the Account so a per-tenant "From"
+// identity is queryable without a JSON dig. Hybrid sender model: when
+// these are null, sends fall back to the env-configured shared
+// subdomain (the "no setup needed" default).
+model Account {
+  id            String   @id @default(uuid())
+  name          String
+  // Optional per-account sender overrides. Null = use the shared
+  // platform default. Email is validated at write time + Brevo
+  // verification handled by the upgrade flow.
+  senderEmail   String?
+  senderName    String?
+  replyToEmail  String?
+  replyToName   String?
+  // Free-form per-account preferences (hiddenBuiltins, unsub
+  // categories, bounce-sync flag, etc) until each one earns its own
+  // column. Mirrors how Contact.data carries optional extras.
+  data          Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  users         User[]
+  contacts      Contact[]
+  audiences     Audience[]
+  templates     Template[]
+  campaigns     Campaign[]
+  drafts        Draft[]
+  unsubscribes  Unsubscribe[]
+  events        Event[]
+  campaignSends CampaignSend[]
+  segments      Segment[]
+  sequences     Sequence[]
+  assets        Asset[]
+  auditLogs     AuditLog[]
+  settings      Setting[]
+}
+
 model Contact {
   email     String   @id
   firstname String?
@@ -20,6 +61,14 @@ model Contact {
   data      Json?
   savedAt   DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Multi-tenant scope. Keeping email as the PK for v1 means two accounts
+  // can't have the same email contact yet — fine while we're rolling
+  // out, will be relaxed in a follow-up migration that switches Contact
+  // to a UUID PK with @@unique([accountId, email]).
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
 model Audience {
@@ -32,6 +81,10 @@ model Audience {
   disabled      Boolean  @default(false)
   updatedAt     DateTime @updatedAt
   createdAt     DateTime @default(now())
+  accountId     String
+  account       Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
 model Template {
@@ -44,6 +97,10 @@ model Template {
   data      Json?
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
 model Campaign {
@@ -53,6 +110,10 @@ model Campaign {
   data      Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
 model Draft {
@@ -61,12 +122,23 @@ model Draft {
   data      Json
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
 model Unsubscribe {
   email          String   @id
   reason         String?
   unsubscribedAt DateTime @default(now())
+  // Like Contact, Unsubscribe keeps email as the PK for v1 so two
+  // accounts can't have a row for the same email yet. Follow-up
+  // migration will relax this with composite ([accountId, email]).
+  accountId      String
+  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
 model Event {
@@ -79,12 +151,29 @@ model Event {
   provider   String
   payload    Json
   receivedAt DateTime @default(now())
+  // Webhook handler resolves accountId by looking up the
+  // campaign:<id> tag in the payload → Campaign.accountId. Events
+  // without a campaign tag (rare: provider keepalives, generic
+  // transactional) get routed to the default account for now.
+  accountId  String
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
+// Settings table mixes global config (one row keyed by `key`) with
+// per-account preferences (same `key`, different `accountId`). Null
+// accountId = global. Composite PK lets the same key coexist across
+// accounts without collision.
 model Setting {
-  key       String   @id
+  key       String
   value     Json
   updatedAt DateTime @updatedAt
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([key, accountId])
+  @@index([accountId])
 }
 
 model User {
@@ -100,6 +189,13 @@ model User {
   notificationsClearedAt  DateTime?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
+  // Each user belongs to exactly one Account. Multi-account membership
+  // (a single human across many workspaces) would require a UserAccount
+  // join table; deferred until we actually need it.
+  accountId               String
+  account                 Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
 model CampaignSend {
@@ -112,9 +208,14 @@ model CampaignSend {
   sentAt          DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  // accountId is denormalized from Campaign.accountId so aggregate
+  // queries ("count all sends for account X") don't need a join.
+  accountId       String
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@id([campaignId, email])
   @@index([campaignId])
+  @@index([accountId])
 }
 
 model Segment {
@@ -123,6 +224,10 @@ model Segment {
   filter    Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
 // Drip sequence. A linear chain of templated emails enrolled contacts get
@@ -141,8 +246,12 @@ model Sequence {
   steps          Json
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  accountId      String
+  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   enrollments    SequenceEnrollment[]
+
+  @@index([accountId])
 }
 
 // One row per (sequence, contact) pair. The runner cron scans these for
@@ -174,9 +283,12 @@ model Asset {
   kind        String   @default("logo")
   createdById String?
   createdAt   DateTime @default(now())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([kind])
   @@index([createdAt])
+  @@index([accountId])
 }
 
 model AuditLog {
@@ -189,8 +301,14 @@ model AuditLog {
   metadata   Json?
   ip         String?
   createdAt  DateTime @default(now())
+  // Audit rows are tagged with the account whose data was touched. Some
+  // super-admin actions (Account create/suspend/delete) have no parent
+  // account — those rows stay null.
+  accountId  String?
+  account    Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
 
   @@index([resource, resourceId])
   @@index([userId])
   @@index([createdAt])
+  @@index([accountId])
 }
