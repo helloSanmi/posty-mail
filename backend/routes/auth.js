@@ -56,12 +56,33 @@ export function registerAuthRoutes(app) {
       }
 
       const passwordHash = await hashPassword(req.body.password);
+      // Each signup gets its OWN Account (workspace). The very first
+      // user on a fresh install still lands in the 'default' account
+      // that the multi-tenant migration seeded, so their existing data
+      // (created pre-multi-tenancy) stays attached to their session.
+      // Every subsequent signup creates a brand-new Account so their
+      // data is isolated from everyone else's.
+      const accountId = existingCount === 0
+        ? 'default'
+        : (await prisma.account.create({
+            data: {
+              name: req.body.name
+                ? `${req.body.name}'s workspace`
+                : `${req.body.email.split('@')[0]}'s workspace`,
+            },
+          })).id;
+
       const user = await prisma.user.create({
         data: {
           email: req.body.email,
           passwordHash,
           name: req.body.name || null,
-          role: existingCount === 0 ? 'admin' : 'editor',
+          // First user on the install is the super-admin (admin of the
+          // default workspace). Subsequent signups are admins of their
+          // OWN workspace — they're the owner of the Account they just
+          // created, even though they're not super-admin of the install.
+          role: 'admin',
+          accountId,
         },
       });
 

@@ -26,8 +26,18 @@ export async function verifyPassword(password, hash) {
 }
 
 export function signToken(user) {
+  // Embed accountId in the JWT so every authenticated request carries
+  // the tenant scope without an extra DB round-trip. Old tokens issued
+  // before multi-tenancy lack this claim — requireAuth falls back to
+  // the 'default' account for backward compatibility (existing data
+  // was backfilled into that workspace by the multi-tenant migration).
   return jwt.sign(
-    { sub: user.id, email: user.email, role: user.role },
+    {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      accountId: user.accountId,
+    },
     getJwtSecret(),
     { expiresIn: TOKEN_TTL },
   );
@@ -43,6 +53,7 @@ export function publicUser(user) {
     email: user.email,
     name: user.name || '',
     role: user.role,
+    accountId: user.accountId,
   };
 }
 
@@ -57,7 +68,15 @@ export function requireAuth(req, res, next) {
 
   try {
     const payload = verifyToken(token);
-    req.user = { id: payload.sub, email: payload.email, role: payload.role };
+    req.user = {
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      // Backward compat: tokens issued before multi-tenancy don't
+      // carry an accountId. Treat them as the default workspace so
+      // existing sessions keep working through the rollout.
+      accountId: payload.accountId || 'default',
+    };
     next();
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' });

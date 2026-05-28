@@ -41,12 +41,18 @@ export function registerAdminRoutes(app) {
         return;
       }
 
+      // Admin-created users land in the SAME account as the admin who
+      // created them. This is the "invite a teammate to my workspace"
+      // path — distinct from public signup (which creates a brand-new
+      // account). Once the super-admin UI lands, super-admins will be
+      // able to create users in any account; for now it's a single hop.
       const user = await prisma.user.create({
         data: {
           email: req.body.email,
           passwordHash: await hashPassword(req.body.password),
           name: req.body.name || null,
           role: req.body.role || 'editor',
+          accountId: req.user.accountId,
         },
       });
       await recordAudit(req, 'user.create', 'user', user.id, { email: user.email, role: user.role });
