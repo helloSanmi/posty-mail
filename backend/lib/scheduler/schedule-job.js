@@ -1,12 +1,12 @@
-// TODO(multi-tenant): scope by accountId — scheduleCampaignJob takes the
-// upsertCampaign function as a callback; that function now requires an
-// accountId argument. The cron tick needs to pass campaign.accountId
-// through. Handled in a separate pass.
-//
 // Cron registration for scheduled campaigns. One node-cron job per campaign,
 // tracked in an in-process Map so reschedules can stop the old job first.
 // The actual send loop lives in run-campaign.js; this file is just the
 // timing harness.
+//
+// Multi-tenant scope: the onUpdate callback is bound by the route /
+// restoreCampaignJobs caller, both of which inject campaign.accountId
+// into the closure. This file stays workspace-agnostic — it only knows
+// how to fire cron ticks and pass the campaign payload through.
 import cron from 'node-cron';
 import { runCampaign } from './run-campaign.js';
 
