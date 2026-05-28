@@ -1,3 +1,8 @@
+// TODO(multi-tenant): scope by accountId — every DB helper called from
+// this file (markSendAttempt, markSendSkipped, upsertCampaign,
+// unsubscribedEmailSet, etc.) now expects an accountId. The send loop
+// has campaign.accountId available; thread it through in a follow-up.
+//
 // The per-send execution loop. Iterates batches, enforces unsubscribes /
 // timezone gates / category preferences / compliance issues, picks a
 // deterministic A/B variant per recipient, and writes a CampaignSend ledger

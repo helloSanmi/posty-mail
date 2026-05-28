@@ -27,12 +27,12 @@ const membersSchema = z.object({
 });
 
 export function registerAudienceRoutes(app) {
-  app.get('/api/audiences', asyncRoute(async (_req, res) => {
-    res.json(await listAudiences());
+  app.get('/api/audiences', asyncRoute(async (req, res) => {
+    res.json(await listAudiences(req.user.accountId));
   }));
 
   app.get('/api/audiences/:id', asyncRoute(async (req, res) => {
-    const audience = await getAudience(req.params.id);
+    const audience = await getAudience(req.user.accountId, req.params.id);
     if (!audience) {
       res.status(404).json({ error: 'Group not found' });
       return;
@@ -41,7 +41,7 @@ export function registerAudienceRoutes(app) {
   }));
 
   app.get('/api/audiences/:id/contacts', asyncRoute(async (req, res) => {
-    const contacts = await listAudienceContacts(req.params.id);
+    const contacts = await listAudienceContacts(req.user.accountId, req.params.id);
     if (contacts === null) {
       res.status(404).json({ error: 'Group not found' });
       return;
@@ -61,7 +61,7 @@ export function registerAudienceRoutes(app) {
           .filter(Boolean)
           .map((email) => email.trim().toLowerCase()),
       };
-      const saved = await upsertAudience(audience);
+      const saved = await upsertAudience(req.user.accountId, audience);
       await recordAudit(req, 'audience.save', 'audience', saved.id, { name: saved.name });
       res.status(201).json(audienceFromDb(saved));
     }),
@@ -71,7 +71,7 @@ export function registerAudienceRoutes(app) {
     '/api/audiences/:id/members',
     validate(membersSchema),
     asyncRoute(async (req, res) => {
-      const updated = await patchAudienceMembers(req.params.id, req.body);
+      const updated = await patchAudienceMembers(req.user.accountId, req.params.id, req.body);
       if (!updated) {
         res.status(404).json({ error: 'Group not found' });
         return;
@@ -85,7 +85,7 @@ export function registerAudienceRoutes(app) {
   );
 
   app.delete('/api/audiences/:id', asyncRoute(async (req, res) => {
-    const result = await deleteAudience(req.params.id);
+    const result = await deleteAudience(req.user.accountId, req.params.id);
     if (result.count) await recordAudit(req, 'audience.delete', 'audience', req.params.id);
     res.json({ deleted: result.count });
   }));
@@ -97,19 +97,19 @@ export function registerAudienceRoutes(app) {
     '/api/audiences/:id/name',
     validate(z.object({ name: z.string().min(1).max(120) })),
     asyncRoute(async (req, res) => {
-      try {
-        const updated = await renameAudience(req.params.id, req.body.name.trim());
-        await recordAudit(req, 'audience.rename', 'audience', updated.id, {
-          name: updated.name,
-        });
-        res.json(updated);
-      } catch (error) {
-        if (error.code === 'P2025') {
-          res.status(404).json({ error: 'Group not found' });
-          return;
-        }
-        throw error;
+      const updated = await renameAudience(
+        req.user.accountId,
+        req.params.id,
+        req.body.name.trim(),
+      );
+      if (!updated) {
+        res.status(404).json({ error: 'Group not found' });
+        return;
       }
+      await recordAudit(req, 'audience.rename', 'audience', updated.id, {
+        name: updated.name,
+      });
+      res.json(updated);
     }),
   );
 
@@ -120,22 +120,22 @@ export function registerAudienceRoutes(app) {
     '/api/audiences/:id/disabled',
     validate(z.object({ disabled: z.boolean() })),
     asyncRoute(async (req, res) => {
-      try {
-        const updated = await setAudienceDisabled(req.params.id, req.body.disabled);
-        await recordAudit(
-          req,
-          req.body.disabled ? 'audience.disable' : 'audience.enable',
-          'audience',
-          updated.id,
-        );
-        res.json(updated);
-      } catch (error) {
-        if (error.code === 'P2025') {
-          res.status(404).json({ error: 'Group not found' });
-          return;
-        }
-        throw error;
+      const updated = await setAudienceDisabled(
+        req.user.accountId,
+        req.params.id,
+        req.body.disabled,
+      );
+      if (!updated) {
+        res.status(404).json({ error: 'Group not found' });
+        return;
       }
+      await recordAudit(
+        req,
+        req.body.disabled ? 'audience.disable' : 'audience.enable',
+        'audience',
+        updated.id,
+      );
+      res.json(updated);
     }),
   );
 }

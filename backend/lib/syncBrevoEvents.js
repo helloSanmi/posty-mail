@@ -1,3 +1,9 @@
+// TODO(multi-tenant): scope by accountId — the sync resolves event
+// attribution from campaign:<id> tags but doesn't yet pass an accountId
+// to recordEvent. Mirror the webhook receiver's lookup (resolve
+// Campaign.accountId from the tag, fall back to 'default'). Handled
+// in a separate pass.
+//
 // Catch-up sync for Brevo transactional events.
 //
 // Webhooks are fire-and-forget HTTP POSTs. If the backend is down when Brevo

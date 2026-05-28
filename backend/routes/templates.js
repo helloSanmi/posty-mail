@@ -19,6 +19,11 @@ const templateSchema = z.object({
   logoUrl: z.string().optional(),
 }).passthrough();
 
+// The hidden-builtins list stays in the global Setting table on purpose
+// (Setting is single-row global per the schema), so this key is shared
+// across all accounts on the install. Per-tenant overrides would need an
+// AccountSetting row — deferred along with the rest of the Setting →
+// Account.data migration.
 const HIDDEN_BUILTINS_KEY = 'templates.hiddenBuiltins';
 
 async function readHiddenBuiltins() {
@@ -37,8 +42,8 @@ async function writeHiddenBuiltins(ids) {
 }
 
 export function registerTemplateRoutes(app) {
-  app.get('/api/templates', asyncRoute(async (_req, res) => {
-    res.json(await listTemplates());
+  app.get('/api/templates', asyncRoute(async (req, res) => {
+    res.json(await listTemplates(req.user.accountId));
   }));
 
   // List of built-in template ids the admin has hidden. Built-ins ship as
@@ -70,12 +75,16 @@ export function registerTemplateRoutes(app) {
     '/api/templates',
     validate(templateSchema),
     asyncRoute(async (req, res) => {
+      const { accountId } = req.user;
       const id = getTemplateId(req.body.id);
       const name = req.body.name.trim();
 
+      // Name-uniqueness is per-account: two workspaces can each have a
+      // "Welcome" template without colliding.
       const conflict = await prisma.template.findFirst({
         where: {
           name: { equals: name, mode: 'insensitive' },
+          accountId,
           NOT: { id },
         },
         select: { id: true },
@@ -94,13 +103,14 @@ export function registerTemplateRoutes(app) {
         text: String(req.body.text).slice(0, 100000),
         logoUrl: req.body.logoUrl || '',
       };
-      const saved = await upsertTemplate(template);
+      const saved = await upsertTemplate(accountId, template);
       await recordAudit(req, 'template.save', 'template', saved.id, { name: saved.name });
       res.status(201).json(templateFromDb(saved));
     }),
   );
 
   app.delete('/api/templates/:id', asyncRoute(async (req, res) => {
+    const { accountId } = req.user;
     const id = decodeURIComponent(req.params.id);
 
     // Built-in templates live in code (defaultTemplates.js) so a real DELETE
@@ -119,7 +129,7 @@ export function registerTemplateRoutes(app) {
       return;
     }
 
-    const result = await deleteTemplate(id);
+    const result = await deleteTemplate(accountId, id);
     if (result.count) await recordAudit(req, 'template.delete', 'template', id);
     res.json({ deleted: result.count, id });
   }));

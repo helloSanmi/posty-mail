@@ -1,9 +1,16 @@
 // Contact persistence. The Contact table is the source of truth for who
 // can be emailed; audiences/segments are filters that index into this set.
 //
+// Multi-tenant scoping note: Contact still uses `email` as the global
+// primary key in v1 (the migration didn't change PKs). That means two
+// accounts can't both have a contact with the same email — a follow-up
+// migration will switch to UUID PK + @@unique([accountId, email]).
+// Until then, upsertContacts checks for cross-account collisions and
+// refuses them rather than overwriting another account's row.
+//
 // `buildContactWhere` is a re-export of the pure rules-to-Prisma translator
-// in lib/segmentFilter.js so old call sites that took it from `db.js` keep
-// working unchanged after the split.
+// in lib/segmentFilter.js. The translator itself doesn't know about
+// accounts; callers MUST AND it with `{ accountId }` at the query site.
 
 import { filterToWhere } from '../segmentFilter.js';
 import { prisma } from './prisma.js';
@@ -24,15 +31,24 @@ export function contactFromDb(contact) {
   };
 }
 
-export async function listContacts() {
-  const rows = await prisma.contact.findMany({ orderBy: { savedAt: 'desc' } });
+export async function listContacts(accountId) {
+  const rows = await prisma.contact.findMany({
+    where: { accountId },
+    orderBy: { savedAt: 'desc' },
+  });
   return rows.map(contactFromDb);
 }
 
 export async function queryContacts({
-  filter = {}, page = 1, pageSize = 50, sort = 'savedAt',
+  accountId,
+  filter = {},
+  page = 1,
+  pageSize = 50,
+  sort = 'savedAt',
 } = {}) {
-  const where = filterToWhere(filter);
+  // Tenant scope ALWAYS first — combine with the filter's own where so
+  // an attacker-crafted filter can't widen the search past their account.
+  const where = { AND: [{ accountId }, filterToWhere(filter)] };
   const safePageSize = Math.min(Math.max(Number(pageSize) || 50, 1), 500);
   const safePage = Math.max(Number(page) || 1, 1);
 
@@ -57,15 +73,36 @@ export async function queryContacts({
   };
 }
 
-export async function deleteContacts(emails) {
+export async function deleteContacts(accountId, emails) {
   if (!emails?.length) return 0;
+  // Delete only this account's contacts even if the email exists in
+  // another account too. Prevents one tenant from nuking another's row.
   const result = await prisma.contact.deleteMany({
-    where: { email: { in: emails } },
+    where: { email: { in: emails }, accountId },
   });
   return result.count;
 }
 
-export async function upsertContacts(contacts) {
+export async function upsertContacts(accountId, contacts) {
+  // Pre-flight check: any email already claimed by a DIFFERENT account?
+  // If so, fail fast with a clear error — the v1 schema can't hold the
+  // same email in two accounts. Once Contact moves to a composite key,
+  // this guard goes away.
+  const emails = contacts.map((c) => c.email);
+  const conflicts = await prisma.contact.findMany({
+    where: { email: { in: emails }, NOT: { accountId } },
+    select: { email: true },
+  });
+  if (conflicts.length) {
+    const first = conflicts[0].email;
+    const error = new Error(
+      `${conflicts.length === 1 ? first : `${conflicts.length} emails`} already exist in another workspace. `
+      + 'Email addresses are globally unique in this version — re-import will be supported when contact storage moves to per-account keys.',
+    );
+    error.status = 409;
+    throw error;
+  }
+
   const ops = contacts.map((contact) => prisma.contact.upsert({
     where: { email: contact.email },
     create: {
@@ -84,6 +121,7 @@ export async function upsertContacts(contacts) {
       // stored timezone with empty on UPDATE.
       ...(contact.timezone ? { timezone: contact.timezone } : {}),
       data: contact,
+      accountId,
     },
     update: {
       firstname: contact.firstname || '',
@@ -96,6 +134,9 @@ export async function upsertContacts(contacts) {
       region: contact.region || '',
       ...(contact.timezone ? { timezone: contact.timezone } : {}),
       data: contact,
+      // accountId intentionally NOT updated. If the row exists, it
+      // already passed the conflict check above, meaning it belongs to
+      // THIS account — leaving accountId alone is the no-op safe path.
     },
   }));
   await prisma.$transaction(ops);

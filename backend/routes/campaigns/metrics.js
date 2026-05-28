@@ -4,6 +4,11 @@
 // Event classification (open / click / bounce) goes through the shared
 // helpers in event-classifiers.js so the same code path drives the metrics
 // endpoint and the Reports page totals.
+//
+// Multi-tenant scope: every endpoint resolves the campaign via getCampaign
+// (which checks accountId) before reading sends / events. A 404 from
+// getCampaign means either the id doesn't exist or it belongs to another
+// workspace — same response either way.
 import {
   getCampaign,
   listCampaignSends,
@@ -15,6 +20,16 @@ import { serializeCampaign } from './schemas.js';
 
 export function registerMetricsRoutes(app) {
   app.get('/api/campaigns/:id/sends', asyncRoute(async (req, res) => {
+    const { accountId } = req.user;
+    // Confirm the campaign belongs to this account before exposing its
+    // ledger. listCampaignSends has no accountId column to filter on
+    // directly (CampaignSend.accountId is denormalized) but the ownership
+    // check on the parent is the right gate.
+    const campaign = await getCampaign(accountId, req.params.id);
+    if (!campaign) {
+      res.status(404).json({ error: 'Campaign not found' });
+      return;
+    }
     const sends = await listCampaignSends(req.params.id);
     res.json(sends.map((row) => ({
       campaignId: row.campaignId,
@@ -29,6 +44,12 @@ export function registerMetricsRoutes(app) {
   }));
 
   app.get('/api/campaigns/:id/recipients', asyncRoute(async (req, res) => {
+    const { accountId } = req.user;
+    const campaign = await getCampaign(accountId, req.params.id);
+    if (!campaign) {
+      res.status(404).json({ error: 'Campaign not found' });
+      return;
+    }
     // Pagination params. pageSize is capped so a malicious / careless
     // caller can't ask for 100,000 rows in one shot. Default 50 matches
     // other paginated list endpoints in this app. Aggregate totals come
@@ -39,7 +60,7 @@ export function registerMetricsRoutes(app) {
 
     const [sends, events] = await Promise.all([
       listCampaignSends(req.params.id),
-      listEventsForCampaign(req.params.id, 5000),
+      listEventsForCampaign(accountId, req.params.id, 5000),
     ]);
 
     const summaryByEmail = new Map();
@@ -103,7 +124,13 @@ export function registerMetricsRoutes(app) {
   }));
 
   app.get('/api/campaigns/:id/links', asyncRoute(async (req, res) => {
-    const events = await listEventsForCampaign(req.params.id, 5000);
+    const { accountId } = req.user;
+    const campaign = await getCampaign(accountId, req.params.id);
+    if (!campaign) {
+      res.status(404).json({ error: 'Campaign not found' });
+      return;
+    }
+    const events = await listEventsForCampaign(accountId, req.params.id, 5000);
     const counts = new Map();
     let totalClicks = 0;
 
@@ -126,7 +153,8 @@ export function registerMetricsRoutes(app) {
   }));
 
   app.get('/api/campaigns/:id/variants', asyncRoute(async (req, res) => {
-    const campaign = await getCampaign(req.params.id);
+    const { accountId } = req.user;
+    const campaign = await getCampaign(accountId, req.params.id);
     if (!campaign) {
       res.status(404).json({ error: 'Campaign not found' });
       return;
@@ -136,7 +164,7 @@ export function registerMetricsRoutes(app) {
       return;
     }
 
-    const events = await listEventsForCampaign(req.params.id, 5000);
+    const events = await listEventsForCampaign(accountId, req.params.id, 5000);
 
     const stats = new Map(campaign.variants.map((variant) => [
       variant.id,
@@ -171,7 +199,8 @@ export function registerMetricsRoutes(app) {
   }));
 
   app.get('/api/campaigns/:id/metrics', asyncRoute(async (req, res) => {
-    const campaign = await getCampaign(req.params.id);
+    const { accountId } = req.user;
+    const campaign = await getCampaign(accountId, req.params.id);
     if (!campaign) {
       res.status(404).json({ error: 'Campaign not found' });
       return;
@@ -179,7 +208,7 @@ export function registerMetricsRoutes(app) {
 
     const [sends, events] = await Promise.all([
       listCampaignSends(req.params.id),
-      listEventsForCampaign(req.params.id, 5000),
+      listEventsForCampaign(accountId, req.params.id, 5000),
     ]);
 
     const sent = sends.filter((row) => row.status === 'sent').length;

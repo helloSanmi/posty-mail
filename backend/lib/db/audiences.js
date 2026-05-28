@@ -9,6 +9,11 @@
 // Sequence configured to fire on "added to this group" auto-enrolls them.
 // The trigger is best-effort — failures get logged and don't fail the
 // audience write.
+//
+// Multi-tenant scope: every read/write filters by accountId. Audience.id
+// is a UUID so collisions across accounts are not a concern; the where
+// clauses still AND in accountId so a route that 404s on a missing id
+// can't accidentally surface another tenant's row.
 import { prisma } from './prisma.js';
 import { contactFromDb } from './contacts.js';
 import { enrollInSequence } from './sequences.js';
@@ -26,32 +31,39 @@ export function audienceFromDb(audience) {
 // Toggle the "disabled" flag on a group. Disabled groups stay in the DB
 // (members + send-history references) but get filtered out of the campaign
 // recipient picker. Used to retire an old group without losing its data.
-export async function setAudienceDisabled(id, disabled) {
-  const row = await prisma.audience.update({
-    where: { id },
+export async function setAudienceDisabled(accountId, id, disabled) {
+  // updateMany lets us scope by both id AND accountId in the WHERE
+  // without Prisma rejecting it for missing the composite key. Returns
+  // null if no row matched (e.g. wrong account).
+  const result = await prisma.audience.updateMany({
+    where: { id, accountId },
     data: { disabled: Boolean(disabled) },
   });
-  return audienceFromDb(row);
+  if (!result.count) return null;
+  const row = await prisma.audience.findFirst({ where: { id, accountId } });
+  return row ? audienceFromDb(row) : null;
 }
 
 // Rename only. Kept separate from upsertAudience because that one rewrites
 // the membership list too, which is the wrong behavior for an in-place
 // rename triggered from the Groups sidebar.
-export async function renameAudience(id, name) {
-  const row = await prisma.audience.update({
-    where: { id },
+export async function renameAudience(accountId, id, name) {
+  const result = await prisma.audience.updateMany({
+    where: { id, accountId },
     data: { name },
   });
-  return audienceFromDb(row);
+  if (!result.count) return null;
+  const row = await prisma.audience.findFirst({ where: { id, accountId } });
+  return row ? audienceFromDb(row) : null;
 }
 
 // List + prune. On read we drop any contactEmail entries whose Contact row
 // no longer exists (e.g., contact was deleted but the membership lingered).
 // The prune happens in the background so the read returns quickly.
-export async function listAudiences() {
+export async function listAudiences(accountId) {
   const [existingContacts, rows] = await Promise.all([
-    prisma.contact.findMany({ select: { email: true } }),
-    prisma.audience.findMany({ orderBy: { updatedAt: 'desc' } }),
+    prisma.contact.findMany({ where: { accountId }, select: { email: true } }),
+    prisma.audience.findMany({ where: { accountId }, orderBy: { updatedAt: 'desc' } }),
   ]);
   const liveEmails = new Set(existingContacts.map((row) => row.email));
 
@@ -76,17 +88,17 @@ export async function listAudiences() {
   return cleaned.map(audienceFromDb);
 }
 
-export async function getAudience(id) {
-  const row = await prisma.audience.findUnique({ where: { id } });
+export async function getAudience(accountId, id) {
+  const row = await prisma.audience.findFirst({ where: { id, accountId } });
   return row ? audienceFromDb(row) : null;
 }
 
-export async function deleteAudience(id) {
-  return prisma.audience.deleteMany({ where: { id } });
+export async function deleteAudience(accountId, id) {
+  return prisma.audience.deleteMany({ where: { id, accountId } });
 }
 
-export async function patchAudienceMembers(id, { add = [], remove = [] }) {
-  const existing = await prisma.audience.findUnique({ where: { id } });
+export async function patchAudienceMembers(accountId, id, { add = [], remove = [] }) {
+  const existing = await prisma.audience.findFirst({ where: { id, accountId } });
   if (!existing) return null;
   const addNormalized = (add || [])
     .map((email) => (email ? String(email).trim().toLowerCase() : ''))
@@ -103,10 +115,11 @@ export async function patchAudienceMembers(id, { add = [], remove = [] }) {
   });
   // Same exclusivity invariant as addEmailsToAudience: when adding emails
   // to this group, scrub them from every other group so counts always sum
-  // to total contacts.
+  // to total contacts. Scoped to this account so a tenant's add doesn't
+  // touch another tenant's groups.
   if (addNormalized.length) {
     const removeSet = new Set(addNormalized);
-    const others = await prisma.audience.findMany({ where: { id: { not: id } } });
+    const others = await prisma.audience.findMany({ where: { id: { not: id }, accountId } });
     for (const other of others) {
       const before = other.contactEmails || [];
       const after = before.filter((email) => !removeSet.has(email));
@@ -121,38 +134,46 @@ export async function patchAudienceMembers(id, { add = [], remove = [] }) {
   return audienceFromDb(updated);
 }
 
-export async function listAudienceContacts(id) {
-  const audience = await prisma.audience.findUnique({ where: { id } });
+export async function listAudienceContacts(accountId, id) {
+  const audience = await prisma.audience.findFirst({ where: { id, accountId } });
   if (!audience) return null;
   const emails = audience.contactEmails || [];
   if (!emails.length) return [];
   const rows = await prisma.contact.findMany({
-    where: { email: { in: emails } },
+    where: { email: { in: emails }, accountId },
     orderBy: { savedAt: 'desc' },
   });
   return rows.map(contactFromDb);
 }
 
-export async function upsertAudience(audience) {
+export async function upsertAudience(accountId, audience) {
+  // Audience.id is the unique PK across all accounts (UUID). Using a
+  // straight upsert is safe — the id either belongs to THIS account (we
+  // got it back from a prior read) or it's brand-new (UUID minted by
+  // the caller). We still defensively set accountId on create so a
+  // misrouted id can't silently land in the wrong workspace.
   return prisma.audience.upsert({
     where: { id: audience.id },
     create: {
       id: audience.id,
       name: audience.name,
       contactEmails: audience.contactEmails || [],
+      accountId,
     },
     update: {
       name: audience.name,
       contactEmails: audience.contactEmails || [],
+      // accountId intentionally not in update — preserve the row's
+      // existing tenant binding.
     },
   });
 }
 
-export async function findOrCreateAudienceByName(name) {
+export async function findOrCreateAudienceByName(accountId, name) {
   const trimmed = String(name || '').trim();
   if (!trimmed) return null;
   const existing = await prisma.audience.findFirst({
-    where: { name: { equals: trimmed, mode: 'insensitive' } },
+    where: { name: { equals: trimmed, mode: 'insensitive' }, accountId },
   });
   if (existing) return existing;
   return prisma.audience.create({
@@ -160,12 +181,13 @@ export async function findOrCreateAudienceByName(name) {
       id: crypto.randomUUID(),
       name: trimmed,
       contactEmails: [],
+      accountId,
     },
   });
 }
 
-export async function addEmailsToAudience(id, emails) {
-  const audience = await prisma.audience.findUnique({ where: { id } });
+export async function addEmailsToAudience(accountId, id, emails) {
+  const audience = await prisma.audience.findFirst({ where: { id, accountId } });
   if (!audience) return null;
   const set = new Set(audience.contactEmails || []);
   const normalized = (emails || [])
@@ -179,10 +201,10 @@ export async function addEmailsToAudience(id, emails) {
   // Groups are exclusive: a contact lives in exactly one group at a time.
   // When we add an email to group X, scrub it from every OTHER audience so
   // counts always sum to total. This covers the legacy "Unspecified" case
-  // as well as overlap between named groups.
+  // as well as overlap between named groups. Scoped to this account.
   if (normalized.length) {
     const removeSet = new Set(normalized);
-    const others = await prisma.audience.findMany({ where: { id: { not: id } } });
+    const others = await prisma.audience.findMany({ where: { id: { not: id }, accountId } });
     for (const other of others) {
       const before = other.contactEmails || [];
       const after = before.filter((email) => !removeSet.has(email));
@@ -206,6 +228,7 @@ export async function addEmailsToAudience(id, emails) {
             triggerType: 'group_added',
             triggerGroupId: id,
             status: 'active',
+            accountId,
           },
         });
         if (sequences.length) {
@@ -225,10 +248,10 @@ export async function addEmailsToAudience(id, emails) {
   return updated;
 }
 
-export async function removeEmailsFromAllAudiences(emails) {
+export async function removeEmailsFromAllAudiences(accountId, emails) {
   if (!emails?.length) return 0;
   const set = new Set(emails.map((email) => String(email).trim().toLowerCase()));
-  const audiences = await prisma.audience.findMany();
+  const audiences = await prisma.audience.findMany({ where: { accountId } });
   let touched = 0;
   for (const audience of audiences) {
     const before = audience.contactEmails || [];

@@ -15,19 +15,21 @@ import { serializeCampaign } from './schemas.js';
 
 export function registerCrudRoutes(app) {
   app.get('/api/campaigns', asyncRoute(async (req, res) => {
+    const { accountId } = req.user;
     // Backward-compat: with no pagination params, return the flat array
     // (used by the dashboard, which only needs counts/totals). With
     // page/pageSize, return the paged shape
     // `{ rows, total, page, pageSize, totalPages }`.
     if (req.query.page || req.query.pageSize) {
       const result = await listCampaignsPaged({
+        accountId,
         page: req.query.page,
         pageSize: req.query.pageSize,
       });
       res.json({ ...result, rows: result.rows.map(serializeCampaign) });
       return;
     }
-    const campaigns = await listCampaigns();
+    const campaigns = await listCampaigns(accountId);
     res.json(campaigns.map(serializeCampaign));
   }));
 
@@ -39,7 +41,8 @@ export function registerCrudRoutes(app) {
       frequency: z.enum(['once', 'daily', 'weekly', 'monthly']).optional(),
     })),
     asyncRoute(async (req, res) => {
-      const campaign = await getCampaign(req.params.id);
+      const { accountId } = req.user;
+      const campaign = await getCampaign(accountId, req.params.id);
       if (!campaign) {
         res.status(404).json({ error: 'Campaign not found' });
         return;
@@ -70,11 +73,14 @@ export function registerCrudRoutes(app) {
         },
       };
 
-      await upsertCampaign(updated);
+      await upsertCampaign(accountId, updated);
 
       // If still scheduled, refresh the cron job to reflect the new time/frequency.
       if (campaign.status === 'scheduled' || campaign.status === 'draft') {
-        scheduleCampaignJob(updated, upsertCampaign);
+        // TODO(multi-tenant): the scheduler still calls upsertCampaign
+        // without an accountId. Bind the current accountId in the
+        // upsert callback so the cron tick stays scoped.
+        scheduleCampaignJob(updated, (next) => upsertCampaign(accountId, next));
       }
 
       await recordAudit(req, 'campaign.edit', 'campaign', updated.id, {
@@ -85,14 +91,18 @@ export function registerCrudRoutes(app) {
   );
 
   app.delete('/api/campaigns/:id', asyncRoute(async (req, res) => {
-    const campaign = await getCampaign(req.params.id);
+    const { accountId } = req.user;
+    const campaign = await getCampaign(accountId, req.params.id);
     if (!campaign) {
       res.status(404).json({ error: 'Campaign not found' });
       return;
     }
     await prisma.$transaction([
-      prisma.campaignSend.deleteMany({ where: { campaignId: req.params.id } }),
-      prisma.campaign.delete({ where: { id: req.params.id } }),
+      // CampaignSend's accountId column is denormalized from the parent,
+      // so scoping the delete by both campaignId and accountId is
+      // belt-and-suspenders against a misrouted id.
+      prisma.campaignSend.deleteMany({ where: { campaignId: req.params.id, accountId } }),
+      prisma.campaign.deleteMany({ where: { id: req.params.id, accountId } }),
     ]);
     await recordAudit(req, 'campaign.delete', 'campaign', req.params.id, {
       name: campaign.name,
@@ -101,7 +111,8 @@ export function registerCrudRoutes(app) {
   }));
 
   app.post('/api/campaigns/:id/clone', asyncRoute(async (req, res) => {
-    const original = await getCampaign(req.params.id);
+    const { accountId } = req.user;
+    const original = await getCampaign(accountId, req.params.id);
     if (!original) {
       res.status(404).json({ error: 'Campaign not found' });
       return;
@@ -119,7 +130,7 @@ export function registerCrudRoutes(app) {
       logs: [],
       progress: { sent: 0, failed: 0, skipped: 0, currentBatch: 0, totalBatches: 0 },
     };
-    await upsertCampaign(clone);
+    await upsertCampaign(accountId, clone);
     await recordAudit(req, 'campaign.clone', 'campaign', clone.id, {
       from: original.id,
     });

@@ -1,5 +1,10 @@
 // Template persistence. Templates are the reusable email shells (subject +
 // HTML + plain text + optional logoUrl + ad-hoc `data` JSON for extras).
+//
+// Multi-tenant scope: every read/write filters by accountId. Template.id
+// is a `custom-<uuid>` string the route mints, so collisions across
+// accounts are unlikely but possible if a tenant supplies a hand-picked
+// id. Routes that 404 must AND in accountId to stay safe.
 import { prisma } from './prisma.js';
 
 export function templateFromDb(template) {
@@ -15,12 +20,15 @@ export function templateFromDb(template) {
   };
 }
 
-export async function listTemplates() {
-  const rows = await prisma.template.findMany({ orderBy: { updatedAt: 'desc' } });
+export async function listTemplates(accountId) {
+  const rows = await prisma.template.findMany({
+    where: { accountId },
+    orderBy: { updatedAt: 'desc' },
+  });
   return rows.map(templateFromDb);
 }
 
-export async function upsertTemplate(template) {
+export async function upsertTemplate(accountId, template) {
   return prisma.template.upsert({
     where: { id: template.id },
     create: {
@@ -31,6 +39,7 @@ export async function upsertTemplate(template) {
       text: template.text,
       logoUrl: template.logoUrl || '',
       data: template,
+      accountId,
     },
     update: {
       name: template.name,
@@ -39,10 +48,11 @@ export async function upsertTemplate(template) {
       text: template.text,
       logoUrl: template.logoUrl || '',
       data: template,
+      // accountId intentionally NOT updated.
     },
   });
 }
 
-export async function deleteTemplate(id) {
-  return prisma.template.deleteMany({ where: { id } });
+export async function deleteTemplate(accountId, id) {
+  return prisma.template.deleteMany({ where: { id, accountId } });
 }

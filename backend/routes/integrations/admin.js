@@ -10,6 +10,11 @@
 //
 // Mounted in server.js AFTER requireAuth so every endpoint here requires
 // a logged-in admin.
+//
+// Settings-table endpoints (webhook config, bounce-sync toggle, preference
+// categories) remain global on purpose — Setting is single-row keyed in
+// v1. Per-tenant overrides will move to Account.data in a follow-up.
+// Events / assets / unsubscribes ARE scoped by the caller's accountId.
 import path from 'node:path';
 import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import {
@@ -120,13 +125,13 @@ function registerEventsFeed(app) {
     };
     const since = parse(req.query.since);
     const until = parse(req.query.until);
-    res.json(await listEvents({ since, until }));
+    res.json(await listEvents({ accountId: req.user.accountId, since, until }));
   }));
 }
 
 function registerLogoAssets(app, { logoRoot, publicBaseUrl }) {
-  app.get('/api/assets/logos', asyncRoute(async (_req, res) => {
-    const rows = await listAssets('logo');
+  app.get('/api/assets/logos', asyncRoute(async (req, res) => {
+    const rows = await listAssets(req.user.accountId, 'logo');
     res.json(rows.map((row) => ({
       id: row.id,
       fileName: row.fileName,
@@ -161,7 +166,7 @@ function registerLogoAssets(app, { logoRoot, publicBaseUrl }) {
       await mkdir(logoRoot, { recursive: true });
       await writeFile(path.join(logoRoot, storedName), buffer);
 
-      const asset = await createAsset({
+      const asset = await createAsset(req.user.accountId, {
         fileName: storedName,
         url,
         contentType: detected,
@@ -186,7 +191,8 @@ function registerLogoAssets(app, { logoRoot, publicBaseUrl }) {
   );
 
   app.delete('/api/assets/:id', asyncRoute(async (req, res) => {
-    const asset = await getAsset(req.params.id);
+    const { accountId } = req.user;
+    const asset = await getAsset(accountId, req.params.id);
     if (!asset) {
       res.status(404).json({ error: 'Asset not found' });
       return;
@@ -197,7 +203,7 @@ function registerLogoAssets(app, { logoRoot, publicBaseUrl }) {
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
     }
-    await deleteAsset(req.params.id);
+    await deleteAsset(accountId, req.params.id);
     await recordAudit(req, 'asset.delete', 'asset', asset.id, {
       fileName: asset.fileName,
     });
@@ -206,8 +212,8 @@ function registerLogoAssets(app, { logoRoot, publicBaseUrl }) {
 }
 
 function registerUnsubscribeAdmin(app) {
-  app.get('/api/unsubscribes', asyncRoute(async (_req, res) => {
-    res.json(await listUnsubscribes());
+  app.get('/api/unsubscribes', asyncRoute(async (req, res) => {
+    res.json(await listUnsubscribes(req.user.accountId));
   }));
 
   // Admin re-subscribe: removes the address from the Unsubscribe table AND
@@ -215,7 +221,7 @@ function registerUnsubscribeAdmin(app) {
   // someone reaches out and asks to be re-included.
   app.delete('/api/unsubscribes/:email', asyncRoute(async (req, res) => {
     const email = decodeURIComponent(req.params.email);
-    const result = await restoreContactSubscription(email);
+    const result = await restoreContactSubscription(req.user.accountId, email);
     if (result.removedFromUnsubscribeList) {
       await recordAudit(req, 'unsubscribe.restore', 'unsubscribe', email, result);
     }

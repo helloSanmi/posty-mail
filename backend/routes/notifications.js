@@ -22,15 +22,20 @@ function isBotEvent(payload) {
 
 export function registerNotificationRoutes(app) {
   app.get('/api/notifications', asyncRoute(async (req, res) => {
+    const { accountId } = req.user;
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     const lastSeen = user?.notificationsLastSeenAt;
     const clearedAt = user?.notificationsClearedAt;
 
     // Filter at the DB level so cleared events don't even round-trip.
     // Take more than the visible limit so the bot-event filter below still
-    // leaves us with enough real items to show.
+    // leaves us with enough real items to show. Scope to the caller's
+    // account so a tenant can't see another tenant's activity feed.
     const events = await prisma.event.findMany({
-      where: clearedAt ? { receivedAt: { gt: clearedAt } } : undefined,
+      where: {
+        accountId,
+        ...(clearedAt ? { receivedAt: { gt: clearedAt } } : {}),
+      },
       orderBy: { receivedAt: 'desc' },
       take: NOTIFICATION_LIMIT * 2,
     });

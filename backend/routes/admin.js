@@ -4,6 +4,15 @@ import { prisma } from '../lib/db.js';
 import { validate, z } from '../lib/validate.js';
 import { asyncRoute } from '../utils/store.js';
 
+// Multi-tenant scope: admin here means "admin of MY workspace" — every
+// query filters by req.user.accountId so workspace A's admin can't see
+// workspace B's users or audit log. The super-admin / cross-account view
+// (manage every workspace on the install) is a separate layer that
+// doesn't exist yet.
+// TODO(super-admin): expose a parallel set of `/api/super-admin/*` routes
+// that operate across all accounts. For now this file is the
+// single-workspace admin surface.
+
 const ROLES = ['admin', 'editor', 'viewer'];
 
 const createUserSchema = z.object({
@@ -25,8 +34,11 @@ const resetPasswordSchema = z.object({
 export function registerAdminRoutes(app) {
   const adminOnly = requireRole('admin');
 
-  app.get('/api/admin/users', adminOnly, asyncRoute(async (_req, res) => {
-    const users = await prisma.user.findMany({ orderBy: { createdAt: 'asc' } });
+  app.get('/api/admin/users', adminOnly, asyncRoute(async (req, res) => {
+    const users = await prisma.user.findMany({
+      where: { accountId: req.user.accountId },
+      orderBy: { createdAt: 'asc' },
+    });
     res.json(users.map(publicUser));
   }));
 
@@ -35,6 +47,8 @@ export function registerAdminRoutes(app) {
     adminOnly,
     validate(createUserSchema),
     asyncRoute(async (req, res) => {
+      // User.email is a global unique — even in v1 this can't carry the
+      // same email in two accounts. Surface that as a clean 409.
       const existing = await prisma.user.findUnique({ where: { email: req.body.email } });
       if (existing) {
         res.status(409).json({ error: 'A user with that email already exists' });
@@ -65,15 +79,24 @@ export function registerAdminRoutes(app) {
     adminOnly,
     validate(updateUserSchema),
     asyncRoute(async (req, res) => {
-      const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+      const { accountId } = req.user;
+      // findFirst with accountId so a workspace admin can't edit a user
+      // in another workspace by knowing their id.
+      const target = await prisma.user.findFirst({
+        where: { id: req.params.id, accountId },
+      });
       if (!target) {
         res.status(404).json({ error: 'User not found' });
         return;
       }
 
       // Prevent admins from demoting themselves to a non-admin if they're the last admin.
+      // Admin-count check is scoped to this workspace — every account needs
+      // at least one admin, but admins in OTHER accounts don't count.
       if (req.body.role && req.body.role !== 'admin' && target.id === req.user.id) {
-        const adminCount = await prisma.user.count({ where: { role: 'admin' } });
+        const adminCount = await prisma.user.count({
+          where: { role: 'admin', accountId },
+        });
         if (adminCount <= 1) {
           res.status(400).json({ error: 'You cannot remove the last admin role' });
           return;
@@ -97,7 +120,10 @@ export function registerAdminRoutes(app) {
     adminOnly,
     validate(resetPasswordSchema),
     asyncRoute(async (req, res) => {
-      const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+      const { accountId } = req.user;
+      const target = await prisma.user.findFirst({
+        where: { id: req.params.id, accountId },
+      });
       if (!target) {
         res.status(404).json({ error: 'User not found' });
         return;
@@ -113,7 +139,10 @@ export function registerAdminRoutes(app) {
   );
 
   app.delete('/api/admin/users/:id', adminOnly, asyncRoute(async (req, res) => {
-    const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+    const { accountId } = req.user;
+    const target = await prisma.user.findFirst({
+      where: { id: req.params.id, accountId },
+    });
     if (!target) {
       res.status(404).json({ error: 'User not found' });
       return;
@@ -125,7 +154,9 @@ export function registerAdminRoutes(app) {
     }
 
     if (target.role === 'admin') {
-      const adminCount = await prisma.user.count({ where: { role: 'admin' } });
+      const adminCount = await prisma.user.count({
+        where: { role: 'admin', accountId },
+      });
       if (adminCount <= 1) {
         res.status(400).json({ error: 'You cannot delete the last admin' });
         return;
@@ -139,6 +170,7 @@ export function registerAdminRoutes(app) {
 
   app.get('/api/admin/audit', adminOnly, asyncRoute(async (req, res) => {
     const logs = await listAuditLogs({
+      accountId: req.user.accountId,
       limit: req.query.limit,
       resource: req.query.resource,
       resourceId: req.query.resourceId,
