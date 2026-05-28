@@ -24,6 +24,10 @@ export function campaignFromDb(campaign) {
     id: campaign.id,
     name: campaign.name,
     status: campaign.status,
+    // Pull accountId straight off the column so even legacy campaigns
+    // (persisted before createCampaignPayload started stamping it into
+    // data JSON) still surface a tenant scope on read.
+    accountId: campaign.accountId,
     createdAt: campaign.createdAt?.toISOString?.() || campaign.createdAt,
     updatedAt: campaign.updatedAt?.toISOString?.() || campaign.updatedAt,
   };

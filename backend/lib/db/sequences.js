@@ -17,6 +17,9 @@ export function sequenceFromDb(row) {
     triggerType: row.triggerType,
     triggerGroupId: row.triggerGroupId,
     steps: Array.isArray(row.steps) ? row.steps : [],
+    // Expose accountId so the background runner can read the
+    // workspace off a loaded sequence without a separate lookup.
+    accountId: row.accountId,
     createdAt: row.createdAt?.toISOString?.() || row.createdAt,
     updatedAt: row.updatedAt?.toISOString?.() || row.updatedAt,
   };
@@ -83,8 +86,14 @@ export async function enrollInSequence(sequenceId, email) {
 }
 
 export async function listDueEnrollments(now = new Date()) {
+  // No accountId filter on purpose: the runner is cross-tenant — it
+  // ticks for every workspace on the install. We `include` the parent
+  // sequence so the runner can read enrollment.sequence.accountId
+  // without an extra round-trip and pass it down to per-tenant helpers
+  // (template lookup, contact lookup, unsubscribe set, recordEvent).
   return prisma.sequenceEnrollment.findMany({
     where: { status: 'active', nextRunAt: { lte: now } },
+    include: { sequence: true },
     take: 100, // batch cap per runner tick
   });
 }

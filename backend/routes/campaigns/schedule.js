@@ -40,10 +40,10 @@ export function registerScheduleRoutes(app) {
       // and run takes effect. If nothing is configured we 400 with a
       // clear message instead of letting a placeholder through.
       safeBody.sender = await requireSender();
-      const campaign = createCampaignPayload(safeBody);
+      const campaign = createCampaignPayload(accountId, safeBody);
       await upsertCampaign(accountId, campaign);
-      // TODO(multi-tenant): bind accountId into the upsertCampaign
-      // callback so cron-driven status updates stay tenant-scoped.
+      // The closure here binds accountId so every cron-driven update
+      // from runCampaign stays scoped to this workspace.
       scheduleCampaignJob(campaign, (next) => upsertCampaign(accountId, next));
       await recordAudit(req, 'campaign.schedule', 'campaign', campaign.id, {
         name: campaign.name,

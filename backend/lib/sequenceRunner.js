@@ -1,7 +1,3 @@
-// TODO(multi-tenant): scope by accountId — the runner needs to resolve
-// each enrollment's account via Sequence.accountId and pass it to every
-// DB helper it calls (recordEvent, etc.). Handled in a separate pass.
-//
 // Drip-sequence runner. Cron tick scans for enrollments whose nextRunAt has
 // elapsed, sends the next step, and advances the cursor.
 //
@@ -10,6 +6,13 @@
 // step then schedules the next one for delayDays from now. This keeps step
 // timings honest: "3 days after step 1, send step 2" stays 3 days even if
 // step 1 itself gets delayed by an outage.
+//
+// Multi-tenant scope: listDueEnrollments returns enrollments with their
+// parent Sequence included, so each enrollment carries the workspace's
+// accountId. Every per-tenant helper (template / contact / unsubscribed
+// set) gets that accountId threaded through; the unsubscribed set is
+// memoized per-account inside one tick so 50 enrollments in the same
+// workspace don't do 50 round-trips.
 //
 // Public API:
 //   - registerSequenceRunner(): wires a 5-minute cron. Called once at server start.
@@ -22,7 +25,6 @@ import { sendTransactionalEmail } from './brevoClient.js';
 import { resolveSender } from './sender.js';
 import {
   advanceEnrollment,
-  getSequence,
   listDueEnrollments,
   prisma,
   unsubscribedEmailSet,
@@ -35,9 +37,13 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 let sendOverride = null;
 export function _setSendOverride(fn) { sendOverride = fn; }
 
-async function loadTemplate(templateId) {
+async function loadTemplate(accountId, templateId) {
   if (!templateId) return null;
-  const row = await prisma.template.findUnique({ where: { id: templateId } });
+  // findFirst (not findUnique) so we can AND in accountId — a template
+  // id from one workspace cannot be loaded by a sequence in another.
+  const row = await prisma.template.findFirst({
+    where: { id: templateId, accountId },
+  });
   if (!row) return null;
   return {
     id: row.id,
@@ -51,7 +57,11 @@ async function loadTemplate(templateId) {
 }
 
 async function processEnrollment(enrollment, ctx) {
-  const seq = await getSequence(enrollment.sequenceId);
+  // listDueEnrollments includes the parent sequence, so accountId is
+  // already on the enrollment object. Sequence status changes (paused
+  // / deleted) are checked off this same in-memory copy.
+  const seq = enrollment.sequence;
+  const accountId = seq?.accountId;
   if (!seq || seq.status !== 'active') {
     // Sequence was paused / deleted underneath us. Park the enrollment.
     await advanceEnrollment(enrollment.id, {
@@ -75,10 +85,13 @@ async function processEnrollment(enrollment, ctx) {
     return;
   }
 
-  // Hard-suppression check at fire time. The Unsubscribe table is the source
-  // of truth — if the contact unsubscribed since enrolling, we stop here and
-  // mark the enrollment so reports show why.
-  if (ctx.unsubscribed.has(enrollment.email)) {
+  // Hard-suppression check at fire time. The Unsubscribe table is the
+  // source of truth — if the contact unsubscribed since enrolling, we
+  // stop here and mark the enrollment so reports show why. The set is
+  // looked up lazily per-account (cached in ctx.unsubscribedByAccount)
+  // so 50 enrollments in the same workspace don't run 50 queries.
+  const unsubscribed = await ctx.unsubscribedFor(accountId);
+  if (unsubscribed.has(enrollment.email)) {
     await advanceEnrollment(enrollment.id, {
       nextStepIndex: stepIdx,
       nextRunAt: null,
@@ -87,7 +100,7 @@ async function processEnrollment(enrollment, ctx) {
     return;
   }
 
-  const template = await loadTemplate(step.templateId);
+  const template = await loadTemplate(accountId, step.templateId);
   if (!template) {
     await advanceEnrollment(enrollment.id, {
       nextStepIndex: stepIdx,
@@ -98,7 +111,12 @@ async function processEnrollment(enrollment, ctx) {
     return;
   }
 
-  const contactRow = await prisma.contact.findUnique({ where: { email: enrollment.email } });
+  // Look up the contact via findFirst + accountId so even if Contact's
+  // global email PK is eventually relaxed to per-account, this loader
+  // keeps doing the right thing.
+  const contactRow = await prisma.contact.findFirst({
+    where: { email: enrollment.email, accountId },
+  });
   // contact might have been deleted since enrollment. Treat as completed
   // rather than retrying forever; no recipient to send to.
   if (!contactRow) {
@@ -194,8 +212,17 @@ export async function runDueSequences() {
     return { processed: 0, paused: due.length };
   }
 
-  const unsubscribed = await unsubscribedEmailSet();
-  const ctx = { sender, unsubscribed };
+  // Memoize the unsubscribed set per account inside one tick. Multiple
+  // enrollments from the same workspace share one round-trip.
+  const unsubscribedByAccount = new Map();
+  async function unsubscribedFor(accountId) {
+    if (!accountId) return new Set();
+    if (unsubscribedByAccount.has(accountId)) return unsubscribedByAccount.get(accountId);
+    const set = await unsubscribedEmailSet(accountId);
+    unsubscribedByAccount.set(accountId, set);
+    return set;
+  }
+  const ctx = { sender, unsubscribedFor };
 
   let processed = 0;
   for (const enrollment of due) {

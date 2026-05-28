@@ -1,13 +1,13 @@
-// TODO(multi-tenant): scope by accountId — every DB helper called from
-// this file (markSendAttempt, markSendSkipped, upsertCampaign,
-// unsubscribedEmailSet, etc.) now expects an accountId. The send loop
-// has campaign.accountId available; thread it through in a follow-up.
-//
 // The per-send execution loop. Iterates batches, enforces unsubscribes /
 // timezone gates / category preferences / compliance issues, picks a
 // deterministic A/B variant per recipient, and writes a CampaignSend ledger
 // row for every contact. Helpers (variant picking, category prefs, retry)
 // are kept private to this file because nothing else needs them.
+//
+// Multi-tenant scope: the campaign object carries its own accountId
+// (created from req.user.accountId by /api/campaigns/schedule). Every
+// helper call below threads it through so unsubscribes / category prefs /
+// CampaignSend rows / persisted campaign state stay isolated per workspace.
 import {
   complianceIssues,
   renderTemplate,
@@ -37,10 +37,14 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // run. Returns a Map<email, Set<categoryId>>. Contacts without an entry mean
 // "preferences never set" — backward compat with legacy contacts means we
 // treat that as "subscribed to all categories" so they keep receiving.
-async function loadCategoryPreferences(emails) {
+async function loadCategoryPreferences(accountId, emails) {
   if (!emails.length) return new Map();
+  // Scope by accountId so a campaign in workspace A can't read prefs
+  // off a same-email contact in workspace B (only relevant after the
+  // composite-PK migration; today's globally-unique email PK makes the
+  // collision impossible, but the filter is safe defense-in-depth).
   const rows = await prisma.contact.findMany({
-    where: { email: { in: emails } },
+    where: { email: { in: emails }, accountId },
     select: { email: true, data: true },
   });
   const map = new Map();
@@ -133,7 +137,13 @@ export async function runCampaign(campaign, onUpdate) {
     return;
   }
 
-  const unsubscribed = await unsubscribedEmailSet();
+  // Pull accountId once at the top — every per-tenant helper below
+  // reads from it. Falls back to 'default' for legacy campaigns
+  // scheduled before multi-tenancy landed (their persisted payload
+  // doesn't carry accountId).
+  const accountId = campaign.accountId || 'default';
+
+  const unsubscribed = await unsubscribedEmailSet(accountId);
   const hasVariants = Array.isArray(campaign.variants) && campaign.variants.length > 0;
   // Per-template category gating. If the campaign's template carries a
   // category id, recipients whose preference list excludes that category get
@@ -141,7 +151,7 @@ export async function runCampaign(campaign, onUpdate) {
   // subscribed-to-all (legacy behavior).
   const templateCategory = String(campaign.template?.category || '').trim() || null;
   const categoryPrefs = templateCategory
-    ? await loadCategoryPreferences(campaign.contacts.map((c) => c.email))
+    ? await loadCategoryPreferences(accountId, campaign.contacts.map((c) => c.email))
     : null;
 
   // Send-time-per-timezone. When set, the campaign's scheduledAt is treated
@@ -168,7 +178,7 @@ export async function runCampaign(campaign, onUpdate) {
 
       if (unsubscribed.has(contact.email)) {
         campaign.progress.skipped += 1;
-        await markSendSkipped(campaign.id, contact.email, 'Recipient previously unsubscribed');
+        await markSendSkipped(accountId, campaign.id, contact.email, 'Recipient previously unsubscribed');
         campaign.logs.push({
           level: 'warn',
           email: contact.email,
@@ -198,7 +208,7 @@ export async function runCampaign(campaign, onUpdate) {
         if (prefs && !prefs.has(templateCategory)) {
           campaign.progress.skipped += 1;
           const reason = `Skipped: opted out of "${templateCategory}"`;
-          await markSendSkipped(campaign.id, contact.email, reason);
+          await markSendSkipped(accountId, campaign.id, contact.email, reason);
           campaign.logs.push({
             level: 'warn', email: contact.email, message: reason, at: new Date().toISOString(),
           });
@@ -209,7 +219,7 @@ export async function runCampaign(campaign, onUpdate) {
       const issues = complianceIssues(contact, campaign.compliance);
       if (issues.length) {
         campaign.progress.skipped += 1;
-        await markSendSkipped(campaign.id, contact.email, issues.join(', '));
+        await markSendSkipped(accountId, campaign.id, contact.email, issues.join(', '));
         campaign.logs.push({
           level: 'warn',
           email: contact.email,
@@ -234,7 +244,7 @@ export async function runCampaign(campaign, onUpdate) {
       const enriched = { ...contact, unsubscribeUrl, logoUrl: template.logoUrl || '' };
 
       try {
-        await markSendAttempt(campaign.id, contact.email);
+        await markSendAttempt(accountId, campaign.id, contact.email);
         // Inject the preview text (preheader) as a hidden block at the
         // start of the rendered HTML. Inbox previews (Gmail/Outlook/Apple)
         // read it; the message body looks unchanged. Personalization tags
