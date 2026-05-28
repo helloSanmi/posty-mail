@@ -499,7 +499,6 @@ export function ContactsTable({
           placeholder="Search name or email"
           value={filter.search}
           onChange={(event) => updateFilter({ search: event.target.value })}
-          disabled={Boolean(viewingGroupId)}
         />
         <input
           placeholder="Region"
