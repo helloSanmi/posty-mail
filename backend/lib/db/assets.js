@@ -16,6 +16,13 @@ export async function listAssets(accountId, kind) {
 }
 
 export async function createAsset(accountId, asset) {
+  if (!accountId) {
+    // Fail loudly instead of letting Prisma raise a generic "account is
+    // missing" error that's hard to trace back to its caller. The only
+    // way this happens is a route forgetting to thread req.user.accountId,
+    // or a stale Node process running pre-multi-tenancy code.
+    throw new Error('createAsset called without accountId. The caller must pass req.user.accountId.');
+  }
   return prisma.asset.create({ data: { ...asset, accountId } });
 }
 
