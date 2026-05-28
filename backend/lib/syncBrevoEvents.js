@@ -1,9 +1,3 @@
-// TODO(multi-tenant): scope by accountId — the sync resolves event
-// attribution from campaign:<id> tags but doesn't yet pass an accountId
-// to recordEvent. Mirror the webhook receiver's lookup (resolve
-// Campaign.accountId from the tag, fall back to 'default'). Handled
-// in a separate pass.
-//
 // Catch-up sync for Brevo transactional events.
 //
 // Webhooks are fire-and-forget HTTP POSTs. If the backend is down when Brevo
@@ -14,10 +8,33 @@
 //
 // Brevo retains transactional events for ~30 days. Anything older than that
 // when we boot is permanently lost on Brevo's side too. No recovery possible.
+//
+// Multi-tenant scope: each event carries a campaign:<id> tag (set by the
+// scheduler when sending). We look up Campaign.accountId from that id and
+// pass it to recordEvent so the row gets stamped with the right workspace.
+// Events without a campaign tag (rare provider noise) fall back to 'default'.
 
 import { fetchTransactionalEvents } from './brevoClient.js';
-import { getLatestEventDate, recordEvent } from './db.js';
+import { getLatestEventDate, prisma, recordEvent } from './db.js';
 import { isPostyEvent } from './eventScope.js';
+
+// Resolve the workspace for a single Brevo event by reading its
+// campaign:<id> tag and looking up Campaign.accountId. Cached per
+// campaignId across one sync run so a campaign with 5000 events
+// doesn't hit the DB 5000 times.
+function resolveAccountId(payload, cache) {
+  const tags = Array.isArray(payload?.tags) ? payload.tags : [];
+  const tag = tags.find((t) => typeof t === 'string' && t.startsWith('campaign:'));
+  if (!tag) return Promise.resolve('default');
+  const campaignId = tag.slice('campaign:'.length);
+  if (cache.has(campaignId)) return Promise.resolve(cache.get(campaignId));
+  const promise = prisma.campaign
+    .findUnique({ where: { id: campaignId }, select: { accountId: true } })
+    .then((row) => row?.accountId || 'default')
+    .catch(() => 'default');
+  cache.set(campaignId, promise);
+  return promise;
+}
 
 // Reach back this far before the latest stored event to catch any events we
 // might have missed in a small overlap window (clock skew, late-arriving
@@ -54,6 +71,9 @@ export async function syncBrevoEvents({ logger = console } = {}) {
   let inserted = 0;
   let skipped = 0;
   let foreign = 0;
+  // Per-campaign accountId lookups are deduped across the run so a
+  // batch of 5000 events from the same campaign hits the DB once.
+  const accountIdCache = new Map();
   for (const apiEvent of events) {
     const payload = normaliseApiEvent(apiEvent);
     if (!payload) { skipped += 1; continue; }
@@ -61,7 +81,8 @@ export async function syncBrevoEvents({ logger = console } = {}) {
     // account's history including other systems on the same key.
     if (!isPostyEvent(payload)) { foreign += 1; continue; }
     try {
-      await recordEvent({
+      const accountId = await resolveAccountId(payload, accountIdCache);
+      await recordEvent(accountId, {
         provider: 'brevo',
         payload,
         receivedAt: payload.date ? new Date(payload.date) : undefined,

@@ -1,15 +1,16 @@
-// TODO(multi-tenant): scope by accountId — the campaign object built here
-// is persisted by the schedule route via upsertCampaign(accountId, ...).
-// This file itself is side-effect-free so the tenant scope rides on the
-// caller; the scheduler-side TODO covers the runtime path.
-//
 // Normalizes the POST /api/campaigns/schedule body into the in-memory
 // campaign object the scheduler operates on (batches, snapshot sender,
 // unsubscribe URL, A/B variants with defaults, etc.). Kept side-effect-free
 // — the actual scheduling happens in schedule-job.js.
+//
+// Multi-tenant scope: accountId is stamped onto the campaign object here
+// so it (a) gets persisted under Campaign.data when upsertCampaign runs,
+// (b) survives restart and is available to runCampaign when the scheduler
+// re-arms on boot, and (c) flows to every per-tenant helper called from
+// the send loop (markSendAttempt, unsubscribedEmailSet, etc.).
 import { chunkContacts } from '../../../shared/campaignUtils.js';
 
-export function createCampaignPayload(body) {
+export function createCampaignPayload(accountId, body) {
   const batchSize = Math.min(Math.max(Number(body.batchSize) || 300, 1), 1000);
   const delayMinutes = Math.min(Math.max(Number(body.delayMinutes) || 1, 0), 60);
   const contacts = Array.isArray(body.contacts) ? body.contacts : [];
@@ -26,6 +27,9 @@ export function createCampaignPayload(body) {
 
   return {
     id: crypto.randomUUID(),
+    // Stamped here so the in-memory payload (and the persisted
+    // Campaign.data JSON copy) carries its workspace forever.
+    accountId,
     name: body.name || 'Untitled campaign',
     createdAt: new Date().toISOString(),
     scheduledAt: body.scheduledAt || new Date().toISOString(),

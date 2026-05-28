@@ -36,6 +36,15 @@ export function registerCampaignRoutes(app) {
 }
 
 export async function restoreCampaignJobs() {
+  // Boot-time re-arm of cron jobs for every campaign that was still
+  // scheduled or running when the server last shut down. The campaign
+  // payload carries its own accountId (stamped at creation time in
+  // createCampaignPayload), so we bind it into a per-campaign closure
+  // here — runCampaign's onUpdate callback then writes status / progress
+  // back to the SAME workspace it came from.
   const campaigns = await listScheduledOrRunningCampaigns();
-  campaigns.forEach((campaign) => scheduleCampaignJob(campaign, upsertCampaign));
+  campaigns.forEach((campaign) => {
+    const accountId = campaign.accountId || 'default';
+    scheduleCampaignJob(campaign, (next) => upsertCampaign(accountId, next));
+  });
 }
