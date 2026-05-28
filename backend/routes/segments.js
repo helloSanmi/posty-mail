@@ -49,10 +49,10 @@ const segmentSchema = z.object({
 // Resolve any `inAnyGroup` group-id list to the email set those groups
 // contain. The translator can then splice it in via the existing
 // `_inAnyGroupEmails` channel. Empty list means "no constraint."
-async function resolveGroupEmails(filter) {
+async function resolveGroupEmails(accountId, filter) {
   if (!Array.isArray(filter.inAnyGroup) || !filter.inAnyGroup.length) return null;
   const rows = await prisma.audience.findMany({
-    where: { id: { in: filter.inAnyGroup } },
+    where: { id: { in: filter.inAnyGroup }, accountId },
     select: { contactEmails: true },
   });
   const set = new Set();
@@ -62,19 +62,19 @@ async function resolveGroupEmails(filter) {
   return Array.from(set);
 }
 
-async function buildResolvedFilter(filter) {
+async function buildResolvedFilter(accountId, filter) {
   const resolved = { ...(filter || {}) };
   if (resolved.excludeUnsubscribed) {
-    resolved._unsubscribedEmails = Array.from(await unsubscribedEmailSet());
+    resolved._unsubscribedEmails = Array.from(await unsubscribedEmailSet(accountId));
   }
-  const groupEmails = await resolveGroupEmails(resolved);
+  const groupEmails = await resolveGroupEmails(accountId, resolved);
   if (groupEmails) resolved._inAnyGroupEmails = groupEmails;
   return resolved;
 }
 
 export function registerSegmentRoutes(app) {
-  app.get('/api/segments', asyncRoute(async (_req, res) => {
-    res.json(await listSegments());
+  app.get('/api/segments', asyncRoute(async (req, res) => {
+    res.json(await listSegments(req.user.accountId));
   }));
 
   app.post(
@@ -86,7 +86,7 @@ export function registerSegmentRoutes(app) {
         name: req.body.name,
         filter: req.body.filter || {},
       };
-      const saved = await upsertSegment(segment);
+      const saved = await upsertSegment(req.user.accountId, segment);
       await recordAudit(req, 'segment.save', 'segment', saved.id, { name: saved.name });
       res.status(201).json({
         id: saved.id,
@@ -98,19 +98,24 @@ export function registerSegmentRoutes(app) {
   );
 
   app.delete('/api/segments/:id', asyncRoute(async (req, res) => {
-    const result = await deleteSegment(req.params.id);
+    const result = await deleteSegment(req.user.accountId, req.params.id);
     if (result.count) await recordAudit(req, 'segment.delete', 'segment', req.params.id);
     res.json({ deleted: result.count, id: req.params.id });
   }));
 
   app.get('/api/segments/:id/preview', asyncRoute(async (req, res) => {
-    const segment = await prisma.segment.findUnique({ where: { id: req.params.id } });
+    const { accountId } = req.user;
+    const segment = await prisma.segment.findFirst({
+      where: { id: req.params.id, accountId },
+    });
     if (!segment) {
       res.status(404).json({ error: 'Segment not found' });
       return;
     }
-    const resolved = await buildResolvedFilter(segment.filter);
-    const where = buildContactWhere(resolved);
+    const resolved = await buildResolvedFilter(accountId, segment.filter);
+    // AND the tenant scope onto the filter's where so a forged filter
+    // can't widen the search past the caller's account.
+    const where = { AND: [{ accountId }, buildContactWhere(resolved)] };
     const [count, sample] = await prisma.$transaction([
       prisma.contact.count({ where }),
       prisma.contact.findMany({ where, take: 25, orderBy: { savedAt: 'desc' } }),
@@ -125,8 +130,9 @@ export function registerSegmentRoutes(app) {
     '/api/segments/preview',
     validate(z.object({ filter: filterSchema })),
     asyncRoute(async (req, res) => {
-      const resolved = await buildResolvedFilter(req.body.filter || {});
-      const where = buildContactWhere(resolved);
+      const { accountId } = req.user;
+      const resolved = await buildResolvedFilter(accountId, req.body.filter || {});
+      const where = { AND: [{ accountId }, buildContactWhere(resolved)] };
       const [count, sample] = await prisma.$transaction([
         prisma.contact.count({ where }),
         prisma.contact.findMany({ where, take: 25, orderBy: { savedAt: 'desc' } }),
@@ -136,13 +142,16 @@ export function registerSegmentRoutes(app) {
   );
 
   app.get('/api/segments/:id/contacts', asyncRoute(async (req, res) => {
-    const segment = await prisma.segment.findUnique({ where: { id: req.params.id } });
+    const { accountId } = req.user;
+    const segment = await prisma.segment.findFirst({
+      where: { id: req.params.id, accountId },
+    });
     if (!segment) {
       res.status(404).json({ error: 'Segment not found' });
       return;
     }
-    const resolved = await buildResolvedFilter(segment.filter);
-    const where = buildContactWhere(resolved);
+    const resolved = await buildResolvedFilter(accountId, segment.filter);
+    const where = { AND: [{ accountId }, buildContactWhere(resolved)] };
     const rows = await prisma.contact.findMany({ where, orderBy: { savedAt: 'desc' } });
     res.json(rows.map(contactFromDb));
   }));

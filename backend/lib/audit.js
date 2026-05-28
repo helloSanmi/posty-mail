@@ -11,6 +11,11 @@ export async function recordAudit(req, action, resource, resourceId = null, meta
         resourceId: resourceId ? String(resourceId) : null,
         metadata: metadata || null,
         ip: getClientIp(req),
+        // Tag the row with the actor's account so the per-tenant audit
+        // view can filter to "things that happened in MY workspace."
+        // Super-admin actions on the Account model itself have no parent
+        // account — those leave accountId null (allowed by the schema).
+        accountId: req.user?.accountId || null,
       },
     });
   } catch (error) {
@@ -25,9 +30,12 @@ function getClientIp(req) {
   return req.ip || null;
 }
 
-export async function listAuditLogs({ limit = 100, resource, resourceId, userId } = {}) {
+export async function listAuditLogs({
+  accountId, limit = 100, resource, resourceId, userId,
+} = {}) {
   return prisma.auditLog.findMany({
     where: {
+      ...(accountId ? { accountId } : {}),
       ...(resource ? { resource } : {}),
       ...(resourceId ? { resourceId: String(resourceId) } : {}),
       ...(userId ? { userId } : {}),

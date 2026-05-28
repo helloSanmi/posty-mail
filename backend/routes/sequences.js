@@ -50,12 +50,12 @@ export function registerSequenceRoutes(app) {
   // Gate every sequence route on the client being migration-current.
   app.use('/api/sequences', requireSequenceClient);
 
-  app.get('/api/sequences', asyncRoute(async (_req, res) => {
-    res.json(await listSequences());
+  app.get('/api/sequences', asyncRoute(async (req, res) => {
+    res.json(await listSequences(req.user.accountId));
   }));
 
   app.get('/api/sequences/:id', asyncRoute(async (req, res) => {
-    const seq = await getSequence(req.params.id);
+    const seq = await getSequence(req.user.accountId, req.params.id);
     if (!seq) {
       res.status(404).json({ error: 'Sequence not found' });
       return;
@@ -75,7 +75,7 @@ export function registerSequenceRoutes(app) {
         triggerGroupId: req.body.triggerGroupId || null,
         steps: req.body.steps,
       };
-      const saved = await upsertSequence(seq);
+      const saved = await upsertSequence(req.user.accountId, seq);
       await recordAudit(req, 'sequence.save', 'sequence', saved.id, {
         name: saved.name,
         steps: saved.steps.length,
@@ -85,7 +85,7 @@ export function registerSequenceRoutes(app) {
   );
 
   app.delete('/api/sequences/:id', asyncRoute(async (req, res) => {
-    const result = await deleteSequence(req.params.id);
+    const result = await deleteSequence(req.user.accountId, req.params.id);
     if (result.count) await recordAudit(req, 'sequence.delete', 'sequence', req.params.id);
     res.json({ deleted: result.count });
   }));
@@ -96,6 +96,14 @@ export function registerSequenceRoutes(app) {
     '/api/sequences/:id/enroll',
     validate(enrollSchema),
     asyncRoute(async (req, res) => {
+      // Confirm the sequence belongs to this account before enrolling.
+      // enrollInSequence itself reads Sequence by id without filtering,
+      // so the ownership gate has to ride on this route.
+      const owned = await getSequence(req.user.accountId, req.params.id);
+      if (!owned) {
+        res.status(404).json({ error: 'Sequence not found' });
+        return;
+      }
       let enrolled = 0;
       for (const email of req.body.emails) {
         const created = await enrollInSequence(req.params.id, email.trim().toLowerCase());
@@ -107,7 +115,11 @@ export function registerSequenceRoutes(app) {
   );
 
   app.get('/api/sequences/:id/enrollments', asyncRoute(async (req, res) => {
-    const rows = await listEnrollmentsForSequence(req.params.id);
+    const rows = await listEnrollmentsForSequence(req.user.accountId, req.params.id);
+    if (rows === null) {
+      res.status(404).json({ error: 'Sequence not found' });
+      return;
+    }
     res.json(rows.map((row) => ({
       id: row.id,
       email: row.email,

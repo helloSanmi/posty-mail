@@ -4,6 +4,12 @@
 // `recordEvent` is idempotent via an externalId derived from the payload —
 // either Brevo's uuid (preferred) or a composite of messageId + event +
 // timestamp. Catch-up syncs re-fire the same events; the upsert dedupes.
+//
+// Multi-tenant scope: Event carries an accountId resolved by the webhook
+// receiver from the campaign:<id> tag in the payload (Campaign.accountId).
+// Reads are scoped by accountId on every endpoint. Writes accept an
+// explicit accountId from the caller — the webhook does the lookup once
+// and passes it down.
 import { prisma } from './prisma.js';
 
 export function eventFromDb(event) {
@@ -20,28 +26,32 @@ export function eventFromDb(event) {
 // of accumulated webhook traffic. When `since` / `until` are provided we
 // raise the cap to 5000 so a date-filtered query (e.g. "last 7 days") can
 // return everything in that window even on a high-volume install.
-export async function listEvents({ since, until } = {}) {
-  const where = {};
+export async function listEvents({ accountId, since, until } = {}) {
+  const where = { accountId };
   if (since instanceof Date && !Number.isNaN(since.getTime())) {
     where.receivedAt = { ...(where.receivedAt || {}), gte: since };
   }
   if (until instanceof Date && !Number.isNaN(until.getTime())) {
     where.receivedAt = { ...(where.receivedAt || {}), lte: until };
   }
-  const hasFilter = Object.keys(where).length > 0;
+  const hasDateFilter = Boolean(where.receivedAt);
   const rows = await prisma.event.findMany({
     where,
     orderBy: { receivedAt: 'desc' },
-    take: hasFilter ? 5000 : 500,
+    take: hasDateFilter ? 5000 : 500,
   });
   return rows.map(eventFromDb);
 }
 
-export async function listEventsForCampaign(campaignId, limit = 1000) {
+export async function listEventsForCampaign(accountId, campaignId, limit = 1000) {
   // Match by tag in JSON payload. The send loop tags each outbound email
   // with `campaign:<id>` so the webhook can attribute events later.
+  // accountId in the WHERE belt-and-suspenders the campaign lookup —
+  // even if a campaign:<id> tag were forged from another tenant's send,
+  // events for it wouldn't have THIS account's accountId.
   const rows = await prisma.event.findMany({
     where: {
+      accountId,
       payload: {
         path: ['tags'],
         array_contains: `campaign:${campaignId}`,
@@ -53,7 +63,7 @@ export async function listEventsForCampaign(campaignId, limit = 1000) {
   return rows.map(eventFromDb);
 }
 
-export async function recordEvent(event) {
+export async function recordEvent(accountId, event) {
   // Pull the provider's per-event uuid into a dedicated indexed column so
   // catch-up sync can dedupe atomically with an upsert. Falls back to a
   // synthetic id derived from the payload so we still have a stable
@@ -69,6 +79,7 @@ export async function recordEvent(event) {
         // Honor an explicit timestamp on the payload (sync uses event.date),
         // otherwise default to now via Prisma.
         ...(event.receivedAt ? { receivedAt: event.receivedAt } : {}),
+        accountId,
       },
       // No-op update. We just need the upsert to dedupe; the existing
       // row's payload is already canonical.
@@ -80,6 +91,7 @@ export async function recordEvent(event) {
       provider: event.provider || 'unknown',
       payload: event.payload || {},
       ...(event.receivedAt ? { receivedAt: event.receivedAt } : {}),
+      accountId,
     },
   });
 }
@@ -105,6 +117,9 @@ export async function getLatestEventDate() {
 }
 
 export async function pruneEventsToLatest(limit = 500) {
+  // Global prune — keeps the most recent N events across the whole install.
+  // Not per-account on purpose: this is a disk-usage safety net, not a
+  // user-visible cap. The per-tenant query above filters at read time.
   const cutoff = await prisma.event.findMany({
     orderBy: { receivedAt: 'desc' },
     skip: limit,

@@ -66,28 +66,33 @@ const filterSchema = z.object({
 
 export function registerContactRoutes(app) {
   app.get('/api/contacts', asyncRoute(async (req, res) => {
+    const { accountId } = req.user;
     const filter = filterSchema.parse(req.query);
     if (filter.excludeUnsubscribed) {
-      filter._unsubscribedEmails = Array.from(await unsubscribedEmailSet());
+      filter._unsubscribedEmails = Array.from(await unsubscribedEmailSet(accountId));
     }
     const page = Number(req.query.page) || 1;
     const pageSize = Number(req.query.pageSize) || 50;
 
     if (req.query.page || req.query.pageSize || filter.search || filter.region || filter.consent) {
-      const result = await queryContacts({ filter, page, pageSize });
+      const result = await queryContacts({
+        accountId, filter, page, pageSize,
+      });
       res.json(result);
       return;
     }
 
-    res.json(await listContacts());
+    res.json(await listContacts(accountId));
   }));
 
   app.get('/api/contacts/export', asyncRoute(async (req, res) => {
+    const { accountId } = req.user;
     const filter = filterSchema.parse(req.query);
     if (filter.excludeUnsubscribed) {
-      filter._unsubscribedEmails = Array.from(await unsubscribedEmailSet());
+      filter._unsubscribedEmails = Array.from(await unsubscribedEmailSet(accountId));
     }
-    const where = buildContactWhere(filter);
+    // AND the tenant scope onto whatever where clause the filter built.
+    const where = { AND: [{ accountId }, buildContactWhere(filter)] };
     const rows = await prisma.contact.findMany({
       where,
       orderBy: { savedAt: 'desc' },
@@ -114,12 +119,13 @@ export function registerContactRoutes(app) {
     '/api/contacts/import',
     validate(importSchema),
     asyncRoute(async (req, res) => {
+      const { accountId } = req.user;
       const incoming = req.body.contacts;
       const defaultGroup = (req.body.defaultGroup || '').trim();
 
       // Strip the group field before storing. It's not a contact column.
       const cleanContacts = incoming.map(({ group: _g, ...rest }) => rest);
-      await upsertContacts(cleanContacts);
+      await upsertContacts(accountId, cleanContacts);
 
       // Bucket by group name (per-contact override > defaultGroup > skip)
       const buckets = new Map();
@@ -133,19 +139,19 @@ export function registerContactRoutes(app) {
       const groupSummary = {};
       for (const [name, emails] of buckets) {
         const existed = await prisma.audience.findFirst({
-          where: { name: { equals: name, mode: 'insensitive' } },
+          where: { name: { equals: name, mode: 'insensitive' }, accountId },
           select: { id: true },
         });
-        const audience = await findOrCreateAudienceByName(name);
+        const audience = await findOrCreateAudienceByName(accountId, name);
         if (!audience) continue;
-        await addEmailsToAudience(audience.id, emails);
+        await addEmailsToAudience(accountId, audience.id, emails);
         groupSummary[audience.name] = {
           added: emails.length,
           created: !existed,
         };
       }
 
-      const total = await prisma.contact.count();
+      const total = await prisma.contact.count({ where: { accountId } });
       await recordAudit(req, 'contact.import', 'contact', null, {
         count: incoming.length,
         total,
@@ -165,10 +171,11 @@ export function registerContactRoutes(app) {
     '/api/contacts/bulk-delete',
     validate(bulkDeleteSchema),
     asyncRoute(async (req, res) => {
+      const { accountId } = req.user;
       const emails = req.body.emails.map((value) => value.trim().toLowerCase());
-      const deleted = await deleteContacts(emails);
-      await removeEmailsFromAllAudiences(emails);
-      const total = await prisma.contact.count();
+      const deleted = await deleteContacts(accountId, emails);
+      await removeEmailsFromAllAudiences(accountId, emails);
+      const total = await prisma.contact.count({ where: { accountId } });
       if (deleted) await recordAudit(req, 'contact.bulk_delete', 'contact', null, { deleted });
       res.json({ deleted, total });
     }),
@@ -183,12 +190,13 @@ export function registerContactRoutes(app) {
     '/api/contacts/bulk-update',
     validate(bulkUpdateSchema),
     asyncRoute(async (req, res) => {
+      const { accountId } = req.user;
       const emails = req.body.emails.map((value) => value.trim().toLowerCase());
       const patch = {};
       if (typeof req.body.patch.region === 'string') patch.region = req.body.patch.region;
       if (typeof req.body.patch.consent === 'string') patch.consent = req.body.patch.consent;
       const result = await prisma.contact.updateMany({
-        where: { email: { in: emails } },
+        where: { email: { in: emails }, accountId },
         data: patch,
       });
       if (result.count) {
@@ -205,11 +213,15 @@ export function registerContactRoutes(app) {
     '/api/contacts/:email',
     validate(updateSchema),
     asyncRoute(async (req, res) => {
+      const { accountId } = req.user;
       const email = decodeURIComponent(req.params.email).toLowerCase();
       const nextEmail = (req.body.email || email).trim().toLowerCase();
       const existing = await prisma.contact.findUnique({ where: { email } });
 
-      if (!existing) {
+      // 404 either when the row is missing entirely OR when it belongs to
+      // another workspace. We don't want a tenant to be able to confirm
+      // the existence of another tenant's contacts.
+      if (!existing || existing.accountId !== accountId) {
         res.status(404).json({ error: 'Contact not found' });
         return;
       }
@@ -217,6 +229,9 @@ export function registerContactRoutes(app) {
       if (nextEmail !== email) {
         const duplicate = await prisma.contact.findUnique({ where: { email: nextEmail } });
         if (duplicate) {
+          // 409 covers both "same workspace dup" and "another workspace
+          // already owns this email" — the v1 schema (global email PK)
+          // makes both unrecoverable from this route.
           res.status(409).json({ error: 'Another contact already uses that email' });
           return;
         }
@@ -238,12 +253,15 @@ export function registerContactRoutes(app) {
   );
 
   app.delete('/api/contacts/:email', asyncRoute(async (req, res) => {
+    const { accountId } = req.user;
     const email = decodeURIComponent(req.params.email).toLowerCase();
-    const result = await prisma.contact.deleteMany({ where: { email } });
+    // Scope the delete to this account so a tenant can't nuke another
+    // tenant's row that happens to share the email.
+    const result = await prisma.contact.deleteMany({ where: { email, accountId } });
     // Always prune from groups. Handles both fresh deletes and zombie cleanup.
-    await removeEmailsFromAllAudiences([email]);
+    await removeEmailsFromAllAudiences(accountId, [email]);
     if (result.count) await recordAudit(req, 'contact.delete', 'contact', email);
-    const total = await prisma.contact.count();
+    const total = await prisma.contact.count({ where: { accountId } });
     res.json({ deleted: result.count, total });
   }));
 }

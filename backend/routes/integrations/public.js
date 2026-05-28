@@ -8,6 +8,15 @@
 //
 // Mounted in server.js BEFORE the requireAuth middleware so recipients
 // without a session can hit the unsubscribe / subscribe surfaces.
+//
+// Multi-tenant scope: there's no `req.user` here. Each handler resolves an
+// accountId from whatever context is present:
+//   - Webhook receiver:    `campaign:<id>` tag in the payload → Campaign.accountId
+//   - Unsubscribe page:    `campaign` query param → Campaign.accountId
+//   - Preferences form:    same as above (hidden input forwards the email)
+//   - Subscribe widget:    'default' for now (TODO: per-account widget URL)
+// Every path falls back to 'default' when no scope can be derived, which
+// preserves pre-multi-tenant behavior for installs that haven't migrated.
 
 import express from 'express';
 import {
@@ -30,6 +39,7 @@ import { renderUnsubscribePage } from './unsubscribe-page.js';
 const unsubscribeSchema = z.object({
   email: z.string().email().transform((value) => value.trim().toLowerCase()),
   reason: z.string().max(500).optional(),
+  campaign: z.string().max(200).optional(),
 });
 
 // Public subscribe widget. Posted by the JS snippet that ships at
@@ -49,6 +59,38 @@ const subscribeSchema = z.object({
 const BOUNCE_EVENTS = new Set(['hard_bounce', 'spam', 'invalid_email', 'blocked']);
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Resolve the workspace that owns a given campaign id. Used by the
+// unauthenticated handlers below to figure out which account's data to
+// touch. Returns 'default' when we can't find the campaign (preserves
+// legacy single-tenant behavior, e.g. for events that pre-date the
+// multi-tenant migration).
+async function resolveAccountFromCampaignId(campaignId) {
+  if (!campaignId) return 'default';
+  try {
+    const row = await prisma.campaign.findUnique({
+      where: { id: String(campaignId) },
+      select: { accountId: true },
+    });
+    return row?.accountId || 'default';
+  } catch {
+    return 'default';
+  }
+}
+
+// Brevo webhooks carry `tags: ['campaign:<id>', 'variant:<id>', ...]`.
+// Pull the first campaign tag and look up its owner. Falls back to
+// 'default' when no tag is present (rare keepalives / generic events).
+async function resolveAccountFromPayload(payload) {
+  if (!payload || typeof payload !== 'object') return 'default';
+  const tags = Array.isArray(payload.tags) ? payload.tags : [];
+  const campaignTag = tags.find(
+    (tag) => typeof tag === 'string' && tag.startsWith('campaign:'),
+  );
+  if (!campaignTag) return 'default';
+  const campaignId = campaignTag.slice('campaign:'.length);
+  return resolveAccountFromCampaignId(campaignId);
+}
 
 export function registerPublicIntegrationRoutes(app) {
   registerWebhook(app);
@@ -70,7 +112,11 @@ function registerWebhook(app) {
       return;
     }
 
-    await recordEvent({ provider: 'brevo', payload: req.body });
+    // Resolve tenant from the campaign:<id> tag. Events without a tag get
+    // routed to 'default' so they're still queryable; the Event row carries
+    // the accountId column we filter against in the Reports endpoints.
+    const accountId = await resolveAccountFromPayload(req.body);
+    await recordEvent(accountId, { provider: 'brevo', payload: req.body });
     await pruneEventsToLatest(500);
 
     const eventName = String(req.body?.event || '').toLowerCase();
@@ -82,10 +128,18 @@ function registerWebhook(app) {
       });
       const enabled = eventName === 'unsubscribed' || setting?.value?.enabled === true;
       if (enabled) {
-        await upsertUnsubscribe({
-          email,
-          reason: `auto: ${eventName}`,
-        });
+        // Soft-fail on cross-account collision: the v1 Unsubscribe schema
+        // (global email PK) can only hold one row per address. If another
+        // tenant already owns that suppression row, log + continue rather
+        // than 4xx-ing a webhook (Brevo would retry forever).
+        try {
+          await upsertUnsubscribe(accountId, {
+            email,
+            reason: `auto: ${eventName}`,
+          });
+        } catch (error) {
+          console.error('[webhook] suppression upsert skipped:', error.message);
+        }
       }
     }
 
@@ -98,7 +152,14 @@ function registerUnsubscribeApi(app) {
     '/api/unsubscribe',
     validate(unsubscribeSchema),
     asyncRoute(async (req, res) => {
-      const saved = await upsertUnsubscribe(req.body);
+      // No auth here — the caller is typically a server-side script doing
+      // an admin-side suppression add. Resolve the account from a
+      // `campaign` hint if one is provided, otherwise 'default'.
+      const accountId = await resolveAccountFromCampaignId(req.body.campaign);
+      const saved = await upsertUnsubscribe(accountId, {
+        email: req.body.email,
+        reason: req.body.reason,
+      });
       res.json({ ok: true, ...unsubscribeFromDb(saved) });
     }),
   );
@@ -140,15 +201,21 @@ function registerUnsubscribePage(app) {
       return;
     }
 
+    // Resolve the tenant from the campaign id in the link. Old links from
+    // before multi-tenancy may not carry a campaign param — those route
+    // to the default workspace so the original behavior is preserved.
+    const accountId = await resolveAccountFromCampaignId(campaign);
+
     try {
-      await upsertUnsubscribe({
+      await upsertUnsubscribe(accountId, {
         email: rawEmail,
         reason: campaign ? `link-click: campaign ${campaign}` : 'link-click',
       });
     } catch (error) {
       // Soft-fail. Show a confirmation anyway. The recipient shouldn't see
       // a 500 page just because we couldn't write to the DB; they can
-      // resubmit. (Idempotent — the row may already exist.)
+      // resubmit. (Idempotent — the row may already exist; or a v1 cross-
+      // account collision we can't reconcile yet.)
       console.error('[unsubscribe] write failed:', error.message);
     }
 
@@ -188,6 +255,16 @@ function registerPreferencesForm(app) {
         return;
       }
 
+      // No campaign id on this form (we only have the hidden email input),
+      // so look up the existing Contact row to figure out which workspace
+      // owns this address. Falls back to 'default' if the Contact doesn't
+      // exist yet (rare: someone got the link forwarded by a friend).
+      const existingContact = await prisma.contact.findUnique({
+        where: { email: rawEmail },
+        select: { accountId: true },
+      });
+      const accountId = existingContact?.accountId || 'default';
+
       const categories = await readUnsubscribeCategories();
       const validIds = new Set(categories.map((c) => c.id));
       // Checkbox names are `category:<id>`. Anything outside the known
@@ -201,10 +278,14 @@ function registerPreferencesForm(app) {
         // User unchecked everything OR there were no boxes. Treat as
         // "unsubscribe from everything" (idempotent against the row we
         // already wrote when they hit the link).
-        await upsertUnsubscribe({
-          email: rawEmail,
-          reason: 'preference-center: none selected',
-        });
+        try {
+          await upsertUnsubscribe(accountId, {
+            email: rawEmail,
+            reason: 'preference-center: none selected',
+          });
+        } catch (error) {
+          console.error('[preferences] suppression write failed:', error.message);
+        }
         res.type('html').send(renderUnsubscribePage({
           ok: true,
           title: 'Preferences saved',
@@ -220,7 +301,7 @@ function registerPreferencesForm(app) {
       // the contact and store their chosen list. The Unsubscribe row is
       // removed (so they're not in the global suppression list); send-time
       // logic gates by category.
-      await restoreContactSubscription(rawEmail);
+      await restoreContactSubscription(accountId, rawEmail);
       await prisma.contact.update({
         where: { email: rawEmail },
         data: {
@@ -235,6 +316,7 @@ function registerPreferencesForm(app) {
             email: rawEmail,
             consent: 'yes',
             data: { subscribedCategories: chosen },
+            accountId,
           },
         });
       });
@@ -263,9 +345,18 @@ function registerSubscribeWidget(app) {
     asyncRoute(async (req, res) => {
       const { email, firstname, lastname, groupId, source, timezone } = req.body;
 
+      // TODO(multi-tenant): the public subscribe URL has no account hint
+      // baked in yet. For now every public subscribe lands in the
+      // 'default' workspace — matches pre-multi-tenant behavior. A
+      // follow-up will add `?account=<id>` to the widget URL so each
+      // tenant gets its own embed.
+      const accountId = 'default';
+
       // Guard against re-subscribing a known unsubscriber from a public
       // form. Admin can still add them back via the authenticated Contacts
-      // page.
+      // page. The lookup is by email only (the global PK in v1), which is
+      // a stricter check than "this account suppressed them" — once we
+      // move to per-account suppression this should narrow to accountId.
       const previouslyUnsubscribed = await prisma.unsubscribe.findUnique({
         where: { email },
       });
@@ -277,21 +368,32 @@ function registerSubscribeWidget(app) {
         return;
       }
 
-      await upsertContacts([{
-        email,
-        firstname: firstname || '',
-        lastname: lastname || '',
-        consent: 'yes',
-        timezone: timezone || '',
-        source: source || 'subscribe-widget',
-      }]);
+      try {
+        await upsertContacts(accountId, [{
+          email,
+          firstname: firstname || '',
+          lastname: lastname || '',
+          consent: 'yes',
+          timezone: timezone || '',
+          source: source || 'subscribe-widget',
+        }]);
+      } catch (error) {
+        // Cross-account collision (this email belongs to another
+        // workspace in the v1 global-PK world) — soft-succeed so a public
+        // form probe can't enumerate ownership.
+        if (error.status === 409) {
+          res.json({ ok: true });
+          return;
+        }
+        throw error;
+      }
 
       // Optional group assignment. Silently ignore a missing/unknown group
       // rather than 4xx-ing — keeping the form failure-tolerant matters
       // more than strict referential integrity for a public endpoint. The
       // contact still lands in the audience without a group.
       if (groupId) {
-        try { await addEmailsToAudience(groupId, [email]); } catch { /* non-fatal */ }
+        try { await addEmailsToAudience(accountId, groupId, [email]); } catch { /* non-fatal */ }
       }
 
       res.json({ ok: true });

@@ -1,3 +1,8 @@
+// TODO(multi-tenant): scope by accountId — the campaign object built here
+// is persisted by the schedule route via upsertCampaign(accountId, ...).
+// This file itself is side-effect-free so the tenant scope rides on the
+// caller; the scheduler-side TODO covers the runtime path.
+//
 // Normalizes the POST /api/campaigns/schedule body into the in-memory
 // campaign object the scheduler operates on (batches, snapshot sender,
 // unsubscribe URL, A/B variants with defaults, etc.). Kept side-effect-free

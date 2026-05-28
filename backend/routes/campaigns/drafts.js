@@ -7,8 +7,8 @@ import { asyncRoute } from '../../utils/store.js';
 import { draftSchema } from './schemas.js';
 
 export function registerDraftRoutes(app) {
-  app.get('/api/campaigns/drafts', asyncRoute(async (_req, res) => {
-    res.json(await listDrafts());
+  app.get('/api/campaigns/drafts', asyncRoute(async (req, res) => {
+    res.json(await listDrafts(req.user.accountId));
   }));
 
   app.post(
@@ -19,13 +19,15 @@ export function registerDraftRoutes(app) {
         ...req.body,
         id: req.body.id || `draft-${crypto.randomUUID()}`,
       };
-      await upsertDraft(draft);
+      await upsertDraft(req.user.accountId, draft);
       res.status(201).json({ ...draft, updatedAt: new Date().toISOString() });
     }),
   );
 
   app.delete('/api/campaigns/drafts/:id', asyncRoute(async (req, res) => {
-    const result = await prisma.draft.deleteMany({ where: { id: req.params.id } });
+    const result = await prisma.draft.deleteMany({
+      where: { id: req.params.id, accountId: req.user.accountId },
+    });
     if (result.count) await recordAudit(req, 'draft.delete', 'draft', req.params.id);
     res.json({ deleted: result.count });
   }));

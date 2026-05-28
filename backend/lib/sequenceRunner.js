@@ -1,3 +1,7 @@
+// TODO(multi-tenant): scope by accountId — the runner needs to resolve
+// each enrollment's account via Sequence.accountId and pass it to every
+// DB helper it calls (recordEvent, etc.). Handled in a separate pass.
+//
 // Drip-sequence runner. Cron tick scans for enrollments whose nextRunAt has
 // elapsed, sends the next step, and advances the cursor.
 //

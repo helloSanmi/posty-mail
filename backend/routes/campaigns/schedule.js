@@ -21,6 +21,7 @@ export function registerScheduleRoutes(app) {
     '/api/campaigns/schedule',
     validate(scheduleSchema),
     asyncRoute(async (req, res) => {
+      const { accountId } = req.user;
       const safeBody = {
         ...req.body,
         template: {
@@ -40,8 +41,10 @@ export function registerScheduleRoutes(app) {
       // clear message instead of letting a placeholder through.
       safeBody.sender = await requireSender();
       const campaign = createCampaignPayload(safeBody);
-      await upsertCampaign(campaign);
-      scheduleCampaignJob(campaign, upsertCampaign);
+      await upsertCampaign(accountId, campaign);
+      // TODO(multi-tenant): bind accountId into the upsertCampaign
+      // callback so cron-driven status updates stay tenant-scoped.
+      scheduleCampaignJob(campaign, (next) => upsertCampaign(accountId, next));
       await recordAudit(req, 'campaign.schedule', 'campaign', campaign.id, {
         name: campaign.name,
         contactCount: campaign.contacts.length,
