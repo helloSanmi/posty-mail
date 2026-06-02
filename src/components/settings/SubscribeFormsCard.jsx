@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Code, Copy, UserPlus } from 'lucide-react';
 import { getGroups } from '../../services/brevoApi';
+import { useAuth } from '../../auth/AuthContext';
 
 // Embed-snippet builder for the public Subscribe form widget. Produces a
 // `<div data-posty-form …><script src="…/posty-form.js" async>` snippet the
@@ -8,6 +9,7 @@ import { getGroups } from '../../services/brevoApi';
 // base URL + chosen group, so there's no persistence — re-rendering the
 // card with different inputs just regenerates the string.
 export function SubscribeFormsCard({ notify }) {
+  const { user } = useAuth();
   const [groups, setGroups] = useState([]);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -25,9 +27,13 @@ export function SubscribeFormsCard({ notify }) {
   const action = `${baseUrl}/api/public/subscribe`;
   const scriptSrc = `${baseUrl}/posty-form.js`;
 
+  // Bake the current workspace id into the embed so public subscribes land
+  // in THIS account, not the default one. The id is opaque + already public
+  // (it sits in the host site's HTML), same as Mailchimp's audience params.
   const attrs = [
     `data-posty-form`,
     `data-action="${action}"`,
+    user?.accountId ? `data-account="${user.accountId}"` : null,
     selectedGroupId ? `data-group-id="${selectedGroupId}"` : null,
     successMessage ? `data-success="${successMessage.replace(/"/g, '&quot;')}"` : null,
     collectName ? null : `data-collect-name="false"`,
