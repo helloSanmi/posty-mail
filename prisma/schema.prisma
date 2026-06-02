@@ -179,6 +179,11 @@ model User {
   passwordHash            String
   name                    String?
   role                    String   @default("admin")
+  // Install-level super-admin (distinct from `role`, which is the user's
+  // role WITHIN their workspace). A super-admin can see + manage every
+  // workspace via the /api/super-admin/* routes. The first user on a
+  // fresh install becomes one; everyone else defaults to false.
+  isSuperAdmin            Boolean  @default(false)
   notificationsLastSeenAt DateTime?
   // When the user clicks "Clear" in the notifications panel. Items received
   // before this point are hidden from their view (the underlying Event rows

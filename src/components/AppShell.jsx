@@ -44,7 +44,11 @@ export function AppShell({ children }) {
     }
     return pageTitles['/'];
   })();
-  const visibleNav = navItems.filter((item) => !item.adminOnly || user?.role === 'admin');
+  const visibleNav = navItems.filter((item) => {
+    if (item.superAdminOnly) return Boolean(user?.isSuperAdmin);
+    if (item.adminOnly) return user?.role === 'admin';
+    return true;
+  });
 
   useEffect(() => {
     setDrawerOpen(false);

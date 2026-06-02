@@ -24,6 +24,7 @@ import { SequencesPage } from './pages/SequencesPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminPage } from './pages/AdminPage';
+import { WorkspacesPage } from './pages/WorkspacesPage';
 import { LoginPage } from './pages/LoginPage';
 import './styles.css';
 
@@ -136,6 +137,7 @@ function ProtectedShell() {
         <Route path="/analytics" element={<AnalyticsPage key={refreshTick} />} />
         <Route path="/settings" element={<SettingsPage notify={notify} />} />
         <Route path="/admin" element={<AdminPage notify={notify} />} />
+        <Route path="/workspaces" element={<WorkspacesPage notify={notify} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

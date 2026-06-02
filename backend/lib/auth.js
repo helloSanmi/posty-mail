@@ -37,6 +37,7 @@ export function signToken(user) {
       email: user.email,
       role: user.role,
       accountId: user.accountId,
+      isSuperAdmin: Boolean(user.isSuperAdmin),
     },
     getJwtSecret(),
     { expiresIn: TOKEN_TTL },
@@ -54,6 +55,7 @@ export function publicUser(user) {
     name: user.name || '',
     role: user.role,
     accountId: user.accountId,
+    isSuperAdmin: Boolean(user.isSuperAdmin),
   };
 }
 
@@ -76,6 +78,7 @@ export function requireAuth(req, res, next) {
       // carry an accountId. Treat them as the default workspace so
       // existing sessions keep working through the rollout.
       accountId: payload.accountId || 'default',
+      isSuperAdmin: Boolean(payload.isSuperAdmin),
     };
     next();
   } catch {
@@ -91,6 +94,17 @@ export function requireRole(...roles) {
     }
     next();
   };
+}
+
+// Gate for the install-level super-admin routes (cross-workspace
+// management). Distinct from requireRole('admin'), which only checks the
+// caller's role WITHIN their own workspace.
+export function requireSuperAdmin(req, res, next) {
+  if (!req.user?.isSuperAdmin) {
+    res.status(403).json({ error: 'Super-admin access required' });
+    return;
+  }
+  next();
 }
 
 export async function userCount() {

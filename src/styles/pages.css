@@ -3659,3 +3659,50 @@
   .admin-user-list li { grid-template-columns: 1fr; }
   .audit-list li { grid-template-columns: 1fr; }
 }
+
+/* Super-admin Workspaces table. Same row-grid pattern as the reports +
+   data tables: a sticky-free header row over divider-separated rows. */
+.workspaces-table {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.workspaces-head,
+.workspaces-row {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 2fr) minmax(160px, 1.6fr) 80px 90px 100px 44px;
+  padding: 11px 14px;
+}
+.workspaces-head {
+  background: #fbfcfd;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.workspaces-head span {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+.workspaces-row { border-bottom: 1px solid #f1f3f7; }
+.workspaces-row:last-child { border-bottom: 0; }
+.workspaces-row:hover { background: #f8fafc; }
+.workspaces-name {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.workspaces-actions { display: flex; justify-content: flex-end; }
+@media (max-width: 760px) {
+  .workspaces-head { display: none; }
+  .workspaces-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

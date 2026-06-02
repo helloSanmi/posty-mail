@@ -82,6 +82,7 @@ export function registerAuthRoutes(app) {
           // OWN workspace — they're the owner of the Account they just
           // created, even though they're not super-admin of the install.
           role: 'admin',
+          isSuperAdmin: existingCount === 0,
           accountId,
         },
       });

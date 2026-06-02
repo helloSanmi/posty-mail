@@ -9,6 +9,7 @@ import { prisma } from './lib/db.js';
 import { requireAuth } from './lib/auth.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
+import { registerSuperAdminRoutes } from './routes/superAdmin.js';
 import { registerAudienceRoutes } from './routes/audiences.js';
 import { registerCampaignRoutes, restoreCampaignJobs } from './routes/campaigns.js';
 import { registerContactRoutes } from './routes/contacts.js';
@@ -127,6 +128,7 @@ registerPublicIntegrationRoutes(app);
 app.use('/api', requireAuth);
 
 registerAdminRoutes(app);
+registerSuperAdminRoutes(app);
 registerContactRoutes(app);
 registerNotificationRoutes(app);
 registerSegmentRoutes(app);
