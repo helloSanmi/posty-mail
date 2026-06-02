@@ -55,6 +55,10 @@ export function publicUser(user) {
     name: user.name || '',
     role: user.role,
     accountId: user.accountId,
+    // Workspace name, when the account relation is loaded by the caller.
+    // Lets the frontend show "Acme's workspace" in the sidebar without a
+    // second request. Null when the relation wasn't included.
+    accountName: user.account?.name || null,
     isSuperAdmin: Boolean(user.isSuperAdmin),
   };
 }
