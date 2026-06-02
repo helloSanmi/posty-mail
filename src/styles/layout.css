@@ -77,6 +77,15 @@
 
 .brand strong, .brand span { display: block; }
 .brand span, .eyebrow, .muted, small { color: var(--muted); }
+/* Workspace name under the Posty wordmark. Truncates so a long
+   "Someone's workspace" name never wraps or overflows the sidebar. */
+.brand-workspace {
+  font-size: 0.78rem;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .drawer-close { display: none; margin-left: auto; }
 
 nav { display: grid; gap: 4px; }

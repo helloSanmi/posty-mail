@@ -85,6 +85,7 @@ export function registerAuthRoutes(app) {
           isSuperAdmin: existingCount === 0,
           accountId,
         },
+        include: { account: true },
       });
 
       res.status(201).json({ token: signToken(user), user: publicUser(user) });
@@ -96,7 +97,10 @@ export function registerAuthRoutes(app) {
     authLimiter,
     validate(loginSchema),
     asyncRoute(async (req, res) => {
-      const user = await prisma.user.findUnique({ where: { email: req.body.email } });
+      const user = await prisma.user.findUnique({
+        where: { email: req.body.email },
+        include: { account: true },
+      });
 
       if (!user || !(await verifyPassword(req.body.password, user.passwordHash))) {
         res.status(401).json({ error: 'Invalid email or password' });
@@ -108,7 +112,10 @@ export function registerAuthRoutes(app) {
   );
 
   app.get('/api/auth/me', requireAuth, asyncRoute(async (req, res) => {
-    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { account: true },
+    });
     if (!user) {
       res.status(401).json({ error: 'Account no longer exists' });
       return;

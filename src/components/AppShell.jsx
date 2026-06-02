@@ -102,6 +102,12 @@ export function AppShell({ children }) {
           <img src="/posty-mark.svg" alt="" className="brand-mark" aria-hidden="true" />
           <div className="brand-text">
             <strong>Posty</strong>
+            {/* Current workspace name, so a user always knows which tenant
+                they're operating in. Hidden when the sidebar is collapsed
+                (only the mark shows) via the .brand-text display:none rule. */}
+            {user?.accountName && (
+              <span className="brand-workspace">{user.accountName}</span>
+            )}
           </div>
           {/* Collapse / expand toggle. Hidden on mobile (where the sidebar
               is a drawer instead of a persistent column) via the @media
