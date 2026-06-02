@@ -100,12 +100,20 @@ export function LoginPage() {
   }
 
   const heading = isForgot
-    ? 'Reset password'
+    ? 'Reset your password'
     : !hasUsers
       ? 'Create the first admin account'
       : isSignup
         ? 'Create your account'
-        : 'Sign in to continue';
+        : 'Welcome back';
+
+  const subheading = isForgot
+    ? 'Enter your email and a new password to regain access.'
+    : !hasUsers
+      ? 'This first account becomes the workspace admin.'
+      : isSignup
+        ? 'Set up a new workspace in a few seconds.'
+        : 'Sign in to your Posty workspace.';
 
   const submitLabel = isForgot
     ? (submitting ? 'Resetting…' : 'Reset password')
@@ -117,11 +125,9 @@ export function LoginPage() {
     <div className="auth-shell">
       <div className="auth-card surface">
         <div className="auth-brand">
-          <img src="/posty-mark.svg" alt="" className="brand-mark" aria-hidden="true" />
-          <div>
-            <strong>Posty</strong>
-            <span>{heading}</span>
-          </div>
+          <img src="/posty-mark.svg" alt="Posty" className="auth-logo" />
+          <h1 className="auth-heading">{heading}</h1>
+          <p className="auth-subheading">{subheading}</p>
         </div>
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           {isSignup && (

@@ -98,7 +98,6 @@ export function AppShell({ children }) {
           <img src="/posty-mark.svg" alt="" className="brand-mark" aria-hidden="true" />
           <div className="brand-text">
             <strong>Posty</strong>
-            <span>Send a little something.</span>
           </div>
           {/* Collapse / expand toggle. Hidden on mobile (where the sidebar
               is a drawer instead of a persistent column) via the @media
