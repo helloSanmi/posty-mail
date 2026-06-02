@@ -262,15 +262,34 @@
 .review-title { font-size: 1.05rem; margin: 0 0 12px; }
 .review-list { display: grid; gap: 0; margin: 0; }
 .review-row {
-  align-items: center;
+  /* flex-start (not center) so when a long value wraps — e.g. a multi-line
+     email subject — the label stays aligned to the value's FIRST line
+     instead of floating to the vertical middle and crowding the text. */
+  align-items: flex-start;
   border-top: 1px solid var(--line);
   display: flex;
+  gap: 16px;
   justify-content: space-between;
-  padding: 10px 0;
+  padding: 11px 0;
 }
 .review-row:first-child { border-top: 0; padding-top: 0; }
-.review-row dt { color: var(--muted); margin: 0; }
-.review-row dd { font-weight: 500; margin: 0; }
+.review-row dt {
+  color: var(--muted);
+  /* Label never shrinks or wraps — the value column absorbs the wrapping. */
+  flex-shrink: 0;
+  margin: 0;
+}
+.review-row dd {
+  font-weight: 500;
+  /* Right-aligned value column. min-width:0 lets it shrink+wrap inside the
+     flex row; overflow-wrap breaks long unbroken tokens (URLs, slash-joined
+     subjects like "Cloud/DevOps") cleanly instead of overflowing. */
+  line-height: 1.35;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
 /* Reports page */
 /* Time-range tabs at the top of the Reports page. Pill-shaped, wraps to a
    second line on narrow screens. The active tab uses the brand blue so the
