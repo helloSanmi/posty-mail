@@ -14,9 +14,11 @@
 //   - Webhook receiver:    `campaign:<id>` tag in the payload → Campaign.accountId
 //   - Unsubscribe page:    `campaign` query param → Campaign.accountId
 //   - Preferences form:    same as above (hidden input forwards the email)
-//   - Subscribe widget:    'default' for now (TODO: per-account widget URL)
-// Every path falls back to 'default' when no scope can be derived, which
-// preserves pre-multi-tenant behavior for installs that haven't migrated.
+//   - Subscribe widget:    `account` field in the POST body (data-account
+//                          on the embed) → that workspace; unknown id is
+//                          rejected silently, absent id → 'default'
+// The campaign/preference paths fall back to 'default' when no scope can
+// be derived, preserving pre-multi-tenant behavior for un-migrated installs.
 
 import express from 'express';
 import {
@@ -51,6 +53,12 @@ const subscribeSchema = z.object({
   lastname: z.string().max(80).optional(),
   groupId: z.string().uuid().optional(),
   source: z.string().max(120).optional(),
+  // Workspace this widget belongs to. Baked into the embed snippet by the
+  // admin (data-account="<id>"). Absent for legacy embeds → defaults to
+  // the 'default' workspace for back-compat. Account ids are opaque and
+  // already public (they sit in the embed HTML on the host site), the
+  // same way Mailchimp exposes its `u=`/`id=` audience params.
+  account: z.string().max(80).optional(),
   // IANA timezone string like 'America/New_York'. Auto-filled by the widget
   // from Intl.DateTimeFormat(). Capped at 80 chars to fit any IANA name.
   timezone: z.string().max(80).optional(),
@@ -75,6 +83,25 @@ async function resolveAccountFromCampaignId(campaignId) {
     return row?.accountId || 'default';
   } catch {
     return 'default';
+  }
+}
+
+// Resolve the workspace a public subscribe should land in.
+//   - no account hint  → 'default' (legacy embeds, back-compat)
+//   - valid account id → that workspace
+//   - unknown account  → null (caller soft-succeeds WITHOUT writing, so we
+//     neither leak someone into the wrong workspace nor let a probe
+//     enumerate which account ids exist)
+async function resolveSubscribeAccount(accountId) {
+  if (!accountId) return 'default';
+  try {
+    const row = await prisma.account.findUnique({
+      where: { id: String(accountId) },
+      select: { id: true },
+    });
+    return row?.id || null;
+  } catch {
+    return null;
   }
 }
 
@@ -343,14 +370,19 @@ function registerSubscribeWidget(app) {
     '/api/public/subscribe',
     validate(subscribeSchema),
     asyncRoute(async (req, res) => {
-      const { email, firstname, lastname, groupId, source, timezone } = req.body;
+      const {
+        email, firstname, lastname, groupId, source, timezone,
+      } = req.body;
 
-      // TODO(multi-tenant): the public subscribe URL has no account hint
-      // baked in yet. For now every public subscribe lands in the
-      // 'default' workspace — matches pre-multi-tenant behavior. A
-      // follow-up will add `?account=<id>` to the widget URL so each
-      // tenant gets its own embed.
-      const accountId = 'default';
+      // Route the subscribe to the workspace baked into the embed. An
+      // unknown account id soft-succeeds without writing (see helper) so
+      // we never silently dump a subscriber into the default workspace
+      // and a probe can't enumerate real account ids.
+      const accountId = await resolveSubscribeAccount(req.body.account);
+      if (!accountId) {
+        res.json({ ok: true });
+        return;
+      }
 
       // Guard against re-subscribing a known unsubscriber from a public
       // form. Admin can still add them back via the authenticated Contacts

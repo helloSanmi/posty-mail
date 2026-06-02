@@ -2,6 +2,7 @@
 //
 //   <div data-posty-form
 //        data-action="https://yourdomain.com/api/public/subscribe"
+//        data-account="<workspace id>"
 //        data-group-id="<optional group uuid>"
 //        data-success="Thanks. You're on the list."></div>
 //   <script src="https://yourdomain.com/posty-form.js" async></script>
@@ -10,8 +11,11 @@
 // Posts JSON to `data-action`, then swaps the form for a thank-you message.
 //
 // Backend endpoint: POST /api/public/subscribe
-//   body: { email, firstname?, lastname?, groupId? }
+//   body: { email, firstname?, lastname?, groupId?, account? }
 //   returns: { ok: true } or { error: '...' }
+//
+// `data-account` routes the subscriber into the right workspace. Without
+// it the backend falls back to the default workspace (legacy embeds).
 
 (function () {
   'use strict';
@@ -65,6 +69,7 @@
       return;
     }
     var groupId = container.getAttribute('data-group-id') || null;
+    var account = container.getAttribute('data-account') || null;
     var successMessage = container.getAttribute('data-success') || 'Thanks. You\'re on the list.';
     var collectName = container.getAttribute('data-collect-name') !== 'false';
 
@@ -111,6 +116,7 @@
         if (lastnameInput.value.trim()) payload.lastname = lastnameInput.value.trim();
       }
       if (groupId) payload.groupId = groupId;
+      if (account) payload.account = account;
       // Auto-detect timezone so send-time-per-timezone campaigns can land in
       // the recipient's local morning, not the admin's. Tolerated server-side
       // if absent.
