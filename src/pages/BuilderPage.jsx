@@ -103,8 +103,16 @@ export function BuilderPage(props) {
 
   const contacts = groupContacts ?? allContacts;
   const batches = useMemo(() => chunkContacts(contacts, form.batchSize), [contacts, form.batchSize]);
-  const held = useMemo(() => getHeldContacts(contacts, form).length, [contacts, form]);
-  const readyContacts = Math.max(0, contacts.length - held);
+  // Held contacts carry their compliance reason(s) so the Review panel can
+  // explain WHY each one is excluded, not just count them. readyList is the
+  // complement — everyone who'll actually receive the send.
+  const heldList = useMemo(() => getHeldContacts(contacts, form), [contacts, form]);
+  const readyList = useMemo(() => {
+    const heldEmails = new Set(heldList.map((entry) => entry.contact.email));
+    return contacts.filter((contact) => !heldEmails.has(contact.email));
+  }, [contacts, heldList]);
+  const held = heldList.length;
+  const readyContacts = readyList.length;
   const canSchedule = readyContacts > 0;
   const preflightErrors = (preflight?.checks || []).filter((c) => c.severity === 'error');
   const hasPreflightErrors = preflightErrors.length > 0;
@@ -532,9 +540,11 @@ export function BuilderPage(props) {
         </div>
         <SendReview
           readyContacts={readyContacts}
+          readyList={readyList}
           template={template}
           frequency={form.frequency}
           held={held}
+          heldList={heldList}
           batches={batches}
         />
       </section>
@@ -643,13 +653,17 @@ function AudienceBlocker({ setPage }) {
   );
 }
 
+// Returns [{ contact, reasons }] for every contact that fails a compliance
+// check, so the Review panel can both count them AND show why each is held.
 function getHeldContacts(contacts, form) {
-  return contacts.filter((contact) => {
-    return complianceIssues(contact, {
+  return contacts.reduce((held, contact) => {
+    const reasons = complianceIssues(contact, {
       requireOptIn: form.requireOptIn,
       gdprMode: form.gdprMode,
-    }).length > 0;
-  });
+    });
+    if (reasons.length > 0) held.push({ contact, reasons });
+    return held;
+  }, []);
 }
 
 function buildCampaignPayload(form, contacts, template, variants) {
