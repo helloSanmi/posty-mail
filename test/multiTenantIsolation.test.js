@@ -39,6 +39,8 @@ const {
   listAudiences,
   getAudience,
   upsertAudience,
+  upsertUnsubscribe,
+  unsubscribedEmailSet,
 } = db;
 
 // Probe the database once. If it's unreachable, register a single skipped
@@ -169,6 +171,29 @@ describe('multi-tenant data isolation', { skip: dbReachable ? false : 'no databa
     assert.equal(crossFetch, null, "getAudience(A, B's id) must return null");
   });
 
+  it('the same email can exist independently in two workspaces', async () => {
+    // The headline benefit of the composite-key migration. A and B were
+    // each seeded with their OWN email in `before`; here we add a SHARED
+    // email to both and confirm each account gets its own contact row.
+    const shared = `iso-shared-${run}@example.com`;
+    await upsertContacts(ACCOUNT_A, [{ email: shared, firstname: 'A-side' }]);
+    await upsertContacts(ACCOUNT_B, [{ email: shared, firstname: 'B-side' }]);
+
+    const aRow = (await listContacts(ACCOUNT_A)).find((c) => c.email === shared);
+    const bRow = (await listContacts(ACCOUNT_B)).find((c) => c.email === shared);
+    assert.ok(aRow, 'A should have its own row for the shared email');
+    assert.ok(bRow, 'B should have its own row for the shared email');
+    assert.equal(aRow.firstname, 'A-side');
+    assert.equal(bRow.firstname, 'B-side', 'B\'s row is independent of A\'s');
+
+    // And an unsubscribe in A must NOT suppress the same email in B.
+    await upsertUnsubscribe(ACCOUNT_A, { email: shared, reason: 'test' });
+    const aSuppressed = await unsubscribedEmailSet(ACCOUNT_A);
+    const bSuppressed = await unsubscribedEmailSet(ACCOUNT_B);
+    assert.ok(aSuppressed.has(shared), 'A suppressed the shared email');
+    assert.ok(!bSuppressed.has(shared), 'B must NOT be suppressed by A\'s unsubscribe');
+  });
+
   it('cascade delete removes all of an account\'s data', async () => {
     // Delete a THIRD scratch account with one contact, confirm the contact
     // row is gone afterwards (FK onDelete: Cascade). Uses its own ids so it
@@ -180,7 +205,9 @@ describe('multi-tenant data isolation', { skip: dbReachable ? false : 'no databa
     assert.equal((await listContacts(tmp)).length, 1);
 
     await prisma.account.delete({ where: { id: tmp } });
-    const orphan = await prisma.contact.findUnique({ where: { email: tmpEmail } });
+    // findFirst (not findUnique) — email is no longer a standalone unique
+    // key, and we just want "no row anywhere with this email" after cascade.
+    const orphan = await prisma.contact.findFirst({ where: { email: tmpEmail } });
     assert.equal(orphan, null, 'contact row must cascade-delete with its account');
   });
 });
