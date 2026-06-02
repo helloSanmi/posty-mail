@@ -4,7 +4,7 @@
 // values pass through escapeHtml() before interpolation.
 
 export function renderUnsubscribePage({
-  ok, title, email, message, categories = [], checked = [],
+  ok, title, email, message, categories = [], checked = [], account = '',
 }) {
   const safeEmail = email ? escapeHtml(email) : '';
   const accent = ok ? '#16a34a' : '#dc2626';
@@ -101,13 +101,14 @@ export function renderUnsubscribePage({
     <h1>${escapeHtml(title)}</h1>
     ${safeEmail ? `<p class="email">${safeEmail}</p>` : ''}
     <p>${escapeHtml(message)}</p>
-    ${showPrefsForm ? renderPreferencesForm(safeEmail, categories, checkedSet) : ''}
+    ${showPrefsForm ? renderPreferencesForm(safeEmail, categories, checkedSet, account) : ''}
   </div>
 </body>
 </html>`;
 }
 
-function renderPreferencesForm(safeEmail, categories, checkedSet) {
+function renderPreferencesForm(safeEmail, categories, checkedSet, account = '') {
+  const safeAccount = account ? escapeHtml(account) : '';
   const rows = categories.map((c) => {
     const id = escapeHtml(c.id);
     const label = escapeHtml(c.label || c.id);
@@ -125,6 +126,7 @@ function renderPreferencesForm(safeEmail, categories, checkedSet) {
     <p>Don't want to leave entirely? Pick the topics you'd still like to get.</p>
     <form method="POST" action="/unsubscribe/preferences">
       <input type="hidden" name="email" value="${safeEmail}">
+      ${safeAccount ? `<input type="hidden" name="account" value="${safeAccount}">` : ''}
       <ul class="prefs-list">${rows}</ul>
       <button type="submit">Save preferences</button>
     </form>

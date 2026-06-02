@@ -6,14 +6,10 @@
 // The list is queried at send-time (campaign loop + sequence runner) to
 // skip recipients regardless of group/segment membership.
 //
-// Multi-tenant scoping note: Unsubscribe still uses `email` as the global
-// primary key in v1 (the migration didn't change PKs). That means two
-// accounts can't both have an unsubscribe row for the same email — a
-// follow-up migration will switch to UUID PK + @@unique([accountId, email]).
-// Until then, upsertUnsubscribe checks for cross-account collisions and
-// refuses them rather than overwriting another account's row. Reads stay
-// scoped to the caller's account so a tenant can't see another tenant's
-// suppression list.
+// Multi-tenant scoping: Unsubscribe has a UUID PK + composite unique
+// ([accountId, email]), so the same address can be suppressed
+// independently per workspace. Every email lookup uses the composite key
+// (accountId_email). Reads stay scoped to the caller's account.
 import { prisma } from './prisma.js';
 
 export function unsubscribeFromDb(item) {
@@ -41,23 +37,11 @@ export async function listUnsubscribes(accountId) {
 }
 
 export async function upsertUnsubscribe(accountId, item) {
-  // Pre-flight: if the email is already on another tenant's suppression
-  // list, the v1 schema (global email PK) can't carry a second row. Fail
-  // fast with a 409 instead of overwriting their row. The follow-up
-  // migration to a composite key removes this restriction.
-  const existing = await prisma.unsubscribe.findUnique({ where: { email: item.email } });
-  if (existing && existing.accountId !== accountId) {
-    const error = new Error(
-      `${item.email} is already on another workspace's suppression list. `
-      + 'Email addresses are globally unique in this version — per-account suppression '
-      + 'will be supported when Unsubscribe storage moves to per-account keys.',
-    );
-    error.status = 409;
-    throw error;
-  }
-
+  // Per-account suppression via the composite unique ([accountId, email]).
+  // The same address can be suppressed in multiple workspaces, each as its
+  // own row, so there's no cross-account collision to guard against.
   const saved = await prisma.unsubscribe.upsert({
-    where: { email: item.email },
+    where: { accountId_email: { accountId, email: item.email } },
     create: {
       email: item.email,
       reason: item.reason || '',
@@ -66,8 +50,6 @@ export async function upsertUnsubscribe(accountId, item) {
     update: {
       reason: item.reason || '',
       unsubscribedAt: new Date(),
-      // accountId intentionally NOT updated — the precheck above already
-      // confirmed the row belongs to THIS account.
     },
   });
 

@@ -216,29 +216,33 @@ export function registerContactRoutes(app) {
       const { accountId } = req.user;
       const email = decodeURIComponent(req.params.email).toLowerCase();
       const nextEmail = (req.body.email || email).trim().toLowerCase();
-      const existing = await prisma.contact.findUnique({ where: { email } });
+      // Look up THIS account's row via the composite unique key. Another
+      // workspace's contact with the same email is a different row and
+      // won't be found here — so a tenant can't read or edit it.
+      const existing = await prisma.contact.findUnique({
+        where: { accountId_email: { accountId, email } },
+      });
 
-      // 404 either when the row is missing entirely OR when it belongs to
-      // another workspace. We don't want a tenant to be able to confirm
-      // the existence of another tenant's contacts.
-      if (!existing || existing.accountId !== accountId) {
+      if (!existing) {
         res.status(404).json({ error: 'Contact not found' });
         return;
       }
 
       if (nextEmail !== email) {
-        const duplicate = await prisma.contact.findUnique({ where: { email: nextEmail } });
+        // Duplicate check is scoped to this workspace — another account
+        // owning that email is fine now (composite key), only an in-
+        // workspace collision is a 409.
+        const duplicate = await prisma.contact.findUnique({
+          where: { accountId_email: { accountId, email: nextEmail } },
+        });
         if (duplicate) {
-          // 409 covers both "same workspace dup" and "another workspace
-          // already owns this email" — the v1 schema (global email PK)
-          // makes both unrecoverable from this route.
           res.status(409).json({ error: 'Another contact already uses that email' });
           return;
         }
       }
 
       const updated = await prisma.contact.update({
-        where: { email },
+        where: { accountId_email: { accountId, email } },
         data: {
           email: nextEmail,
           firstname: req.body.firstname ?? existing.firstname ?? '',

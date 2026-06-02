@@ -48,7 +48,12 @@ model Account {
 }
 
 model Contact {
-  email     String   @id
+  // UUID primary key so the SAME email can exist in different workspaces.
+  // Per-account uniqueness is enforced by @@unique([accountId, email])
+  // below — within one workspace an email is still unique, across
+  // workspaces it's free. Lookups by email always pass accountId too.
+  id        String   @id @default(uuid())
+  email     String
   firstname String?
   lastname  String?
   consent   String?
@@ -60,13 +65,10 @@ model Contact {
   data      Json?
   savedAt   DateTime @default(now())
   updatedAt DateTime @updatedAt
-  // Multi-tenant scope. Keeping email as the PK for v1 means two accounts
-  // can't have the same email contact yet — fine while we're rolling
-  // out, will be relaxed in a follow-up migration that switches Contact
-  // to a UUID PK with @@unique([accountId, email]).
   accountId String
   account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
+  @@unique([accountId, email])
   @@index([accountId])
 }
 
@@ -128,15 +130,16 @@ model Draft {
 }
 
 model Unsubscribe {
-  email          String   @id
+  // UUID PK + per-account unique email, same model as Contact: a given
+  // address can be suppressed independently in each workspace.
+  id             String   @id @default(uuid())
+  email          String
   reason         String?
   unsubscribedAt DateTime @default(now())
-  // Like Contact, Unsubscribe keeps email as the PK for v1 so two
-  // accounts can't have a row for the same email yet. Follow-up
-  // migration will relax this with composite ([accountId, email]).
   accountId      String
   account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
+  @@unique([accountId, email])
   @@index([accountId])
 }
 

@@ -257,6 +257,10 @@ function registerUnsubscribePage(app) {
       message: 'You won\'t receive any more emails from us. If this was a mistake, '
         + 'reply to any past email and we\'ll add you back manually.',
       categories,
+      // Forward the resolved workspace into the form so the preferences
+      // POST writes to the right account (the email alone is no longer a
+      // globally-unique key — it can exist in multiple workspaces).
+      account: accountId,
       // After an unsubscribe click the user is opted OUT of everything by
       // default. The form lets them re-subscribe to specific topics.
       checked: [],
@@ -282,15 +286,21 @@ function registerPreferencesForm(app) {
         return;
       }
 
-      // No campaign id on this form (we only have the hidden email input),
-      // so look up the existing Contact row to figure out which workspace
-      // owns this address. Falls back to 'default' if the Contact doesn't
-      // exist yet (rare: someone got the link forwarded by a friend).
-      const existingContact = await prisma.contact.findUnique({
-        where: { email: rawEmail },
-        select: { accountId: true },
-      });
-      const accountId = existingContact?.accountId || 'default';
+      // The form forwards the workspace as a hidden `account` field (the
+      // unsubscribe page resolved it from the campaign link). Validate it
+      // exists; if it's missing (legacy link) fall back to the first
+      // Contact row matching this email across any workspace, then
+      // 'default'. With per-account contacts, email alone isn't a unique
+      // key, so we use findFirst for the fallback.
+      const hintedAccount = await resolveSubscribeAccount(req.body.account);
+      let accountId = hintedAccount;
+      if (!accountId) {
+        const existingContact = await prisma.contact.findFirst({
+          where: { email: rawEmail },
+          select: { accountId: true },
+        });
+        accountId = existingContact?.accountId || 'default';
+      }
 
       const categories = await readUnsubscribeCategories();
       const validIds = new Set(categories.map((c) => c.id));
@@ -329,23 +339,24 @@ function registerPreferencesForm(app) {
       // removed (so they're not in the global suppression list); send-time
       // logic gates by category.
       await restoreContactSubscription(accountId, rawEmail);
-      await prisma.contact.update({
-        where: { email: rawEmail },
-        data: {
+      // Upsert via the composite ([accountId, email]) key so this writes
+      // to (or creates in) exactly the resolved workspace. A plain
+      // update-by-email would be ambiguous now that the same address can
+      // live in several workspaces.
+      await prisma.contact.upsert({
+        where: { accountId_email: { accountId, email: rawEmail } },
+        update: {
           // Set our key explicitly so a future re-submit overwrites cleanly.
           data: { subscribedCategories: chosen },
         },
-      }).catch(() => {
-        // Contact row might not exist yet (someone got the email forwarded
-        // by a friend, for example). Create it so the preference sticks.
-        return prisma.contact.create({
-          data: {
-            email: rawEmail,
-            consent: 'yes',
-            data: { subscribedCategories: chosen },
-            accountId,
-          },
-        });
+        create: {
+          email: rawEmail,
+          consent: 'yes',
+          data: { subscribedCategories: chosen },
+          accountId,
+        },
+      }).catch((error) => {
+        console.error('[preferences] contact upsert failed:', error.message);
       });
 
       res.type('html').send(renderUnsubscribePage({
@@ -354,6 +365,7 @@ function registerPreferencesForm(app) {
         email: rawEmail,
         message: 'Your subscription preferences have been updated.',
         categories,
+        account: accountId,
         checked: chosen,
       }));
     }),
@@ -385,12 +397,12 @@ function registerSubscribeWidget(app) {
       }
 
       // Guard against re-subscribing a known unsubscriber from a public
-      // form. Admin can still add them back via the authenticated Contacts
-      // page. The lookup is by email only (the global PK in v1), which is
-      // a stricter check than "this account suppressed them" — once we
-      // move to per-account suppression this should narrow to accountId.
+      // form. Scoped to THIS workspace via the composite key — a
+      // suppression in another workspace doesn't block a fresh subscribe
+      // here, which is correct now that suppression is per-account. Admin
+      // can still re-add via the authenticated Contacts page.
       const previouslyUnsubscribed = await prisma.unsubscribe.findUnique({
-        where: { email },
+        where: { accountId_email: { accountId, email } },
       });
       if (previouslyUnsubscribed) {
         // Don't 4xx in a way that reveals their suppression status. Treat

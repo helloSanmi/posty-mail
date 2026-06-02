@@ -36,6 +36,9 @@ function makeContacts(n) {
       lastname: last,
       region: REGIONS[i % REGIONS.length],
       consent: 'yes',
+      // Demo data lives in the default workspace (the demo install only
+      // ever has the one). Every per-tenant table needs accountId now.
+      accountId: 'default',
     });
   }
   return out;
@@ -69,7 +72,9 @@ async function main() {
   ];
   for (const group of groups) {
     await prisma.audience.create({
-      data: { id: group.id, name: group.name, contactEmails: group.emails },
+      data: {
+        id: group.id, name: group.name, contactEmails: group.emails, accountId: 'default',
+      },
     });
   }
 
@@ -83,6 +88,7 @@ async function main() {
         combinator: 'AND',
         excludeUnsubscribed: true,
       },
+      accountId: 'default',
     },
   });
 
@@ -95,8 +101,11 @@ async function main() {
       name: 'Demo: Welcome to Posty',
       status: 'completed',
       createdAt: sentAt,
-      scheduledAt: sentAt,
+      accountId: 'default',
       data: {
+        // scheduledAt lives in data JSON (not a Campaign column); the
+        // Reports page reads campaign.scheduledAt off the spread data.
+        scheduledAt: sentAt.toISOString(),
         contacts: contacts.slice(0, 20),
         template: {
           subject: 'Welcome to Posty',
@@ -114,6 +123,7 @@ async function main() {
   for (let i = 0; i < 12; i += 1) {
     fakeEvents.push({
       provider: 'brevo',
+      accountId: 'default',
       payload: {
         event: 'opened',
         email: contacts[i].email,
@@ -126,6 +136,7 @@ async function main() {
   for (let i = 0; i < 5; i += 1) {
     fakeEvents.push({
       provider: 'brevo',
+      accountId: 'default',
       payload: {
         event: 'clicked',
         email: contacts[i].email,
