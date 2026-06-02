@@ -3531,6 +3531,36 @@
 }
 .back-row h2 { margin: 0; }
 .campaign-detail-title { flex: 1; }
+
+/* Live indicator + Refresh, grouped on the right of the detail header. */
+.campaign-detail-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+.campaign-live {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.8rem;
+  gap: 6px;
+  white-space: nowrap;
+}
+.campaign-live-dot {
+  background: #16a34a;
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
+  /* Soft pulse so it reads as "live / updating" at a glance. Honors
+     reduced-motion via the global rule in animations.css. */
+  animation: posty-pulse-soft 2s ease-in-out infinite;
+}
+.campaign-live-time { color: var(--muted); }
+@media (max-width: 600px) {
+  /* On narrow screens drop the "updated …" timestamp; the dot + Refresh
+     are enough and the header stays on one line. */
+  .campaign-live-time { display: none; }
+}
 .kpi-grid {
   display: grid;
   gap: 12px;

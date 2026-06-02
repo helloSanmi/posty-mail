@@ -14,6 +14,11 @@ import { SkeletonCard } from '../components/Skeleton';
 // enough that paging through is realistic, big enough that you can scan.
 const RECIPIENTS_PAGE_SIZE = 50;
 
+// How often the detail page silently re-fetches while open, so opens /
+// clicks / bounces tick up live as webhook events land — no manual
+// Refresh needed. Polling pauses when the browser tab is hidden.
+const POLL_INTERVAL_MS = 25000;
+
 export function CampaignDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -30,6 +35,9 @@ export function CampaignDetailPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [tab, setTab] = useState('recipients');
+  // Timestamp of the last successful (manual or auto) data fetch, shown
+  // next to the live indicator so the user knows the page is current.
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
   // Fetch the per-campaign things that don't depend on the recipients
   // page index: links, variants, aggregate metrics. Re-runs only when
@@ -66,7 +74,16 @@ export function CampaignDetailPage() {
     setLoading(true);
     setLoadError('');
     await Promise.all([refreshSummary(), refreshRecipients()]);
+    setLastUpdatedAt(new Date());
     setLoading(false);
+  }
+
+  // Silent background refresh used by the poll — same fetches, but
+  // never toggles the loading skeleton so the table updates in place
+  // without a flash.
+  async function silentRefresh() {
+    await Promise.all([refreshSummary(), refreshRecipients()]);
+    setLastUpdatedAt(new Date());
   }
 
   // Reset to page 1 when the route id changes — guards against landing
@@ -78,7 +95,10 @@ export function CampaignDetailPage() {
   useEffect(() => {
     setLoading(true);
     setLoadError('');
-    refreshSummary().finally(() => setLoading(false));
+    refreshSummary().finally(() => {
+      setLastUpdatedAt(new Date());
+      setLoading(false);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -89,6 +109,29 @@ export function CampaignDetailPage() {
   // setPage(1) lands; acceptable for an admin UI.
   useEffect(() => {
     refreshRecipients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, page]);
+
+  // Live auto-refresh. Polls every POLL_INTERVAL_MS while the page is
+  // open so engagement metrics update on their own as webhook events
+  // arrive. Skips a tick when the tab is hidden (no point fetching for
+  // an off-screen page) and fires an immediate catch-up refresh when
+  // the tab regains focus. Re-armed on [id, page] so the closure always
+  // sees the current campaign + page.
+  useEffect(() => {
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      silentRefresh();
+    };
+    const timer = setInterval(tick, POLL_INTERVAL_MS);
+    const onVisible = () => {
+      if (!document.hidden) silentRefresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, page]);
 
@@ -110,9 +153,18 @@ export function CampaignDetailPage() {
           <ArrowLeft size={14} aria-hidden="true" /> All campaigns
         </button>
         <h2 className="campaign-detail-title">{metrics?.campaign?.name || 'Campaign'}</h2>
-        <button type="button" onClick={refresh} aria-label="Refresh">
-          <RefreshCw size={14} aria-hidden="true" /> Refresh
-        </button>
+        <div className="campaign-detail-actions">
+          <span className="campaign-live" title="Metrics auto-refresh every 25 seconds">
+            <span className="campaign-live-dot" aria-hidden="true" />
+            Live
+            {lastUpdatedAt && (
+              <span className="campaign-live-time"> · updated {formatClock(lastUpdatedAt)}</span>
+            )}
+          </span>
+          <button type="button" onClick={refresh} aria-label="Refresh">
+            <RefreshCw size={14} aria-hidden="true" /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="kpi-grid">
@@ -304,5 +356,14 @@ function formatDate(value) {
       .format(new Date(value));
   } catch {
     return value;
+  }
+}
+
+// Time-only clock for the "updated HH:MM:SS" live indicator.
+function formatClock(value) {
+  try {
+    return new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(value);
+  } catch {
+    return '';
   }
 }
