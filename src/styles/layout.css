@@ -500,17 +500,66 @@ nav button.active, nav .nav-link.active {
 
 .auth-shell {
   align-items: center;
+  /* Soft brand-tinted gradient so the auth screen doesn't read as a
+     bare white page. Subtle — the card still carries the focus. */
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #eaf1fc 0%, transparent 60%),
+    #f5f7f9;
   display: flex;
   justify-content: center;
   min-height: 100vh;
   padding: 24px;
 }
-.auth-card { display: grid; gap: 18px; max-width: 420px; padding: 28px; width: 100%; }
-.auth-brand { align-items: center; display: flex; gap: 12px; }
-.auth-brand strong { display: block; }
-.auth-brand span { color: var(--muted); font-size: 0.85rem; }
-.auth-form { display: grid; gap: 6px; }
-.auth-form button.primary { margin-top: 6px; }
+.auth-card {
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.10);
+  display: grid;
+  gap: 22px;
+  max-width: 400px;
+  padding: 32px 30px;
+  width: 100%;
+}
+/* Centered vertical brand block: logo, heading, supportive subtext. */
+.auth-brand {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  text-align: center;
+}
+.auth-logo {
+  display: block;
+  height: 44px;
+  margin-bottom: 6px;
+  width: 44px;
+}
+.auth-heading {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+}
+.auth-subheading {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+}
+/* Slightly roomier form. Labels get a touch of top space from the
+   preceding field so the stack breathes. */
+.auth-form { display: grid; gap: 7px; }
+.auth-form label {
+  font-size: 0.86rem;
+  font-weight: 500;
+  margin-top: 8px;
+}
+.auth-form label:first-child { margin-top: 0; }
+.auth-form input,
+.auth-form .password-input > input {
+  min-height: 42px;
+}
+.auth-form button.primary {
+  margin-top: 14px;
+  min-height: 44px;
+}
 .auth-error {
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -528,11 +577,15 @@ nav button.active, nav .nav-link.active {
   padding: 10px 12px;
 }
 .auth-form-links {
+  align-items: center;
+  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
 }
+.auth-form-links:empty { border-top: 0; margin-top: 0; padding-top: 0; }
 .auth-hint {
   color: var(--muted);
   font-size: 0.82rem;
