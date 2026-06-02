@@ -251,6 +251,17 @@ export async function deleteAdminUser(id) {
   return data;
 }
 
+// Super-admin (install-level, cross-workspace) endpoints.
+export async function listWorkspaces() {
+  const { data } = await apiClient.get('/api/super-admin/accounts');
+  return data;
+}
+
+export async function deleteWorkspace(id) {
+  const { data } = await apiClient.delete(`/api/super-admin/accounts/${id}`);
+  return data;
+}
+
 export async function getAuditLogs(params = {}) {
   const { data } = await apiClient.get('/api/admin/audit', { params });
   return data;

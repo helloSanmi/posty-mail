@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Building2,
   Filter,
   Inbox,
   LayoutDashboard,
@@ -20,6 +21,10 @@ export const navItems = [
   { id: 'analytics', path: '/analytics', label: 'Reports', icon: BarChart3 },
   { id: 'integrations', path: '/settings', label: 'Settings', icon: PlugZap },
   { id: 'admin', path: '/admin', label: 'Admin', icon: ShieldCheck, adminOnly: true },
+  // Install-level super-admin only — cross-workspace management.
+  {
+    id: 'workspaces', path: '/workspaces', label: 'Workspaces', icon: Building2, superAdminOnly: true,
+  },
 ];
 
 export const pageTitles = {
@@ -33,4 +38,5 @@ export const pageTitles = {
   '/analytics': { title: 'Reports', label: 'Reports' },
   '/settings': { title: 'Settings', label: 'Settings' },
   '/admin': { title: 'Admin', label: 'Admin' },
+  '/workspaces': { title: 'Workspaces', label: 'Workspaces' },
 };
