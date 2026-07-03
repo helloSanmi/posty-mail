@@ -26,6 +26,7 @@ import {
   prisma,
   pruneEventsToLatest,
   recordEvent,
+  resolveEventAccountId,
   restoreContactSubscription,
   unsubscribeFromDb,
   upsertContacts,
@@ -105,20 +106,6 @@ async function resolveSubscribeAccount(accountId) {
   }
 }
 
-// Brevo webhooks carry `tags: ['campaign:<id>', 'variant:<id>', ...]`.
-// Pull the first campaign tag and look up its owner. Falls back to
-// 'default' when no tag is present (rare keepalives / generic events).
-async function resolveAccountFromPayload(payload) {
-  if (!payload || typeof payload !== 'object') return 'default';
-  const tags = Array.isArray(payload.tags) ? payload.tags : [];
-  const campaignTag = tags.find(
-    (tag) => typeof tag === 'string' && tag.startsWith('campaign:'),
-  );
-  if (!campaignTag) return 'default';
-  const campaignId = campaignTag.slice('campaign:'.length);
-  return resolveAccountFromCampaignId(campaignId);
-}
-
 export function registerPublicIntegrationRoutes(app) {
   registerWebhook(app);
   registerUnsubscribeApi(app);
@@ -139,10 +126,18 @@ function registerWebhook(app) {
       return;
     }
 
-    // Resolve tenant from the campaign:<id> tag. Events without a tag get
-    // routed to 'default' so they're still queryable; the Event row carries
-    // the accountId column we filter against in the Reports endpoints.
-    const accountId = await resolveAccountFromPayload(req.body);
+    // Resolve the workspace from the campaign:<id> (or sequence) tag. When
+    // it doesn't map to a LOCAL campaign/sequence, the event belongs to
+    // another Posty deployment sharing this Brevo account (Brevo streams the
+    // whole account to one webhook URL) — or it's an unattributable test /
+    // Brevo-UI send. Drop it: 202-accept so Brevo stops retrying, but don't
+    // store it. This is what keeps another deployment's opens/clicks out of
+    // this one's reports instead of piling into 'default'.
+    const accountId = await resolveEventAccountId(req.body);
+    if (!accountId) {
+      res.status(202).json({ received: true, scoped: false });
+      return;
+    }
     await recordEvent(accountId, { provider: 'brevo', payload: req.body });
     await pruneEventsToLatest(500);
 

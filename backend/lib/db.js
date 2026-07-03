@@ -76,6 +76,7 @@ export {
   listEventsForCampaign,
   pruneEventsToLatest,
   recordEvent,
+  resolveEventAccountId,
 } from './db/events.js';
 
 // Campaigns + CampaignSend ledger.

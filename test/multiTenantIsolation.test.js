@@ -41,6 +41,7 @@ const {
   upsertAudience,
   upsertUnsubscribe,
   unsubscribedEmailSet,
+  resolveEventAccountId,
 } = db;
 
 // Probe the database once. If it's unreachable, register a single skipped
@@ -192,6 +193,26 @@ describe('multi-tenant data isolation', { skip: dbReachable ? false : 'no databa
     const bSuppressed = await unsubscribedEmailSet(ACCOUNT_B);
     assert.ok(aSuppressed.has(shared), 'A suppressed the shared email');
     assert.ok(!bSuppressed.has(shared), 'B must NOT be suppressed by A\'s unsubscribe');
+  });
+
+  it('webhook resolver attributes local campaigns and DROPS foreign events', async () => {
+    // Simulates the shared-Brevo-account case: this deployment receives an
+    // event for one of ITS campaigns (keep, attributed) and one for a
+    // campaign that isn't in this DB — another deployment's (drop → null).
+    const localOwner = await resolveEventAccountId({
+      tags: ['posty', `campaign:${ids.campA}`],
+      event: 'opened',
+    });
+    assert.equal(localOwner, ACCOUNT_A, 'local campaign event → its workspace');
+
+    const foreign = await resolveEventAccountId({
+      tags: ['posty', `campaign:${crypto.randomUUID()}`],
+      event: 'opened',
+    });
+    assert.equal(foreign, null, 'event for a non-local campaign must be dropped (null)');
+
+    const noTag = await resolveEventAccountId({ tags: ['posty'], event: 'opened' });
+    assert.equal(noTag, null, 'event with no campaign tag is unattributable → null');
   });
 
   it('cascade delete removes all of an account\'s data', async () => {

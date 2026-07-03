@@ -12,6 +12,44 @@
 // and passes it down.
 import { prisma } from './prisma.js';
 
+// Resolve which LOCAL workspace an inbound Brevo event belongs to, from its
+// `campaign:<id>` tag. Returns the accountId, or `null` when the event
+// cannot be tied to a campaign or sequence in THIS database.
+//
+// `null` is the important case: Brevo fires webhooks per-account, and when
+// several Posty deployments share one Brevo account, each receives the
+// others' events. An event whose campaign/sequence isn't local belongs to
+// a different deployment (or is an unattributable test / Brevo-UI send) —
+// the caller drops it instead of dumping it into the 'default' workspace.
+//
+// Handles two tag shapes:
+//   campaign:<uuid>                 → a real Campaign row → its accountId
+//   campaign:seq-<seqId>-<stepIdx>  → a Sequence row → its accountId
+export async function resolveEventAccountId(payload) {
+  const tags = Array.isArray(payload?.tags) ? payload.tags : [];
+  const tag = tags.find((t) => typeof t === 'string' && t.startsWith('campaign:'));
+  if (!tag) return null;
+  const id = tag.slice('campaign:'.length);
+
+  // Sequence sends tag campaign:seq-<sequenceId>-<stepIndex>. The step is
+  // the trailing -<digits>; the sequence id (a UUID, itself hyphenated) is
+  // everything between. Greedy capture leaves only the final -<digits>.
+  const seqMatch = id.match(/^seq-(.+)-\d+$/);
+  if (seqMatch) {
+    const seq = await prisma.sequence.findUnique({
+      where: { id: seqMatch[1] },
+      select: { accountId: true },
+    }).catch(() => null);
+    return seq?.accountId || null;
+  }
+
+  const campaign = await prisma.campaign.findUnique({
+    where: { id },
+    select: { accountId: true },
+  }).catch(() => null);
+  return campaign?.accountId || null;
+}
+
 export function eventFromDb(event) {
   return {
     id: event.id,

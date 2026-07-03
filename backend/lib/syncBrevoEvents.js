@@ -15,24 +15,22 @@
 // Events without a campaign tag (rare provider noise) fall back to 'default'.
 
 import { fetchTransactionalEvents } from './brevoClient.js';
-import { getLatestEventDate, prisma, recordEvent } from './db.js';
+import { getLatestEventDate, recordEvent, resolveEventAccountId } from './db.js';
 import { isPostyEvent } from './eventScope.js';
 
-// Resolve the workspace for a single Brevo event by reading its
-// campaign:<id> tag and looking up Campaign.accountId. Cached per
-// campaignId across one sync run so a campaign with 5000 events
-// doesn't hit the DB 5000 times.
+// Resolve the workspace for a single Brevo event via the shared resolver
+// (handles campaign + sequence tags), memoized per campaign tag across one
+// sync run so a campaign with 5000 events doesn't hit the DB 5000 times.
+// Returns null when the event isn't tied to a LOCAL campaign/sequence —
+// the caller drops it (it belongs to another deployment sharing this
+// Brevo account, since the sync pulls the whole account's history).
 function resolveAccountId(payload, cache) {
   const tags = Array.isArray(payload?.tags) ? payload.tags : [];
   const tag = tags.find((t) => typeof t === 'string' && t.startsWith('campaign:'));
-  if (!tag) return Promise.resolve('default');
-  const campaignId = tag.slice('campaign:'.length);
-  if (cache.has(campaignId)) return Promise.resolve(cache.get(campaignId));
-  const promise = prisma.campaign
-    .findUnique({ where: { id: campaignId }, select: { accountId: true } })
-    .then((row) => row?.accountId || 'default')
-    .catch(() => 'default');
-  cache.set(campaignId, promise);
+  const key = tag || '';
+  if (cache.has(key)) return cache.get(key);
+  const promise = resolveEventAccountId(payload);
+  cache.set(key, promise);
   return promise;
 }
 
@@ -80,8 +78,13 @@ export async function syncBrevoEvents({ logger = console } = {}) {
     // Drop events for emails not sent by Posty. Brevo's API returns the entire
     // account's history including other systems on the same key.
     if (!isPostyEvent(payload)) { foreign += 1; continue; }
+    // Drop events whose campaign/sequence isn't in THIS database — they
+    // belong to another Posty deployment sharing this Brevo account. The
+    // sync pulls the whole account, so this filter is what keeps each
+    // deployment's Reports to its own sends.
+    const accountId = await resolveAccountId(payload, accountIdCache);
+    if (!accountId) { foreign += 1; continue; }
     try {
-      const accountId = await resolveAccountId(payload, accountIdCache);
       await recordEvent(accountId, {
         provider: 'brevo',
         payload,
