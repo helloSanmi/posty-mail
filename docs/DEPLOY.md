@@ -24,8 +24,8 @@ your server.
 ## 1. Install the basics
 
 ```bash
-# Node 20+ (via nodesource) and git
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+# Node 24 (via nodesource) and git
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt-get install -y nodejs git
 
 # Docker (for Postgres) — or install Postgres directly if you prefer
