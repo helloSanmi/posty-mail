@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { prisma } from './lib/db.js';
 import { requireAuth } from './lib/auth.js';
@@ -137,6 +138,27 @@ registerAudienceRoutes(app);
 registerCampaignRoutes(app);
 registerTemplateRoutes(app);
 registerIntegrationRoutes(app, { logoRoot, publicBaseUrl });
+
+// Serve the built frontend (single-process deploy). When `npm run build`
+// has produced ../dist, the backend serves it directly so the whole app
+// runs as ONE process on ONE port — no separate static host, no CORS.
+// In dev this directory doesn't exist (Vite serves the UI on :5173), so
+// the block is skipped and nothing changes. All API + public routes are
+// registered ABOVE, so they always win over the SPA fallback below.
+const distDir = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+  // SPA fallback: any GET that isn't an API or uploads path and wasn't
+  // matched by a real route falls through to index.html so client-side
+  // routing (/, /contacts, /campaigns/:id, …) works on hard refresh.
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      next();
+      return;
+    }
+    res.sendFile(path.join(distDir, 'index.html'));
+  });
+}
 
 app.use((error, _req, res, _next) => {
   console.error(error);

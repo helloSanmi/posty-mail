@@ -1,6 +1,14 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4010';
+// API base resolution:
+//   - VITE_API_URL set        → use it (e.g. a separate frontend host).
+//   - unset in a prod build   → '' (relative) so the app calls /api on its
+//     own origin. This is the single-process deploy: the backend serves
+//     the built SPA, so frontend + API share one host — no CORS, no config.
+//   - unset in dev            → localhost:4010 (Vite dev serves the UI on
+//     :5173, cross-origin to the backend on :4010).
+const API_URL = import.meta.env.VITE_API_URL
+  || (import.meta.env.DEV ? 'http://localhost:4010' : '');
 const TOKEN_KEY = 'campaign-suite-token';
 
 export const apiClient = axios.create({ baseURL: API_URL });
