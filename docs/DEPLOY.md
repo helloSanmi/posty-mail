@@ -168,10 +168,23 @@ Done. Send a test from the campaign builder to confirm delivery.
 
 ## Updating later
 
+After pushing changes to GitHub, run the deploy script on the server:
+
+```bash
+cd posty-mail
+./deploy.sh
+```
+
+It runs the whole update in order and stops on the first failure (so a
+broken build never restarts the app): `git pull` → `npm ci` →
+`npm run db:deploy` → `npm run build` → `pm2 restart posty`.
+
+The manual equivalent, if you'd rather run the steps yourself:
+
 ```bash
 cd posty-mail
 git pull
-npm install
+npm ci
 npm run db:deploy        # apply any new migrations
 npm run build            # rebuild the frontend
 pm2 restart posty
