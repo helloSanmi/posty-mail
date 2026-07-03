@@ -9,9 +9,10 @@ backend, Brevo for transactional sends and click tracking.
 
 ![Posty dashboard](docs/screenshot.png)
 
-> No hosted demo yet. Run it locally with the [Quick start](#quick-start-local-dev)
-> below; it's a five-minute setup. If you want to host your own public demo,
-> see [`docs/DEMO.md`](docs/DEMO.md) for the dry-run / reset-hourly recipe.
+> **Self-hosted.** Each organization runs its own copy. Try it locally with the
+> [Quick start](#quick-start-local-dev) below (five minutes), or put it on a
+> server with the [deploy guide](docs/DEPLOY.md) — one small VPS (~$5/mo) runs
+> the whole thing. For a public sandbox demo, see [`docs/DEMO.md`](docs/DEMO.md).
 
 ---
 
