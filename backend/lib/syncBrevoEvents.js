@@ -14,6 +14,7 @@
 // pass it to recordEvent so the row gets stamped with the right workspace.
 // Events without a campaign tag (rare provider noise) fall back to 'default'.
 
+import cron from 'node-cron';
 import { fetchTransactionalEvents } from './brevoClient.js';
 import { getLatestEventDate, recordEvent, resolveEventAccountId } from './db.js';
 import { isPostyEvent } from './eventScope.js';
@@ -145,4 +146,48 @@ function normaliseApiEvent(apiEvent) {
     tags,
     _source: 'sync',
   };
+}
+
+// Periodic catch-up sync. Critical when several deployments share one Brevo
+// account: Brevo streams the whole account to a SINGLE webhook URL, so only
+// one deployment gets events live — the rest depend on this poll to pull the
+// account's history and keep just their own (the resolveEventAccountId guard
+// drops the others). Interval defaults to 5 minutes; override with
+// BREVO_SYNC_INTERVAL_MINUTES (clamped 1–60). Idempotent registration + an
+// overlap guard so a slow run never stacks on top of the next tick.
+let cronJob = null;
+let running = false;
+
+export function registerEventSync({ logger = console } = {}) {
+  if (cronJob) return cronJob;
+  // Nothing to poll without an API key; syncBrevoEvents would no-op anyway.
+  if (!process.env.BREVO_API_KEY) return null;
+
+  const minutes = Math.min(Math.max(Number(process.env.BREVO_SYNC_INTERVAL_MINUTES) || 5, 1), 60);
+  // Quiet logger for routine ticks — suppress the per-run "fetched N …"
+  // line (would spam every few minutes) but keep warnings + errors. We log
+  // our own one-liner below only when something new actually landed.
+  const quietLogger = {
+    log: () => {},
+    warn: (...args) => logger.warn(...args),
+    error: (...args) => logger.error(...args),
+  };
+
+  cronJob = cron.schedule(`*/${minutes} * * * *`, async () => {
+    if (running) return; // a previous tick is still working; skip this one
+    running = true;
+    try {
+      const result = await syncBrevoEvents({ logger: quietLogger });
+      if (result?.inserted > 0) {
+        logger.log(`[sync] periodic: inserted ${result.inserted} new event(s)`);
+      }
+    } catch (error) {
+      logger.warn(`[sync] periodic tick failed: ${error.message}`);
+    } finally {
+      running = false;
+    }
+  }, { scheduled: true });
+
+  logger.log(`[sync] periodic Brevo event sync every ${minutes} min`);
+  return cronJob;
 }

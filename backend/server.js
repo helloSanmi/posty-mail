@@ -23,7 +23,7 @@ import {
   registerPublicIntegrationRoutes,
 } from './routes/integrations.js';
 import { registerTemplateRoutes } from './routes/templates.js';
-import { syncBrevoEvents } from './lib/syncBrevoEvents.js';
+import { registerEventSync, syncBrevoEvents } from './lib/syncBrevoEvents.js';
 import { asyncRoute } from './utils/store.js';
 
 const app = express();
@@ -187,3 +187,9 @@ registerSequenceRunner();
 syncBrevoEvents().catch((error) => {
   console.error('[sync] Brevo event catch-up failed:', error.message);
 });
+
+// Then keep syncing on an interval. Essential when multiple deployments
+// share one Brevo account: only one can hold Brevo's single webhook URL,
+// so the others rely on this poll to stay current (each keeps only its own
+// events via the resolveEventAccountId guard). No-ops without an API key.
+registerEventSync();
