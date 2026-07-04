@@ -46,6 +46,20 @@ function RequireAuth({ children }) {
   return children;
 }
 
+// Route-level access gate. Sends a user who lacks the area back to Home
+// (the sidebar already hides these, but this covers deep links + stale
+// bookmarks). Backend enforcement is independent — this is UX, not security.
+function Guard({
+  area, anyOf, superAdmin, children,
+}) {
+  const { user, can, canAny } = useAuth();
+  let ok;
+  if (superAdmin) ok = Boolean(user?.isSuperAdmin);
+  else if (anyOf) ok = canAny(anyOf);
+  else ok = can(area);
+  return ok ? children : <Navigate to="/" replace />;
+}
+
 function ProtectedShell() {
   const navigate = useNavigate();
   const { notify } = useUi();
@@ -104,40 +118,71 @@ function ProtectedShell() {
             />
           }
         />
-        <Route path="/contacts" element={<ContactsPage {...audienceProps} />} />
+        <Route
+          path="/contacts"
+          element={<Guard area="contacts"><ContactsPage {...audienceProps} /></Guard>}
+        />
         <Route
           path="/templates"
-          element={
-            <TemplatesPage
-              template={template}
-              setTemplate={setTemplate}
-              contacts={contacts}
-              notify={notify}
-            />
-          }
+          element={(
+            <Guard area="templates">
+              <TemplatesPage
+                template={template}
+                setTemplate={setTemplate}
+                contacts={contacts}
+                notify={notify}
+              />
+            </Guard>
+          )}
         />
         <Route
           path="/builder"
-          element={
-            <BuilderPage
-              contacts={contacts}
-              template={template}
-              setTemplate={setTemplate}
-              setPage={goTo}
-              notify={notify}
-              refreshContacts={refreshContacts}
-              onCampaignScheduled={refreshContacts}
-            />
-          }
+          element={(
+            <Guard area="campaigns">
+              <BuilderPage
+                contacts={contacts}
+                template={template}
+                setTemplate={setTemplate}
+                setPage={goTo}
+                notify={notify}
+                refreshContacts={refreshContacts}
+                onCampaignScheduled={refreshContacts}
+              />
+            </Guard>
+          )}
         />
-        <Route path="/campaigns" element={<CampaignsPage notify={notify} />} />
-        <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
-        <Route path="/segments" element={<SegmentsPage notify={notify} />} />
-        <Route path="/sequences" element={<SequencesPage notify={notify} />} />
-        <Route path="/analytics" element={<AnalyticsPage key={refreshTick} />} />
-        <Route path="/settings" element={<SettingsPage notify={notify} />} />
-        <Route path="/admin" element={<AdminPage notify={notify} />} />
-        <Route path="/workspaces" element={<WorkspacesPage notify={notify} />} />
+        <Route
+          path="/campaigns"
+          element={<Guard area="campaigns"><CampaignsPage notify={notify} /></Guard>}
+        />
+        <Route
+          path="/campaigns/:id"
+          element={<Guard area="campaigns"><CampaignDetailPage /></Guard>}
+        />
+        <Route
+          path="/segments"
+          element={<Guard area="segments"><SegmentsPage notify={notify} /></Guard>}
+        />
+        <Route
+          path="/sequences"
+          element={<Guard area="sequences"><SequencesPage notify={notify} /></Guard>}
+        />
+        <Route
+          path="/analytics"
+          element={<Guard area="analytics"><AnalyticsPage key={refreshTick} /></Guard>}
+        />
+        <Route
+          path="/settings"
+          element={<Guard anyOf={['settings', 'connections']}><SettingsPage notify={notify} /></Guard>}
+        />
+        <Route
+          path="/admin"
+          element={<Guard area="admin"><AdminPage notify={notify} /></Guard>}
+        />
+        <Route
+          path="/workspaces"
+          element={<Guard superAdmin><WorkspacesPage notify={notify} /></Guard>}
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

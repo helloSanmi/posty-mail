@@ -2,9 +2,16 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { PasswordInput } from './PasswordInput';
 
-const ROLES = ['admin', 'editor', 'viewer'];
+// Fallback if the roles list hasn't loaded yet — the three built-ins always
+// exist. Once AdminPage passes real roles (incl. custom ones) we use those.
+const FALLBACK_ROLES = [
+  { key: 'admin', name: 'Admin' },
+  { key: 'editor', name: 'Editor' },
+  { key: 'viewer', name: 'Viewer' },
+];
 
-export function CreateUserModal({ onCreate, onCancel }) {
+export function CreateUserModal({ roles = [], onCreate, onCancel }) {
+  const roleOptions = roles.length ? roles : FALLBACK_ROLES;
   const [draft, setDraft] = useState({ email: '', name: '', password: '', role: 'editor' });
   const [submitting, setSubmitting] = useState(false);
   const cancelRef = useRef(null);
@@ -82,7 +89,9 @@ export function CreateUserModal({ onCreate, onCancel }) {
               value={draft.role}
               onChange={(event) => setDraft({ ...draft, role: event.target.value })}
             >
-              {ROLES.map((role) => <option key={role} value={role}>{role}</option>)}
+              {roleOptions.map((role) => (
+                <option key={role.key} value={role.key}>{role.name}</option>
+              ))}
             </select>
           </label>
         </div>
@@ -98,7 +107,10 @@ export function CreateUserModal({ onCreate, onCancel }) {
   );
 }
 
-export function EditUserModal({ user, isSelf, onSave, onResetPassword, onCancel }) {
+export function EditUserModal({
+  user, roles = [], isSelf, onSave, onResetPassword, onCancel,
+}) {
+  const roleOptions = roles.length ? roles : FALLBACK_ROLES;
   const [draft, setDraft] = useState({ name: user.name || '', role: user.role });
   const [newPassword, setNewPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -167,7 +179,14 @@ export function EditUserModal({ user, isSelf, onSave, onResetPassword, onCancel 
               disabled={isSelf}
               onChange={(event) => setDraft({ ...draft, role: event.target.value })}
             >
-              {ROLES.map((role) => <option key={role} value={role}>{role}</option>)}
+              {roleOptions.map((role) => (
+                <option key={role.key} value={role.key}>{role.name}</option>
+              ))}
+              {/* Keep the current role selectable even if it was since deleted,
+                  so the select isn't blank on a stale assignment. */}
+              {!roleOptions.some((r) => r.key === draft.role) && (
+                <option value={draft.role}>{draft.role}</option>
+              )}
             </select>
             <small className="muted user-modal-hint">
               {isSelf ? "You can't change your own role." : ' '}

@@ -33,6 +33,7 @@ model Account {
   updatedAt     DateTime @updatedAt
 
   users         User[]
+  roles         Role[]
   contacts      Contact[]
   audiences     Audience[]
   templates     Template[]
@@ -45,6 +46,28 @@ model Account {
   sequences     Sequence[]
   assets        Asset[]
   auditLogs     AuditLog[]
+}
+
+// A role within an account. `key` is the stable slug that User.role points
+// at (e.g. 'admin', 'editor', or a custom 'support-agent'); `name` is the
+// display label. `permissions` is a JSON array of area keys from
+// shared/permissions.js. Built-in roles (admin/editor/viewer) are seeded per
+// account with isSystem=true; the Admin role is effectively locked (always
+// resolves to full access) while editor/viewer are editable presets. Custom
+// roles are created by admins via the Roles UI.
+model Role {
+  id          String   @id @default(uuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  key         String
+  name        String
+  permissions Json
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([accountId, key])
+  @@index([accountId])
 }
 
 model Contact {

@@ -2844,6 +2844,85 @@
 .admin-user-info .muted { font-size: 0.82rem; }
 .admin-user-actions { align-items: center; display: flex; gap: 4px; }
 
+/* Roles & access (Admin page) */
+.roles-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.role-row {
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+.role-row-main { display: grid; gap: 8px; min-width: 0; }
+.role-row-head { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
+.role-row-head strong { font-size: 0.98rem; }
+.role-lock {
+  align-items: center;
+  background: #f1f5fb;
+  border-radius: 999px;
+  color: var(--blue);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 600;
+  gap: 4px;
+  padding: 2px 9px;
+}
+.role-usercount { font-size: 0.8rem; }
+.role-areas { display: flex; flex-wrap: wrap; gap: 6px; }
+.role-area-pill {
+  background: #f4f6fb;
+  color: #41506b;
+  font-size: 0.76rem;
+}
+.role-row-actions { align-items: center; display: flex; flex-shrink: 0; gap: 4px; }
+
+/* Role create/edit modal */
+.role-modal { max-width: 560px; width: 100%; }
+.role-modal-name {
+  display: grid;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.role-modal-legend { font-size: 0.82rem; margin: 12px 0 8px; }
+.role-area-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 46vh;
+  overflow-y: auto;
+}
+.role-area-option {
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  padding: 11px 12px;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.role-area-option:hover { border-color: #c7d2e5; }
+.role-area-option.is-checked { background: #f5f8ff; border-color: var(--blue); }
+.role-area-option input { margin-top: 3px; }
+.role-area-text { display: grid; gap: 2px; min-width: 0; }
+.role-area-text strong { font-size: 0.9rem; }
+.role-area-text small { font-size: 0.78rem; line-height: 1.35; }
+
+@media (max-width: 640px) {
+  .role-area-grid { grid-template-columns: 1fr; }
+}
+
 /* Password input with show/hide eye toggle. The input fills the wrapper;
    the toggle button overlays the right edge so it looks like a single
    field. Same height as a normal <input> so wherever it drops in (login,

@@ -17,7 +17,9 @@ const SIDEBAR_COLLAPSED_KEY = 'posty.sidebar.collapsed';
 export function AppShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const {
+    user, logout, can, canAny,
+  } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Sign out and land on a CLEAN /login. Without the explicit navigate,
@@ -56,7 +58,8 @@ export function AppShell({ children }) {
   })();
   const visibleNav = navItems.filter((item) => {
     if (item.superAdminOnly) return Boolean(user?.isSuperAdmin);
-    if (item.adminOnly) return user?.role === 'admin';
+    if (item.anyPermission) return canAny(item.anyPermission);
+    if (item.permission) return can(item.permission);
     return true;
   });
 

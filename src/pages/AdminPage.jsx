@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pencil, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import {
@@ -6,24 +6,37 @@ import {
   deleteAdminUser,
   getAuditLogs,
   listAdminUsers,
+  listRoles,
   resetUserPassword,
   updateAdminUser,
 } from '../services/brevoApi';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { RolesManager } from '../components/RolesManager';
 import { CreateUserModal, EditUserModal } from '../components/UserModals';
 
 export function AdminPage({ notify }) {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [logs, setLogs] = useState([]);
   const [confirm, setConfirm] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = can('admin');
+
+  const roleName = useMemo(
+    () => Object.fromEntries(roles.map((r) => [r.key, r.name])),
+    [roles],
+  );
+
+  function reloadRoles() {
+    return listRoles().then(setRoles).catch(() => {});
+  }
 
   useEffect(() => {
     if (!isAdmin) return;
     listAdminUsers().then(setUsers).catch(() => {});
+    reloadRoles();
     getAuditLogs({ limit: 50 }).then(setLogs).catch(() => {});
   }, [isAdmin]);
 
@@ -110,7 +123,7 @@ export function AdminPage({ notify }) {
                   <strong>{item.name || item.email}</strong>
                   <span className="muted">{item.email}</span>
                 </div>
-                <span className={`pill ${rolePill(item.role)}`}>{item.role}</span>
+                <span className={`pill ${rolePill(item.role)}`}>{roleName[item.role] || item.role}</span>
                 <div className="admin-user-actions">
                   <button
                     type="button"
@@ -137,6 +150,8 @@ export function AdminPage({ notify }) {
           </ul>
         )}
       </section>
+
+      <RolesManager notify={notify} onRolesChanged={reloadRoles} />
 
       <section className="surface">
         <div className="section-heading">
@@ -165,6 +180,7 @@ export function AdminPage({ notify }) {
 
       {createOpen && (
         <CreateUserModal
+          roles={roles}
           onCreate={handleCreate}
           onCancel={() => setCreateOpen(false)}
         />
@@ -173,6 +189,7 @@ export function AdminPage({ notify }) {
       {editing && (
         <EditUserModal
           user={editing}
+          roles={roles}
           isSelf={editing.id === user.id}
           onSave={handleSaveProfile}
           onResetPassword={handleResetPassword}

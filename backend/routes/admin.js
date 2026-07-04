@@ -13,19 +13,27 @@ import { asyncRoute } from '../utils/store.js';
 // that operate across all accounts. For now this file is the
 // single-workspace admin surface.
 
-const ROLES = ['admin', 'editor', 'viewer'];
-
+// Roles are dynamic now — an account can define custom ones (see routes/
+// roles.js), so we validate the role KEY against the account's roles at
+// request time instead of a hardcoded enum.
 const createUserSchema = z.object({
   email: z.string().email().transform((value) => value.trim().toLowerCase()),
   password: z.string().min(8),
   name: z.string().trim().max(120).optional(),
-  role: z.enum(ROLES).optional(),
+  role: z.string().trim().min(1).max(60).optional(),
 });
 
 const updateUserSchema = z.object({
   name: z.string().trim().max(120).optional(),
-  role: z.enum(ROLES).optional(),
+  role: z.string().trim().min(1).max(60).optional(),
 });
+
+async function roleExists(accountId, key) {
+  const role = await prisma.role.findUnique({
+    where: { accountId_key: { accountId, key } },
+  });
+  return Boolean(role);
+}
 
 const resetPasswordSchema = z.object({
   password: z.string().min(8),
@@ -55,6 +63,12 @@ export function registerAdminRoutes(app) {
         return;
       }
 
+      const desiredRole = req.body.role || 'editor';
+      if (!(await roleExists(req.user.accountId, desiredRole))) {
+        res.status(400).json({ error: `Unknown role "${desiredRole}"` });
+        return;
+      }
+
       // Admin-created users land in the SAME account as the admin who
       // created them. This is the "invite a teammate to my workspace"
       // path — distinct from public signup (which creates a brand-new
@@ -65,7 +79,7 @@ export function registerAdminRoutes(app) {
           email: req.body.email,
           passwordHash: await hashPassword(req.body.password),
           name: req.body.name || null,
-          role: req.body.role || 'editor',
+          role: desiredRole,
           accountId: req.user.accountId,
         },
       });
@@ -87,6 +101,11 @@ export function registerAdminRoutes(app) {
       });
       if (!target) {
         res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      if (req.body.role && !(await roleExists(accountId, req.body.role))) {
+        res.status(400).json({ error: `Unknown role "${req.body.role}"` });
         return;
       }
 

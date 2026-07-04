@@ -8,8 +8,17 @@ import {
   userCount,
   verifyPassword,
 } from '../lib/auth.js';
+import { resolvePermissions, seedAccountRoles } from '../lib/permissions.js';
 import { validate, z } from '../lib/validate.js';
 import { asyncRoute } from '../utils/store.js';
+
+// Bundle a user with their resolved area permissions for the client. The
+// frontend uses `permissions` to decide which nav items / pages / settings
+// sections to show. Backend enforcement is independent (permissionGate).
+async function userWithPermissions(user) {
+  const permissions = await resolvePermissions(user.accountId, user.role);
+  return { ...publicUser(user), permissions };
+}
 
 const credentialsSchema = z.object({
   email: z.string().email().transform((value) => value.trim().toLowerCase()),
@@ -88,7 +97,15 @@ export function registerAuthRoutes(app) {
         include: { account: true },
       });
 
-      res.status(201).json({ token: signToken(user), user: publicUser(user) });
+      // Make sure this account has its built-in roles before we resolve the
+      // new user's permissions. The 'default' account is seeded at startup;
+      // a freshly-created account is seeded here. Idempotent either way.
+      await seedAccountRoles(user.accountId);
+
+      res.status(201).json({
+        token: signToken(user),
+        user: await userWithPermissions(user),
+      });
     }),
   );
 
@@ -107,7 +124,7 @@ export function registerAuthRoutes(app) {
         return;
       }
 
-      res.json({ token: signToken(user), user: publicUser(user) });
+      res.json({ token: signToken(user), user: await userWithPermissions(user) });
     }),
   );
 
@@ -120,7 +137,7 @@ export function registerAuthRoutes(app) {
       res.status(401).json({ error: 'Account no longer exists' });
       return;
     }
-    res.json({ user: publicUser(user) });
+    res.json({ user: await userWithPermissions(user) });
   }));
 
   app.get('/api/auth/status', asyncRoute(async (_req, res) => {

@@ -251,6 +251,27 @@ export async function deleteAdminUser(id) {
   return data;
 }
 
+// Roles (admin-only). Each role carries a `permissions` array of area keys.
+export async function listRoles() {
+  const { data } = await apiClient.get('/api/roles');
+  return data;
+}
+
+export async function createRole(payload) {
+  const { data } = await apiClient.post('/api/roles', payload);
+  return data;
+}
+
+export async function updateRole(id, payload) {
+  const { data } = await apiClient.patch(`/api/roles/${id}`, payload);
+  return data;
+}
+
+export async function deleteRole(id) {
+  const { data } = await apiClient.delete(`/api/roles/${id}`);
+  return data;
+}
+
 // Super-admin (install-level, cross-workspace) endpoints.
 export async function listWorkspaces() {
   const { data } = await apiClient.get('/api/super-admin/accounts');

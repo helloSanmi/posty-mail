@@ -8,8 +8,10 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { prisma } from './lib/db.js';
 import { requireAuth } from './lib/auth.js';
+import { attachPermissions, permissionGate, ensureAllAccountsSeeded } from './lib/permissions.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
+import { registerRoleRoutes } from './routes/roles.js';
 import { registerSuperAdminRoutes } from './routes/superAdmin.js';
 import { registerAudienceRoutes } from './routes/audiences.js';
 import { registerCampaignRoutes, restoreCampaignJobs } from './routes/campaigns.js';
@@ -127,8 +129,13 @@ registerPublicIntegrationRoutes(app);
 
 // Everything below requires a valid Bearer token
 app.use('/api', requireAuth);
+// …and carries the caller's resolved area permissions (req.user.permissions),
+// enforced centrally by permissionGate before any route handler runs.
+app.use('/api', attachPermissions);
+app.use('/api', permissionGate);
 
 registerAdminRoutes(app);
+registerRoleRoutes(app);
 registerSuperAdminRoutes(app);
 registerContactRoutes(app);
 registerNotificationRoutes(app);
@@ -173,6 +180,13 @@ app.listen(port, () => {
 
 restoreCampaignJobs().catch((error) => {
   console.error('Could not restore scheduled campaigns', error);
+});
+
+// Ensure every account has its built-in roles (admin/editor/viewer). Seeds
+// installs that predate RBAC without a data migration; idempotent, so safe
+// on every boot. New accounts also get seeded at signup.
+ensureAllAccountsSeeded().catch((error) => {
+  console.error('Could not seed account roles', error);
 });
 
 // Drip-sequence runner. Fires every 5 minutes via node-cron; reads

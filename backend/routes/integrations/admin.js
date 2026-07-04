@@ -8,8 +8,11 @@
 //   - DELETE   /api/unsubscribes/:email        (admin re-subscribe)
 //   - GET/PUT  /api/settings/unsubscribe-categories  (preference center)
 //
-// Mounted in server.js AFTER requireAuth so every endpoint here requires
-// a logged-in admin.
+// Mounted in server.js AFTER requireAuth, so every endpoint requires a
+// logged-in user. Per-area access is enforced centrally by permissionGate
+// (lib/permissions.js): the provider webhook needs `connections`; the rest
+// (bounce handling, assets, unsubscribes, preference center) fall under
+// `settings`. Reads stay open; writes require the area.
 //
 // Settings-table endpoints (webhook config, bounce-sync toggle, preference
 // categories) remain global on purpose — Setting is single-row keyed in
@@ -60,6 +63,10 @@ export function registerIntegrationRoutes(app, { logoRoot, publicBaseUrl }) {
 }
 
 function registerWebhookConfig(app) {
+  // The provider webhook is part of the account-level "Connections"
+  // surface. Access is gated centrally by permissionGate on the
+  // `connections` permission (see lib/permissions.js) — both read and
+  // write — so it doesn't need its own guard here.
   app.post(
     '/api/integrations/webhook',
     validate(webhookSchema),

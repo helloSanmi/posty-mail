@@ -4,6 +4,13 @@
 //   POST /api/settings/sender               save (DB override)
 //   GET  /api/settings/sender/verified      Brevo's verified-senders list
 //   GET  /api/settings/sender/deliverability  SPF / DKIM / DMARC self-check
+//
+// These are the account-level "Connections" surface. Access is gated by
+// the `connections` permission (see lib/permissions.js) via the central
+// permissionGate in server.js — reads and writes both. Editors don't get
+// that permission by default, so they can neither see nor break the
+// sender/provider config; an admin can grant `connections` to a custom
+// role without making them a full admin.
 import { fetchVerifiedSenders } from '../../lib/brevoClient.js';
 import { recordAudit } from '../../lib/audit.js';
 import { checkDeliverability } from '../../lib/deliverability.js';

@@ -19,37 +19,40 @@ const SECTIONS = [
     id: 'connections',
     label: 'Connections',
     icon: PlugZap,
-    // Sender identity, deliverability, the Brevo webhook — account-level
-    // plumbing. Admins only; editors never see this section.
-    adminOnly: true,
-    blurb: 'Sender, deliverability, and the provider webhook.',
+    // Sender identity, deliverability, the provider webhook — account-level
+    // plumbing behind the `connections` area. Editors don't get it.
+    permission: 'connections',
+    blurb: 'Sender and email provider.',
   },
   {
     id: 'forms',
     label: 'Subscribe forms',
     icon: UserPlus,
-    blurb: 'Embed a sign-up form on any website.',
+    permission: 'settings',
+    blurb: 'Add a sign-up form to your site.',
   },
   {
     id: 'email',
     label: 'Email behavior',
     icon: ShieldOff,
-    blurb: 'How bounces and complaints are handled.',
+    permission: 'settings',
+    blurb: 'How bounces are handled.',
   },
   {
     id: 'unsubscribes',
     label: 'Unsubscribes',
     icon: MailX,
-    blurb: 'People who should never be emailed, plus the preference center.',
+    permission: 'settings',
+    blurb: 'Suppression list and preferences.',
   },
 ];
 
 export function SettingsPage({ notify }) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-  // Editors don't get the account-level Connections section.
-  const sections = SECTIONS.filter((section) => !section.adminOnly || isAdmin);
-  // Land on the first section the user can actually see (not a hidden one).
+  const { can } = useAuth();
+  // Only show sections the current role can reach (Connections needs the
+  // `connections` area; the rest need `settings`).
+  const sections = SECTIONS.filter((section) => can(section.permission));
+  // Land on the first section the user can actually see.
   const [active, setActive] = useState(sections[0]?.id || 'forms');
   // Bumped after a sender save. DeliverabilityCard listens and re-reads its
   // "is sender configured?" probe so the Check button enables immediately
@@ -60,9 +63,7 @@ export function SettingsPage({ notify }) {
     <div className="page-stack content-page settings-page">
       <header className="settings-header">
         <h2>Settings</h2>
-        <p className="muted">
-          Your sender setup, sign-up forms, and how bounces and unsubscribes are handled.
-        </p>
+        <p className="muted">Your sender, sign-up forms, and unsubscribe handling.</p>
       </header>
 
       <div className="settings-shell">
@@ -89,7 +90,7 @@ export function SettingsPage({ notify }) {
         </nav>
 
         <div className="settings-content">
-          {active === 'connections' && isAdmin && (
+          {active === 'connections' && can('connections') && (
             <>
               <BrevoApiStatusCard />
               <SenderCard

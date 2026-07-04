@@ -7,6 +7,7 @@ import {
   signupRequest,
 } from '../services/authApi';
 import { setAuthHeader } from '../services/apiClient';
+import { hasArea, hasAnyArea } from '../../shared/permissions.js';
 
 const TOKEN_KEY = 'campaign-suite-token';
 
@@ -97,6 +98,10 @@ export function AuthProvider({ children }) {
     signup,
     logout,
     forgotPassword,
+    // Area-level access checks, driven by the permissions the backend
+    // resolved for this user's role. can('dashboard') is always true.
+    can: (area) => hasArea(user?.permissions, area),
+    canAny: (areas) => hasAnyArea(user?.permissions, areas),
   }), [token, user, hasUsers, openSignup, passwordResetEnabled, bootstrapping]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
