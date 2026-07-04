@@ -31,9 +31,8 @@ export function BounceSyncCard({ notify }) {
         <div>
           <h3>Bounce auto-sync</h3>
           <p className="muted">
-            When Brevo reports a hard bounce, blocked address, or spam
-            complaint, automatically add that email to your unsubscribe
-            list so future campaigns skip it.
+            Auto-suppress hard bounces, blocked addresses, and spam
+            complaints so future sends skip them.
           </p>
         </div>
         <StatusPill ok={enabled} okLabel="On" emptyLabel="Off" />

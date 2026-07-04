@@ -54,8 +54,7 @@ export function UnsubscribeListCard({ notify }) {
         <div>
           <h3>Unsubscribe list</h3>
           <p className="muted">
-            Anyone listed here is skipped on every campaign send, regardless
-            of audience or group.
+            Everyone here is skipped on every send, whatever the audience.
           </p>
         </div>
         <span className="muted settings-count">{items.length} total</span>

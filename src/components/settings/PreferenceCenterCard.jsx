@@ -77,10 +77,8 @@ export function PreferenceCenterCard({ notify }) {
         <div>
           <h3>Preference center</h3>
           <p className="muted">
-            Define topics so recipients can selectively re-subscribe instead
-            of leaving entirely. Categories show as checkboxes on your
-            unsubscribe page. Leave empty to keep the legacy
-            all-or-nothing flow.
+            Topics people can opt out of individually, shown as checkboxes on
+            your unsubscribe page. Leave empty for all-or-nothing.
           </p>
         </div>
         <StatusPill

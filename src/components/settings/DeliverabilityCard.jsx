@@ -53,9 +53,8 @@ export function DeliverabilityCard({ senderEpoch = 0 }) {
         <div>
           <h3><ShieldCheck size={16} aria-hidden="true" /> Deliverability</h3>
           <p className="muted">
-            SPF / DKIM / DMARC for your sender domain. Mail providers use
-            these to decide whether you go to the inbox, spam, or get
-            bounced.
+            Check SPF, DKIM, and DMARC — the records inboxes use to trust
+            your mail.
           </p>
         </div>
         {summary && (

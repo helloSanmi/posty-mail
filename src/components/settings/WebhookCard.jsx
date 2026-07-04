@@ -32,8 +32,8 @@ export function WebhookCard({ notify }) {
           <h3>Outbound webhook</h3>
           <p className="muted">
             Forward <code>campaign.completed</code> and{' '}
-            <code>contact.unsubscribed</code> events to your own endpoint.
-            Zapier, Slack, a CRM, anywhere.
+            <code>contact.unsubscribed</code> events to your endpoint —
+            Zapier, Slack, a CRM.
           </p>
         </div>
         <StatusPill ok={saved} okLabel="Configured" emptyLabel="Not configured" />
