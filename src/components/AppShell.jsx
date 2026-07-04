@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   LogOut, PanelLeft, PanelLeftClose, PanelLeftOpen, Search, X,
 } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { navItems, pageTitles } from '../data/navigation';
 import { useAuth } from '../auth/AuthContext';
 import { DemoBanner } from './DemoBanner';
@@ -16,8 +16,18 @@ const SIDEBAR_COLLAPSED_KEY = 'posty.sidebar.collapsed';
 
 export function AppShell({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Sign out and land on a CLEAN /login. Without the explicit navigate,
+  // clearing the token leaves RequireAuth mounted on the current route
+  // (e.g. /admin), which captures ?redirect=/admin — so the next login
+  // would dump you back on Admin instead of Home.
+  function handleLogout() {
+    logout();
+    navigate('/login', { replace: true });
+  }
   // Collapsed sidebar state. Lazy initializer so we read localStorage
   // once on mount; persisted back via the effect below whenever the
   // user toggles. SSR-safe via the `typeof window` guard so a future
@@ -161,7 +171,7 @@ export function AppShell({ children }) {
             </div>
             <button
               type="button"
-              onClick={logout}
+              onClick={handleLogout}
               aria-label="Sign out"
               title={collapsed ? 'Sign out' : undefined}
             >

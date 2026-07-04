@@ -167,8 +167,7 @@ export function SequencesPage({ notify }) {
         <div>
           <h2>Sequences</h2>
           <p className="muted">
-            Drip campaigns. When a contact gets added to the trigger group, they automatically
-            receive these emails on the schedule below.
+            Automatically email people on a set schedule after they join a group.
           </p>
         </div>
         <button type="button" className="primary" onClick={startNew}>

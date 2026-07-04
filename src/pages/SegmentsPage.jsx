@@ -205,7 +205,7 @@ export function SegmentsPage({ notify }) {
       <header className="segments-header">
         <div>
           <h2>Segments</h2>
-          <p className="muted">Dynamic recipient lists. Rules re-evaluate at send time, so new contacts that match the rules are automatically included.</p>
+          <p className="muted">Saved filters that always reflect whoever currently matches your rules.</p>
         </div>
         <button type="button" className="primary" onClick={startNew}>
           <Plus size={14} aria-hidden="true" /> New segment

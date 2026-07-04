@@ -1593,7 +1593,14 @@
 }
 .sequences-header h2 { margin: 0 0 4px; }
 .sequences-header p { margin: 0; max-width: 60ch; }
-.sequences-header .primary { align-items: center; display: inline-flex; gap: 6px; }
+.sequences-header > div { min-width: 0; }
+.sequences-header .primary {
+  align-items: center;
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 6px;
+  white-space: nowrap;
+}
 .sequences-shell {
   display: grid;
   gap: 16px;
@@ -1855,10 +1862,15 @@
 }
 .segments-header h2 { margin: 0 0 4px; }
 .segments-header p { margin: 0; max-width: 60ch; }
+/* Let the text block shrink/wrap; keep the action button intact so a long
+   description never squishes it. */
+.segments-header > div { min-width: 0; }
 .segments-header .primary {
   align-items: center;
   display: inline-flex;
+  flex-shrink: 0;
   gap: 6px;
+  white-space: nowrap;
 }
 .segments-shell {
   display: grid;

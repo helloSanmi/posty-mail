@@ -77,12 +77,18 @@ export function LoginPage() {
         setConfirmPassword('');
         return;
       }
-      if (isSignup) {
-        await signup(email, password, name);
-      } else {
-        await login(email, password);
-      }
-      const target = searchParams.get('redirect') || '/';
+      const authedUser = isSignup
+        ? await signup(email, password, name)
+        : await login(email, password);
+      // Resume a deep-link if there was one, but never drop someone onto a
+      // page their role can't use (a stale ?redirect=/admin from a prior
+      // session, say) — fall back to Home in that case.
+      let target = searchParams.get('redirect') || '/';
+      const privileged = (
+        (target.startsWith('/admin') && authedUser?.role !== 'admin')
+        || (target.startsWith('/workspaces') && !authedUser?.isSuperAdmin)
+      );
+      if (privileged) target = '/';
       navigate(target, { replace: true });
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Could not complete request');

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MailX, PlugZap, ShieldOff, UserPlus } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 import { BounceSyncCard } from '../components/settings/BounceSyncCard';
 import { BrevoApiStatusCard } from '../components/settings/BrevoApiStatusCard';
 import { DeliverabilityCard } from '../components/settings/DeliverabilityCard';
@@ -18,7 +19,10 @@ const SECTIONS = [
     id: 'connections',
     label: 'Connections',
     icon: PlugZap,
-    blurb: 'Webhooks and outbound integrations.',
+    // Sender identity, deliverability, the Brevo webhook — account-level
+    // plumbing. Admins only; editors never see this section.
+    adminOnly: true,
+    blurb: 'Sender, deliverability, and the provider webhook.',
   },
   {
     id: 'forms',
@@ -41,7 +45,12 @@ const SECTIONS = [
 ];
 
 export function SettingsPage({ notify }) {
-  const [active, setActive] = useState('connections');
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  // Editors don't get the account-level Connections section.
+  const sections = SECTIONS.filter((section) => !section.adminOnly || isAdmin);
+  // Land on the first section the user can actually see (not a hidden one).
+  const [active, setActive] = useState(sections[0]?.id || 'forms');
   // Bumped after a sender save. DeliverabilityCard listens and re-reads its
   // "is sender configured?" probe so the Check button enables immediately
   // after a fresh setup, without a page refresh.
@@ -52,13 +61,13 @@ export function SettingsPage({ notify }) {
       <header className="settings-header">
         <h2>Settings</h2>
         <p className="muted">
-          Wire up integrations and control how the app handles bounces and unsubscribes.
+          Your sender setup, sign-up forms, and how bounces and unsubscribes are handled.
         </p>
       </header>
 
       <div className="settings-shell">
         <nav className="settings-nav" aria-label="Settings sections">
-          {SECTIONS.map((section) => {
+          {sections.map((section) => {
             const Icon = section.icon;
             const isActive = active === section.id;
             return (
@@ -80,7 +89,7 @@ export function SettingsPage({ notify }) {
         </nav>
 
         <div className="settings-content">
-          {active === 'connections' && (
+          {active === 'connections' && isAdmin && (
             <>
               <BrevoApiStatusCard />
               <SenderCard
