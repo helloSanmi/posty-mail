@@ -3721,11 +3721,73 @@
   max-height: 620px;
   min-height: 320px;
   overflow-y: auto;
+  position: relative;
 }
 .visual-editor-surface {
   min-height: 320px;
   outline: none;
-  padding: 2px;
+  /* Left padding reserves the gutter the drag handles live in, so they
+     never overlap the email content. */
+  padding: 2px 2px 2px 30px;
+}
+
+/* Handle + delete overlay — pinned over the surface, click-through except
+   on the controls themselves so the email stays editable underneath. */
+.visual-editor-overlay {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+.visual-editor-section-controls {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+.visual-editor-handle,
+.visual-editor-delete {
+  align-items: center;
+  border-radius: 6px;
+  color: #94a3b8;
+  display: inline-flex;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 0.12s, background 0.12s, color 0.12s;
+}
+.visual-editor-handle {
+  cursor: grab;
+  height: 24px;
+  margin: 4px 0 0 3px;
+  width: 22px;
+}
+.visual-editor-handle:active { cursor: grabbing; }
+.visual-editor-delete {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  height: 24px;
+  margin: 4px 6px 0 0;
+  width: 24px;
+}
+/* Fade the controls in when the pointer is over that section. */
+.visual-editor-section-controls:hover .visual-editor-handle,
+.visual-editor-section-controls:hover .visual-editor-delete {
+  opacity: 1;
+}
+.visual-editor-handle:hover { background: #eef4ff; color: var(--blue); }
+.visual-editor-delete:hover { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+/* Blue insertion line shown while dragging a section. */
+.visual-editor-drop-line {
+  background: var(--blue);
+  border-radius: 2px;
+  height: 3px;
+  left: 28px;
+  pointer-events: none;
+  position: absolute;
+  right: 8px;
 }
 /* Placeholder shown only when the body is genuinely empty (new template). */
 .visual-editor-surface:empty::before {
