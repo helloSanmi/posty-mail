@@ -3709,3 +3709,39 @@
     gap: 4px;
   }
 }
+
+/* WYSIWYG (Visual) email body editor. A scrollable stage holding a
+   contentEditable surface that renders the real email HTML — the user
+   edits the rendered content directly. The email's own inline styles do
+   the visual work; the stage just frames + scrolls it. */
+.visual-editor-stage {
+  background: #f5f7f9;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  max-height: 620px;
+  min-height: 320px;
+  overflow-y: auto;
+}
+.visual-editor-surface {
+  min-height: 320px;
+  outline: none;
+  padding: 2px;
+}
+/* Placeholder shown only when the body is genuinely empty (new template). */
+.visual-editor-surface:empty::before {
+  color: var(--muted);
+  content: attr(data-placeholder);
+  display: block;
+  font-size: 0.95rem;
+  padding: 18px;
+}
+/* A soft focus ring on the stage while editing inside it. */
+.visual-editor-stage:focus-within {
+  border-color: #cfe0fb;
+  box-shadow: 0 0 0 2px rgba(36, 89, 154, 0.12);
+}
+/* Fullscreen: let the stage grow to fill the lifted editor. */
+.body-editor.is-fullscreen .visual-editor-stage {
+  flex: 1;
+  max-height: none;
+}

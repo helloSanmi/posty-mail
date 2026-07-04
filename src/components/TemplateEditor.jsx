@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Copy, Image, Link2, MailMinus, Maximize2, Minimize2, MousePointerClick, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
-import { BlockEditor } from './BlockEditor';
+import { VisualEditor } from './VisualEditor';
 import { CodeArea } from './CodeArea';
 import { EditLinkModal } from './EditLinkModal';
 import { InsertButtonModal } from './InsertButtonModal';
@@ -31,9 +31,9 @@ export function TemplateEditor({
   // Visual vs HTML editor. One visible at a time; the container has a
   // min-height so switching tabs doesn't shift the page vertically. Both
   // panes stay mounted (display toggled in CSS) so state survives a switch.
-  const [editorMode, setEditorMode] = useState(
-    Array.isArray(template?.blocks) && template.blocks.length ? 'visual' : 'html'
-  );
+  // Default to the Visual (WYSIWYG) editor — you edit the rendered email
+  // directly. HTML is the code view for power users.
+  const [editorMode, setEditorMode] = useState('visual');
   const htmlRef = useRef(null);
 
   // Auto-format the HTML so the code view is always pretty-printed — no need
@@ -426,8 +426,11 @@ export function TemplateEditor({
           >
             HTML
           </button>
-          {editorMode === 'html' && (
-            <div className="html-field-tools body-editor-tools">
+          {/* Insert tools work in both modes (they append to the HTML, which
+              the Visual surface re-renders). Format is HTML-only — it
+              pretty-prints the code view. */}
+          <div className="html-field-tools body-editor-tools">
+            {editorMode === 'html' && (
               <button
                 type="button"
                 className="text-button"
@@ -436,30 +439,30 @@ export function TemplateEditor({
               >
                 <Sparkles size={14} aria-hidden="true" /> Format
               </button>
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => setPicker({ mode: 'insert' })}
-              >
-                <Image size={14} aria-hidden="true" /> Image
-              </button>
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => setButtonModalOpen(true)}
-              >
-                <MousePointerClick size={14} aria-hidden="true" /> Button
-              </button>
-              <button
-                type="button"
-                className="text-button"
-                onClick={handleInsertUnsubscribe}
-                title="Insert a styled unsubscribe footer wired to {{unsubscribeUrl}}"
-              >
-                <MailMinus size={14} aria-hidden="true" /> Unsubscribe
-              </button>
-            </div>
-          )}
+            )}
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => setPicker({ mode: 'insert' })}
+            >
+              <Image size={14} aria-hidden="true" /> Image
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => setButtonModalOpen(true)}
+            >
+              <MousePointerClick size={14} aria-hidden="true" /> Button
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              onClick={handleInsertUnsubscribe}
+              title="Insert a styled unsubscribe footer wired to {{unsubscribeUrl}}"
+            >
+              <MailMinus size={14} aria-hidden="true" /> Unsubscribe
+            </button>
+          </div>
           {/* Expand / collapse. Pinned at the far right of the tab strip so
               it stays in the same screen position whether the editor is
               inline or fullscreen. Visible TEXT label alongside the icon
@@ -482,7 +485,10 @@ export function TemplateEditor({
 
         <div className="body-editor-stage">
           <div hidden={editorMode !== 'visual'}>
-            <BlockEditor template={template} setTemplate={setTemplate} />
+            <VisualEditor
+              html={template.html || ''}
+              onChange={(next) => setTemplate({ ...template, html: next })}
+            />
           </div>
           <div hidden={editorMode !== 'html'}>
             <CodeArea
@@ -493,8 +499,8 @@ export function TemplateEditor({
               textareaRef={htmlRef}
             />
             <small className="muted html-field-hint">
-              Tab inserts two spaces. Edits here persist until you change a
-              block in Visual. Brevo wraps every <code>&lt;a href&gt;</code>{' '}
+              Tab inserts two spaces. Visual and HTML edit the same content —
+              switch freely. Brevo wraps every <code>&lt;a href&gt;</code>{' '}
               with click tracking.
             </small>
           </div>
