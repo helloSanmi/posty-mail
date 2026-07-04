@@ -11,7 +11,7 @@ import {
 import { AppShell } from './components/AppShell';
 import { UiProvider, useUi } from './components/UiProvider';
 import { AuthProvider, useAuth } from './auth/AuthContext';
-import { defaultTemplates } from './templates/defaultTemplates';
+import { blankTemplate } from './templates/defaultTemplates';
 import { getSavedContacts } from './services/brevoApi';
 import { DashboardPage } from './pages/DashboardPage';
 import { ContactsPage } from './pages/ContactsPage';
@@ -51,7 +51,7 @@ function ProtectedShell() {
   const { notify } = useUi();
   const [contacts, setContacts] = useState([]);
   const [invalidRows, setInvalidRows] = useState([]);
-  const [template, setTemplate] = useState(defaultTemplates[0]);
+  const [template, setTemplate] = useState(blankTemplate);
   const [refreshTick, setRefreshTick] = useState(0);
   // Bump refreshTick to force a re-fetch of the saved contacts list. Every
   // page that mutates contacts or that needs an up-to-date audience count

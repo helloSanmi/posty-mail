@@ -35,6 +35,27 @@ export function TemplateEditor({
     Array.isArray(template?.blocks) && template.blocks.length ? 'visual' : 'html'
   );
   const htmlRef = useRef(null);
+
+  // Auto-format the HTML so the code view is always pretty-printed — no need
+  // to click "Format" by hand. Runs once on mount (when the editor opens in
+  // HTML mode with content) and again whenever the user switches TO the HTML
+  // tab. We format on tab-switch rather than on every keystroke so it never
+  // fights the cursor while typing.
+  const didAutoFormat = useRef(false);
+  useEffect(() => {
+    if (didAutoFormat.current) return;
+    didAutoFormat.current = true;
+    if (editorMode === 'html' && (template.html || '').trim()) {
+      setTemplate((current) => ({ ...current, html: formatHtml(current.html || '') }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function showHtmlTab() {
+    // Pretty-print on the way in so the HTML always reads cleanly.
+    setTemplate((current) => ({ ...current, html: formatHtml(current.html || '') }));
+    setEditorMode('html');
+  }
   // Expand the body editor (Visual / HTML stage) to fill the viewport. Lets
   // the admin focus on the email body without the page chrome around it.
   const [bodyExpanded, setBodyExpanded] = useState(false);
@@ -220,7 +241,7 @@ export function TemplateEditor({
             subject line in Gmail/Outlook/Apple Mail. Injected at send time
             as a hidden div near the top of the HTML; never visible in the
             rendered email body. Merge tags like {{firstname}} render too. */}
-        <label htmlFor={previewId}>
+        <label htmlFor={previewId} className="template-field-full">
           Preview text
           <input
             id={previewId}
@@ -401,7 +422,7 @@ export function TemplateEditor({
             role="tab"
             aria-selected={editorMode === 'html'}
             className={`body-editor-tab${editorMode === 'html' ? ' is-active' : ''}`}
-            onClick={() => setEditorMode('html')}
+            onClick={showHtmlTab}
           >
             HTML
           </button>

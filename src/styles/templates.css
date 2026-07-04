@@ -99,6 +99,15 @@
 @media (max-width: 720px) {
   .template-edit-grid { grid-template-columns: 1fr; }
 }
+/* Fields that should span the full editor width rather than share a
+   two-column row (Preview text, Reply-to). Keeps Name + Subject paired
+   on the top row while giving the wider fields their own line, so a
+   bordered group like Reply-to never sits lopsided next to a plain
+   input. */
+.template-edit-grid > .template-field-full,
+.template-edit-grid > .template-replyto-fieldset {
+  grid-column: 1 / -1;
+}
 
 .template-field { display: grid; gap: 7px; }
 .template-field-label { color: #4b5563; font-weight: 500; }

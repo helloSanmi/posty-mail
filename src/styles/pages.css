@@ -1919,14 +1919,17 @@
 }
 /* Reply-to fieldset in the template editor. Inline two-column layout
    for email + display-name on wide screens, stacks below 600px so a
-   narrow editor pane still reads cleanly. */
+   narrow editor pane still reads cleanly. Soft tinted background + light
+   border so it reads as a subtle grouped block rather than a heavy box
+   competing with the plain fields around it. */
 .template-replyto-fieldset {
-  border: 1px solid var(--line);
+  background: #fbfcfd;
+  border: 1px solid #eef2f6;
   border-radius: 10px;
   display: grid;
   gap: 10px;
-  grid-template-columns: 1.4fr 1fr;
-  padding: 12px 14px;
+  grid-template-columns: 1fr 1fr;
+  padding: 14px 16px;
 }
 .template-replyto-fieldset legend {
   color: var(--muted);
