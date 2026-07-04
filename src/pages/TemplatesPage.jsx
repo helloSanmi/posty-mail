@@ -3,6 +3,7 @@ import { EmailPreview } from '../components/EmailPreview';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { TemplateEditor } from '../components/TemplateEditor';
 import { TemplateList } from '../components/TemplateList';
+import { GalleryModal } from '../components/GalleryModal';
 import { defaultTemplates } from '../templates/defaultTemplates';
 import { renderTemplate } from '../../shared/campaignUtils.js';
 import {
@@ -29,6 +30,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   // Server-side list of built-in ids the admin has chosen to hide. Empty
   // by default; populated on mount via getHiddenBuiltinTemplates().
   const [hiddenBuiltins, setHiddenBuiltins] = useState(new Set());
@@ -126,6 +128,25 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
     setSaveStatus('');
   }
 
+  // Seed a fresh, unsaved custom template from a gallery design. Same shape
+  // as createTemplate() but pre-filled with the picked design's subject /
+  // preview / HTML. It shows as an unsaved draft until the user hits Save.
+  function startFromGallery(galleryTemplate) {
+    const newTemplate = {
+      id: `custom-${crypto.randomUUID()}`,
+      name: galleryTemplate.name,
+      subject: galleryTemplate.subject || '',
+      previewText: galleryTemplate.previewText || '',
+      html: galleryTemplate.html || '',
+      text: '',
+      logoUrl: '',
+    };
+    setTemplate(newTemplate);
+    writeSelectedTemplateId(newTemplate.id);
+    setSaveStatus('');
+    setGalleryOpen(false);
+  }
+
   async function removeTemplate(templateId) {
     // Backend handles the fork: real DELETE for custom-* rows, write to the
     // hiddenBuiltins Setting for built-ins. Frontend just calls and reflects
@@ -196,6 +217,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
           selectedTemplateId={selectedTemplateId}
           onSelect={selectTemplate}
           onNew={createTemplate}
+          onStartFromGallery={() => setGalleryOpen(true)}
         />
         <section className="template-main">
           <div className="template-tabs-bar">
@@ -253,6 +275,13 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
             await removeTemplate(deleteTarget.id);
             setDeleteTarget(null);
           }}
+        />
+      )}
+
+      {galleryOpen && (
+        <GalleryModal
+          onPick={startFromGallery}
+          onClose={() => setGalleryOpen(false)}
         />
       )}
     </div>

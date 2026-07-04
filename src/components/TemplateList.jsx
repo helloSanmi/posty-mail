@@ -1,10 +1,11 @@
-import { Plus } from 'lucide-react';
+import { LayoutTemplate, Plus } from 'lucide-react';
 
 export function TemplateList({
   templates,
   selectedTemplateId,
   onSelect,
   onNew,
+  onStartFromGallery,
 }) {
   return (
     <aside className="surface template-list-panel">
@@ -13,9 +14,16 @@ export function TemplateList({
           <strong>Templates</strong>
           <span>{templates.length} saved</span>
         </div>
-        <button type="button" className="primary" onClick={onNew}>
-          <Plus size={14} aria-hidden="true" /> New
-        </button>
+        <div className="template-list-actions">
+          {onStartFromGallery && (
+            <button type="button" className="template-gallery-btn" onClick={onStartFromGallery}>
+              <LayoutTemplate size={14} aria-hidden="true" /> Start from a design
+            </button>
+          )}
+          <button type="button" className="primary" onClick={onNew}>
+            <Plus size={14} aria-hidden="true" /> New
+          </button>
+        </div>
       </div>
 
       <label className="template-select-label" htmlFor="template-select">
