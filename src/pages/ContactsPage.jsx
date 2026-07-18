@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import Papa from 'papaparse';
-import { Upload, UserPlus } from 'lucide-react';
+import {
+  Filter, Upload, UserPlus, Users,
+} from 'lucide-react';
 import { AddContactModal } from '../components/AddContactModal';
 import { ContactsTable } from '../components/ContactsTable';
 import { GroupsPanel } from '../components/GroupsPanel';
+import { SegmentsPanel } from '../components/SegmentsPanel';
 import { validateContacts } from '../../shared/campaignUtils.js';
 import {
   getGroups,
@@ -37,6 +40,7 @@ export function ContactsPage({ onParsed, refreshContacts, notify }) {
   const [totalContacts, setTotalContacts] = useState(0);
   const [addOpen, setAddOpen] = useState(false);
   const [groups, setGroups] = useState([]);
+  const [tab, setTab] = useState('contacts'); // 'contacts' | 'segments'
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -261,56 +265,87 @@ export function ContactsPage({ onParsed, refreshContacts, notify }) {
     }
   }
 
+  const TABS = [
+    { id: 'contacts', label: 'Contacts', icon: Users },
+    { id: 'segments', label: 'Segments', icon: Filter },
+  ];
+
   return (
     <div className="page-stack content-page audience-page">
-      <div className="audience-actions">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          title="Upload .csv, .xlsx, or .xls"
-          data-tooltip="CSV, XLSX, or XLS"
-        >
-          <Upload size={14} aria-hidden="true" /> Upload
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          /* Accept CSV plus Excel formats. MIME types are unreliable across
-             OSes (some report 'application/octet-stream' for .xlsx) so we
-             also list the extensions explicitly. The handler does its own
-             extension check to decide which parser to use. */
-          accept={`${ACCEPTED_EXTENSIONS.join(',')},text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel`}
-          onChange={handleFile}
-          style={{ display: 'none' }}
-        />
-        <button
-          type="button"
-          className="primary"
-          onClick={() => setAddOpen(true)}
-        >
-          <UserPlus size={14} aria-hidden="true" /> Add contact
-        </button>
+      <div className="subtabs" role="tablist" aria-label="Audience sections">
+        {TABS.map((item) => {
+          const Icon = item.icon;
+          const isActive = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`subtab${isActive ? ' is-active' : ''}`}
+              onClick={() => setTab(item.id)}
+            >
+              <Icon size={16} aria-hidden="true" />
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="audience-split">
-        <GroupsPanel
-          notify={notify}
-          refreshTick={groupsTick}
-          viewingGroupId={viewingGroupId}
-          onView={setViewingGroupId}
-          totalContacts={totalContacts}
-          onChange={bumpGroups}
-        />
-        <ContactsTable
-          key={refreshTick}
-          notify={notify}
-          groupsRefreshTick={groupsTick}
-          onGroupsChange={bumpGroups}
-          viewingGroupId={viewingGroupId}
-          onClearGroupView={() => setViewingGroupId(null)}
-          onTotalChange={setTotalContacts}
-        />
-      </div>
+      {tab === 'contacts' && (
+        <>
+          <div className="audience-actions">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Upload .csv, .xlsx, or .xls"
+              data-tooltip="CSV, XLSX, or XLS"
+            >
+              <Upload size={14} aria-hidden="true" /> Upload
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              /* Accept CSV plus Excel formats. MIME types are unreliable across
+                 OSes (some report 'application/octet-stream' for .xlsx) so we
+                 also list the extensions explicitly. The handler does its own
+                 extension check to decide which parser to use. */
+              accept={`${ACCEPTED_EXTENSIONS.join(',')},text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel`}
+              onChange={handleFile}
+              style={{ display: 'none' }}
+            />
+            <button
+              type="button"
+              className="primary"
+              onClick={() => setAddOpen(true)}
+            >
+              <UserPlus size={14} aria-hidden="true" /> Add contact
+            </button>
+          </div>
+
+          <div className="audience-split">
+            <GroupsPanel
+              notify={notify}
+              refreshTick={groupsTick}
+              viewingGroupId={viewingGroupId}
+              onView={setViewingGroupId}
+              totalContacts={totalContacts}
+              onChange={bumpGroups}
+            />
+            <ContactsTable
+              key={refreshTick}
+              notify={notify}
+              groupsRefreshTick={groupsTick}
+              onGroupsChange={bumpGroups}
+              viewingGroupId={viewingGroupId}
+              onClearGroupView={() => setViewingGroupId(null)}
+              onTotalChange={setTotalContacts}
+            />
+          </div>
+        </>
+      )}
+
+      {tab === 'segments' && <SegmentsPanel notify={notify} />}
 
       {addOpen && (
         <AddContactModal

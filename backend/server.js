@@ -18,8 +18,6 @@ import { registerCampaignRoutes, restoreCampaignJobs } from './routes/campaigns.
 import { registerContactRoutes } from './routes/contacts.js';
 import { registerNotificationRoutes } from './routes/notifications.js';
 import { registerSegmentRoutes } from './routes/segments.js';
-import { registerSequenceRoutes } from './routes/sequences.js';
-import { registerSequenceRunner } from './lib/sequenceRunner.js';
 import {
   registerIntegrationRoutes,
   registerPublicIntegrationRoutes,
@@ -41,30 +39,36 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
-// Build the CORS allowlist from three sources, in order:
-//   1. Explicit CORS_ORIGIN env (comma-separated). Highest priority, catches anything custom.
-//   2. PUBLIC_BASE_URL. Auto-included so requests from the same host (e.g. when the
-//      tunnel/CDN serves both the API and the frontend) work without extra config.
-//   3. Vite dev server origins. Auto-included in development only.
-// In production we still require at least one of (CORS_ORIGIN, PUBLIC_BASE_URL) to be
-// set explicitly; refusing wide-open CORS if both are missing.
+// Build the CORS allowlist from:
+//   1. Explicit CORS_ORIGIN env (comma-separated). Highest priority.
+//   2. PUBLIC_BASE_URL. Auto-included so requests from the same host (e.g. when
+//      the tunnel/CDN serves both the API and the frontend) work without config.
+// In production we require at least one of those to be set explicitly.
 const corsAllowlist = new Set();
 process.env.CORS_ORIGIN?.split(',').map((value) => value.trim()).filter(Boolean)
   .forEach((origin) => corsAllowlist.add(origin.replace(/\/$/, '')));
 if (process.env.PUBLIC_BASE_URL) {
   corsAllowlist.add(process.env.PUBLIC_BASE_URL.replace(/\/$/, ''));
 }
-if (!isProduction) {
-  corsAllowlist.add('http://localhost:5173');
-  corsAllowlist.add('http://127.0.0.1:5173');
-}
 if (isProduction && corsAllowlist.size === 0) {
   console.error('Set CORS_ORIGIN or PUBLIC_BASE_URL in production. Refusing to start.');
   process.exit(1);
 }
-const corsAllowlistArray = [...corsAllowlist];
+
+// In development, also accept ANY localhost / 127.0.0.1 origin, regardless of
+// port. Vite silently bumps 5173 → 5174 → 5175 when a port is already taken,
+// and a shifted dev port shouldn't turn sign-in into an opaque CORS failure.
+// Production stays strict — only the explicit allowlist above is honored.
+const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 app.use(cors({
-  origin: corsAllowlistArray.length ? corsAllowlistArray : true,
+  origin(origin, callback) {
+    // No Origin header = non-browser / same-origin (curl, server-to-server).
+    if (!origin) { callback(null, true); return; }
+    const normalized = origin.replace(/\/$/, '');
+    const allowed = corsAllowlist.has(normalized)
+      || (!isProduction && LOCALHOST_ORIGIN.test(normalized));
+    callback(null, allowed);
+  },
   credentials: false,
 }));
 
@@ -140,7 +144,6 @@ registerSuperAdminRoutes(app);
 registerContactRoutes(app);
 registerNotificationRoutes(app);
 registerSegmentRoutes(app);
-registerSequenceRoutes(app);
 registerAudienceRoutes(app);
 registerCampaignRoutes(app);
 registerTemplateRoutes(app);
@@ -188,12 +191,6 @@ restoreCampaignJobs().catch((error) => {
 ensureAllAccountsSeeded().catch((error) => {
   console.error('Could not seed account roles', error);
 });
-
-// Drip-sequence runner. Fires every 5 minutes via node-cron; reads
-// SequenceEnrollment rows whose nextRunAt has elapsed and sends the next
-// step. Safe to start unconditionally — if no sequences exist, every tick
-// is a cheap no-op SELECT.
-registerSequenceRunner();
 
 // Catch up on any Brevo events that fired while we were down. Non-blocking.
 // startup is unaffected if Brevo is unreachable. Idempotent thanks to the

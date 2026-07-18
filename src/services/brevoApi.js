@@ -130,36 +130,6 @@ export async function getSegmentContacts(id) {
   return data;
 }
 
-// Drip sequences. A linear chain of templated emails contacts get over time.
-export async function getSequences() {
-  const { data } = await apiClient.get('/api/sequences');
-  return data;
-}
-
-export async function getSequence(id) {
-  const { data } = await apiClient.get(`/api/sequences/${id}`);
-  return data;
-}
-
-export async function saveSequence(sequence) {
-  const { data } = await apiClient.post('/api/sequences', sequence);
-  return data;
-}
-
-export async function deleteSequence(id) {
-  const { data } = await apiClient.delete(`/api/sequences/${id}`);
-  return data;
-}
-
-export async function enrollInSequence(id, emails) {
-  const { data } = await apiClient.post(`/api/sequences/${id}/enroll`, { emails });
-  return data;
-}
-
-export async function getSequenceEnrollments(id) {
-  const { data } = await apiClient.get(`/api/sequences/${id}/enrollments`);
-  return data;
-}
 
 // Read-only preview of an unsaved filter. Used by the composer to show a live
 // "would match N contacts" count and a 25-row sample while the admin builds

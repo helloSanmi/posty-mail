@@ -19,8 +19,6 @@ import { TemplatesPage } from './pages/TemplatesPage';
 import { BuilderPage } from './pages/BuilderPage';
 import { CampaignsPage } from './pages/CampaignsPage';
 import { CampaignDetailPage } from './pages/CampaignDetailPage';
-import { SegmentsPage } from './pages/SegmentsPage';
-import { SequencesPage } from './pages/SequencesPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminPage } from './pages/AdminPage';
@@ -159,14 +157,10 @@ function ProtectedShell() {
           path="/campaigns/:id"
           element={<Guard area="campaigns"><CampaignDetailPage /></Guard>}
         />
-        <Route
-          path="/segments"
-          element={<Guard area="segments"><SegmentsPage notify={notify} /></Guard>}
-        />
-        <Route
-          path="/sequences"
-          element={<Guard area="sequences"><SequencesPage notify={notify} /></Guard>}
-        />
+        {/* Segments moved under Audience; Sequences was removed. Redirect
+            old links so bookmarks don't dead-end. */}
+        <Route path="/segments" element={<Navigate to="/contacts" replace />} />
+        <Route path="/sequences" element={<Navigate to="/" replace />} />
         <Route
           path="/analytics"
           element={<Guard area="analytics"><AnalyticsPage key={refreshTick} /></Guard>}

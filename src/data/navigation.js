@@ -1,14 +1,12 @@
 import {
   BarChart3,
   Building2,
-  Filter,
   Inbox,
   LayoutDashboard,
   MailCheck,
   PlugZap,
   ShieldCheck,
   Users,
-  Workflow,
 } from 'lucide-react';
 
 // `permission` (or `anyPermission`) is an access area from
@@ -25,12 +23,6 @@ export const navItems = [
   },
   {
     id: 'campaigns', path: '/campaigns', label: 'Campaigns', icon: Inbox, permission: 'campaigns',
-  },
-  {
-    id: 'segments', path: '/segments', label: 'Segments', icon: Filter, permission: 'segments',
-  },
-  {
-    id: 'sequences', path: '/sequences', label: 'Sequences', icon: Workflow, permission: 'sequences',
   },
   {
     id: 'analytics', path: '/analytics', label: 'Reports', icon: BarChart3, permission: 'analytics',
@@ -51,10 +43,8 @@ export const pageTitles = {
   '/': { title: 'Home', label: 'Home' },
   '/contacts': { title: 'Audience', label: 'Audience' },
   '/templates': { title: 'Email', label: 'Email' },
-  '/segments': { title: 'Segments', label: 'Segments' },
   '/builder': { title: 'Campaigns', label: 'Campaigns' },
   '/campaigns': { title: 'Campaigns', label: 'Campaigns' },
-  '/sequences': { title: 'Sequences', label: 'Sequences' },
   '/analytics': { title: 'Reports', label: 'Reports' },
   '/settings': { title: 'Settings', label: 'Settings' },
   '/admin': { title: 'Admin', label: 'Admin' },

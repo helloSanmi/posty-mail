@@ -27,7 +27,6 @@ import {
   MailCheck,
   Search,
   Users,
-  Workflow,
   X,
 } from 'lucide-react';
 import {
@@ -36,7 +35,6 @@ import {
   getSavedContacts,
   getSavedTemplates,
   getSegments,
-  getSequences,
 } from '../services/brevoApi';
 
 const RESULT_LIMIT = 5; // per group
@@ -48,7 +46,6 @@ const GROUP_DEFS = [
   { key: 'templates', label: 'Templates', icon: MailCheck },
   { key: 'contacts', label: 'Contacts', icon: Users },
   { key: 'segments', label: 'Segments', icon: Filter },
-  { key: 'sequences', label: 'Sequences', icon: Workflow },
   { key: 'drafts', label: 'Drafts', icon: FileText },
 ];
 
@@ -57,7 +54,7 @@ export function GlobalSearch({ open, onClose }) {
   const inputRef = useRef(null);
   const [query, setQuery] = useState('');
   const [data, setData] = useState({
-    campaigns: [], templates: [], contacts: [], segments: [], sequences: [], drafts: [],
+    campaigns: [], templates: [], contacts: [], segments: [], drafts: [],
   });
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -82,12 +79,11 @@ export function GlobalSearch({ open, onClose }) {
       getCampaigns().catch(() => []),
       getSavedTemplates().catch(() => []),
       getSegments().catch(() => []),
-      getSequences().catch(() => []),
       getDrafts().catch(() => []),
-    ]).then(([campaigns, templates, segments, sequences, drafts]) => {
+    ]).then(([campaigns, templates, segments, drafts]) => {
       if (cancelled) return;
       setData((prev) => ({
-        ...prev, campaigns, templates, segments, sequences, drafts,
+        ...prev, campaigns, templates, segments, drafts,
       }));
     });
     return () => { cancelled = true; };
@@ -158,16 +154,7 @@ export function GlobalSearch({ open, onClose }) {
           id: `segment-${s.id}`,
           label: s.name || 'Untitled segment',
           subtitle: '',
-          path: '/segments',
-        })),
-      sequences: data.sequences
-        .filter((s) => includes(s.name))
-        .slice(0, RESULT_LIMIT)
-        .map((s) => ({
-          id: `sequence-${s.id}`,
-          label: s.name || 'Untitled sequence',
-          subtitle: '',
-          path: '/sequences',
+          path: '/contacts',
         })),
       drafts: data.drafts
         .filter((d) => includes(d.name))
@@ -262,7 +249,7 @@ export function GlobalSearch({ open, onClose }) {
           {!query.trim() ? (
             <p className="global-search-hint muted">
               Start typing to search across campaigns, templates, contacts,
-              segments, sequences, and drafts.
+              segments, and drafts.
             </p>
           ) : groups.length === 0 ? (
             <p className="empty-state compact">

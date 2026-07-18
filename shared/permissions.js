@@ -15,11 +15,9 @@
 // privilege-escalation footgun where a non-admin role could grant itself
 // more power.
 export const AREAS = [
-  { key: 'contacts', label: 'Audience', description: 'View and manage contacts and groups.' },
+  { key: 'contacts', label: 'Audience', description: 'View and manage contacts, groups, and segments.' },
   { key: 'templates', label: 'Email', description: 'Create and edit email templates.' },
   { key: 'campaigns', label: 'Campaigns', description: 'Build, schedule, and send campaigns.' },
-  { key: 'segments', label: 'Segments', description: 'Create and edit saved segments.' },
-  { key: 'sequences', label: 'Sequences', description: 'Set up automated drip sequences.' },
   { key: 'analytics', label: 'Reports', description: 'View campaign performance and analytics.' },
   { key: 'settings', label: 'Settings', description: 'Subscribe forms, bounce handling, and unsubscribes.' },
   { key: 'connections', label: 'Connections', description: 'Sender identity, deliverability, and the provider webhook.' },

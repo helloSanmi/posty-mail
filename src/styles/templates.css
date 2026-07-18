@@ -29,6 +29,8 @@
    topbar, still appears above this bar when it's open. */
 .template-tabs-bar {
   background: var(--bg);
+  display: flex;
+  justify-content: flex-end;
   margin-bottom: 14px;
   padding: 8px 0;
   position: sticky;
@@ -568,29 +570,41 @@
   }
 }
 
-/* Template list header actions — "Start from a design" + "New". */
-.template-list-actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-}
+/* "Start from a design" — a full-width action that anchors the bottom of the
+   template panel so it reads as a clear alternative to the "New" button. */
 .template-gallery-btn {
   align-items: center;
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text);
   cursor: pointer;
-  display: inline-flex;
-  font-size: 0.85rem;
-  font-weight: 500;
-  gap: 6px;
-  padding: 7px 12px;
+  display: flex;
+  font-size: 0.88rem;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 11px 12px;
   transition: background 0.12s, border-color 0.12s;
+  width: 100%;
 }
 .template-gallery-btn:hover { background: #f6f8fc; border-color: #cfd9e7; }
+
+/* Empty state when there are no templates to choose from. */
+.template-empty {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 22px 10px;
+  text-align: center;
+}
+.template-empty svg { color: #b7c2d4; margin-bottom: 2px; }
+.template-empty strong { color: var(--text); font-size: 0.95rem; }
+.template-empty p { font-size: 0.84rem; line-height: 1.45; margin: 0; }
 
 /* Start-from-a-design gallery modal. */
 .gallery-modal {

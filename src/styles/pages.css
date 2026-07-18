@@ -1581,114 +1581,6 @@
   .block-body-row { grid-template-columns: 1fr; }
 }
 
-/* Sequences page. Two-column shell mirroring the Segments page: list of
-   saved sequences on the left, composer on the right. The composer renders
-   a vertical step ladder with arrows between steps. */
-.sequences-page { display: grid; gap: 16px; }
-.sequences-header {
-  align-items: flex-start;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-.sequences-header h2 { margin: 0 0 4px; }
-.sequences-header p { margin: 0; max-width: 60ch; }
-.sequences-header > div { min-width: 0; }
-.sequences-header .primary {
-  align-items: center;
-  display: inline-flex;
-  flex-shrink: 0;
-  gap: 6px;
-  white-space: nowrap;
-}
-.sequences-shell {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: 260px minmax(0, 1fr);
-}
-@media (max-width: 980px) {
-  .sequences-shell { grid-template-columns: 1fr; }
-}
-.sequences-list-pane,
-.sequences-composer { padding: 16px; }
-.sequences-list { display: grid; gap: 4px; list-style: none; margin: 0; padding: 0; }
-.sequence-row {
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
-  cursor: pointer;
-  display: grid;
-  padding: 10px 12px;
-  text-align: left;
-  width: 100%;
-}
-.sequence-row:hover { background: #f1f5fb; }
-.sequence-row.is-active { background: #eef4ff; color: var(--blue); }
-.sequence-row strong { display: block; }
-.sequence-row .muted { font-size: 0.78rem; }
-
-.composer-trigger-row {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 1fr 1fr 1fr;
-}
-.composer-trigger-row > label { display: grid; font-size: 0.86rem; gap: 4px; }
-.composer-trigger-row select { min-height: 34px; }
-@media (max-width: 720px) {
-  .composer-trigger-row { grid-template-columns: 1fr; }
-}
-
-.sequence-steps { display: grid; gap: 4px; list-style: none; margin: 0; padding: 0; }
-.sequence-step {
-  align-items: flex-start;
-  background: #fbfcfd;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 32px minmax(0, 1fr) 32px;
-  padding: 12px;
-}
-.sequence-step-index {
-  align-items: center;
-  background: var(--blue);
-  border-radius: 50%;
-  color: #fff;
-  display: inline-flex;
-  font-weight: 600;
-  height: 26px;
-  justify-content: center;
-  width: 26px;
-}
-.sequence-step-fields { display: grid; gap: 10px; }
-.sequence-step-fields label { display: grid; font-size: 0.86rem; gap: 4px; }
-.sequence-step-fields input,
-.sequence-step-fields select { min-height: 34px; }
-.sequence-step-delay {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-}
-.sequence-step-delay input { max-width: 100px; }
-.sequence-step-remove {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  color: var(--muted);
-  cursor: pointer;
-  display: inline-flex;
-  height: 30px;
-  justify-content: center;
-  width: 30px;
-}
-.sequence-step-remove:hover { background: #fef2f2; color: #9f1d1d; }
-.sequence-step-arrow {
-  color: var(--muted);
-  text-align: center;
-  padding: 2px 0;
-}
-
 /* Demo-mode banner. Sits above everything else (sidebar + workspace). The
    `.app-shell` is a two-column grid so we span both columns explicitly. */
 .demo-banner {
@@ -1853,19 +1745,17 @@
 /* Segments page. Three-column layout: saved list, composer, live preview.
    Collapses to single-column on narrow viewports so the composer stays
    usable on tablets. */
-.segments-page { display: grid; gap: 16px; }
-.segments-header {
-  align-items: flex-start;
+/* Segments now live inside the Audience page's Segments sub-tab, so this is
+   a panel (no page header of its own — the sub-tab labels it). */
+.segments-panel { display: grid; gap: 14px; }
+.segments-panel-head {
+  align-items: center;
   display: flex;
   gap: 12px;
   justify-content: space-between;
 }
-.segments-header h2 { margin: 0 0 4px; }
-.segments-header p { margin: 0; max-width: 60ch; }
-/* Let the text block shrink/wrap; keep the action button intact so a long
-   description never squishes it. */
-.segments-header > div { min-width: 0; }
-.segments-header .primary {
+.segments-panel-head p { margin: 0; max-width: 70ch; min-width: 0; }
+.segments-panel-head .primary {
   align-items: center;
   display: inline-flex;
   flex-shrink: 0;
@@ -2844,6 +2734,47 @@
 .admin-user-info .muted { font-size: 0.82rem; }
 .admin-user-actions { align-items: center; display: flex; gap: 4px; }
 
+/* Admin page: header + underline sub-tabs (Team / Roles / Activity) */
+.admin-header { display: grid; gap: 4px; }
+.admin-header h2 { margin: 0; }
+.admin-header .muted { margin: 0; }
+
+.subtabs {
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+}
+.subtab {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 600;
+  gap: 8px;
+  margin-bottom: -1px;
+  padding: 11px 14px;
+  transition: color 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+}
+.subtab:hover { color: var(--text); }
+.subtab.is-active { border-bottom-color: var(--blue); color: var(--blue); }
+.subtab-count {
+  background: #eef2f8;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-width: 20px;
+  padding: 1px 7px;
+  text-align: center;
+}
+.subtab.is-active .subtab-count { background: #e6efff; color: var(--blue); }
+
 /* Roles & access (Admin page) */
 .roles-list {
   display: grid;
@@ -2942,16 +2873,23 @@
   background: transparent;
   border: 0;
   border-radius: 6px;
+  bottom: 0;
   color: var(--muted);
   cursor: pointer;
   display: inline-flex;
   height: 28px;
   justify-content: center;
+  /* Center vertically with auto margins (top:0/bottom:0 + fixed height)
+     instead of transform:translateY(-50%). The global button:active rule
+     applies transform:scale(.97) on press, which would REPLACE a centering
+     transform and make the icon jump down mid-click. Auto-margin centering
+     keeps transform free for the press animation. */
+  margin: auto 0;
+  min-height: 0; /* override the global button min-height:38px */
   padding: 0;
   position: absolute;
   right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
   width: 28px;
 }
 .password-input-toggle:hover { background: #f1f5fb; color: var(--blue); }

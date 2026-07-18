@@ -1,7 +1,7 @@
 // No starter templates. Each workspace builds its own from scratch via the
 // "New" button in the Email editor. Kept as an empty export so the existing
-// import sites (main.jsx, BuilderPage, TemplatesPage, SequencesPage,
-// backend hidden-builtins logic) keep working without changes — they all
+// import sites (main.jsx, BuilderPage, TemplatesPage, backend
+// hidden-builtins logic) keep working without changes — they all
 // spread or filter this array, which is a harmless no-op when empty.
 export const defaultTemplates = [];
 

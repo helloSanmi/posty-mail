@@ -508,22 +508,24 @@ nav button.active, nav .nav-link.active {
 .toast.error { background: #8a1f1f; }
 
 .auth-shell {
-  align-items: center;
   /* Soft brand-tinted gradient so the auth screen doesn't read as a
      bare white page. Subtle — the card still carries the focus. */
   background:
     radial-gradient(1200px 600px at 50% -10%, #eaf1fc 0%, transparent 60%),
     #f5f7f9;
   display: flex;
-  justify-content: center;
   min-height: 100vh;
-  padding: 24px;
+  padding: 40px 24px;
 }
 .auth-card {
   border-radius: 16px;
   box-shadow: 0 18px 48px rgba(15, 23, 42, 0.10);
   display: grid;
   gap: 22px;
+  /* margin:auto centers the card on BOTH axes when it fits, and — unlike
+     flex align-items:center — lets it scroll cleanly (top reachable) when
+     the card is taller than a short window instead of clipping. */
+  margin: auto;
   max-width: 400px;
   padding: 32px 30px;
   width: 100%;
@@ -566,6 +568,7 @@ nav button.active, nav .nav-link.active {
   min-height: 42px;
 }
 .auth-form button.primary {
+  justify-content: center;
   margin-top: 14px;
   min-height: 44px;
 }

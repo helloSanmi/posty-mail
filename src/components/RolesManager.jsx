@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import {
-  Lock, Pencil, Plus, ShieldCheck, Trash2, X,
+  Lock, Pencil, Plus, Trash2, X,
 } from 'lucide-react';
 import { AREAS } from '../../shared/permissions.js';
 import {
@@ -70,10 +70,7 @@ export function RolesManager({ notify, onRolesChanged }) {
     <section className="surface">
       <div className="section-heading">
         <div>
-          <h2>
-            <ShieldCheck size={16} aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 6 }} />
-            Roles &amp; access
-          </h2>
+          <h3>Roles &amp; access</h3>
           <span className="muted">What each role can open. Assign roles in Team members.</span>
         </div>
         <button type="button" className="primary" onClick={() => setEditing({ create: true })}>

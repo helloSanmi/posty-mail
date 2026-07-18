@@ -89,10 +89,11 @@ const RULES = [
   // Content areas — gate writes only; reads stay open for cross-area use.
   ['/contacts', 'contacts', GATE_WRITE],
   ['/audiences', 'contacts', GATE_WRITE],
+  // Segments live under the Audience page now, so they share the `contacts`
+  // area. (/api/sequences is no longer registered — the feature was removed.)
+  ['/segments', 'contacts', GATE_WRITE],
   ['/templates', 'templates', GATE_WRITE],
   ['/campaigns', 'campaigns', GATE_WRITE],
-  ['/segments', 'segments', GATE_WRITE],
-  ['/sequences', 'sequences', GATE_WRITE],
   // General settings (forms, bounce handling, unsubscribes, preference
   // center). More specific /settings/sender + /integrations/webhook rules
   // above win for the connections bits.

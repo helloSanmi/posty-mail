@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pencil, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
+import {
+  Pencil, ScrollText, ShieldCheck, Trash2, UserPlus, Users,
+} from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import {
   createAdminUser,
@@ -22,6 +24,7 @@ export function AdminPage({ notify }) {
   const [confirm, setConfirm] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [tab, setTab] = useState('team'); // 'team' | 'roles' | 'activity'
   const isAdmin = can('admin');
 
   const roleName = useMemo(
@@ -100,83 +103,126 @@ export function AdminPage({ notify }) {
     });
   }
 
+  const TABS = [
+    { id: 'team', label: 'Team members', icon: Users, count: users.length },
+    { id: 'roles', label: 'Roles & access', icon: ShieldCheck, count: roles.length },
+    { id: 'activity', label: 'Activity log', icon: ScrollText },
+  ];
+
   return (
-    <div className="page-stack content-page">
-      <section className="surface">
-        <div className="section-heading">
-          <div>
-            <h2><ShieldCheck size={16} aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 6 }} />Team members</h2>
-            <span className="muted">{users.length} {users.length === 1 ? 'member' : 'members'}</span>
+    <div className="page-stack content-page admin-page">
+      <header className="admin-header">
+        <h2>Admin</h2>
+        <p className="muted">Manage your team, what each role can access, and recent activity.</p>
+      </header>
+
+      <div className="subtabs" role="tablist" aria-label="Admin sections">
+        {TABS.map((item) => {
+          const Icon = item.icon;
+          const isActive = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`subtab${isActive ? ' is-active' : ''}`}
+              onClick={() => setTab(item.id)}
+            >
+              <Icon size={16} aria-hidden="true" />
+              {item.label}
+              {typeof item.count === 'number' && (
+                <span className="subtab-count">{item.count}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === 'team' && (
+        <section className="surface">
+          <div className="section-heading">
+            <div>
+              <h3>Team members</h3>
+              <span className="muted">{users.length} {users.length === 1 ? 'member' : 'members'}</span>
+            </div>
+            <button type="button" className="primary" onClick={() => setCreateOpen(true)}>
+              <UserPlus size={14} aria-hidden="true" /> Add user
+            </button>
           </div>
-          <button type="button" className="primary" onClick={() => setCreateOpen(true)}>
-            <UserPlus size={14} aria-hidden="true" /> Add user
-          </button>
-        </div>
 
-        {users.length === 0 ? (
-          <p className="empty-state">No users yet.</p>
-        ) : (
-          <ul className="admin-user-list">
-            {users.map((item) => (
-              <li key={item.id}>
-                <div className="admin-user-info">
-                  <strong>{item.name || item.email}</strong>
-                  <span className="muted">{item.email}</span>
-                </div>
-                <span className={`pill ${rolePill(item.role)}`}>{roleName[item.role] || item.role}</span>
-                <div className="admin-user-actions">
-                  <button
-                    type="button"
-                    className="row-action"
-                    onClick={() => setEditing(item)}
-                    title="Edit user"
-                    aria-label={`Edit ${item.email}`}
-                  >
-                    <Pencil size={14} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    className="row-action row-action-danger"
-                    disabled={item.id === user.id}
-                    onClick={() => confirmDelete(item)}
-                    title={item.id === user.id ? "You can't delete yourself" : 'Delete user'}
-                    aria-label={`Delete ${item.email}`}
-                  >
-                    <Trash2 size={14} aria-hidden="true" />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          {users.length === 0 ? (
+            <p className="empty-state">No users yet.</p>
+          ) : (
+            <ul className="admin-user-list">
+              {users.map((item) => (
+                <li key={item.id}>
+                  <div className="admin-user-info">
+                    <strong>{item.name || item.email}</strong>
+                    <span className="muted">{item.email}</span>
+                  </div>
+                  <span className={`pill ${rolePill(item.role)}`}>{roleName[item.role] || item.role}</span>
+                  <div className="admin-user-actions">
+                    <button
+                      type="button"
+                      className="row-action"
+                      onClick={() => setEditing(item)}
+                      title="Edit user"
+                      aria-label={`Edit ${item.email}`}
+                    >
+                      <Pencil size={14} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="row-action row-action-danger"
+                      disabled={item.id === user.id}
+                      onClick={() => confirmDelete(item)}
+                      title={item.id === user.id ? "You can't delete yourself" : 'Delete user'}
+                      aria-label={`Delete ${item.email}`}
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
-      <RolesManager notify={notify} onRolesChanged={reloadRoles} />
+      {tab === 'roles' && (
+        <RolesManager notify={notify} onRolesChanged={reloadRoles} />
+      )}
 
-      <section className="surface">
-        <div className="section-heading">
-          <h2>Activity log</h2>
-          <button type="button" onClick={() => getAuditLogs({ limit: 50 }).then(setLogs)}>
-            Refresh
-          </button>
-        </div>
-        {logs.length === 0 ? (
-          <p className="empty-state">No activity yet.</p>
-        ) : (
-          <ul className="audit-list">
-            {logs.map((log) => (
-              <li key={log.id}>
-                <span className="audit-time">{formatTime(log.createdAt)}</span>
-                <span className="audit-user">{log.userEmail || '-'}</span>
-                <span className="audit-action">{log.action}</span>
-                <span className="audit-resource">
-                  {log.resource}{log.resourceId ? `:${log.resourceId.slice(0, 8)}` : ''}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {tab === 'activity' && (
+        <section className="surface">
+          <div className="section-heading">
+            <div>
+              <h3>Activity log</h3>
+              <span className="muted">The most recent changes in this workspace.</span>
+            </div>
+            <button type="button" onClick={() => getAuditLogs({ limit: 50 }).then(setLogs)}>
+              Refresh
+            </button>
+          </div>
+          {logs.length === 0 ? (
+            <p className="empty-state">No activity yet.</p>
+          ) : (
+            <ul className="audit-list">
+              {logs.map((log) => (
+                <li key={log.id}>
+                  <span className="audit-time">{formatTime(log.createdAt)}</span>
+                  <span className="audit-user">{log.userEmail || '-'}</span>
+                  <span className="audit-action">{log.action}</span>
+                  <span className="audit-resource">
+                    {log.resource}{log.resourceId ? `:${log.resourceId.slice(0, 8)}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {createOpen && (
         <CreateUserModal

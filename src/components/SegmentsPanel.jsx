@@ -51,7 +51,7 @@ function emptyRule() {
   return { field: 'email', op: 'contains', value: '' };
 }
 
-export function SegmentsPage({ notify }) {
+export function SegmentsPanel({ notify }) {
   const [segments, setSegments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState([]);
@@ -201,16 +201,16 @@ export function SegmentsPage({ notify }) {
   }
 
   return (
-    <div className="page-stack content-page segments-page">
-      <header className="segments-header">
-        <div>
-          <h2>Segments</h2>
-          <p className="muted">Saved filters that always reflect whoever currently matches your rules.</p>
-        </div>
+    <div className="segments-panel">
+      <div className="segments-panel-head">
+        <p className="muted">
+          Saved filters that always reflect whoever currently matches your rules —
+          handy as a campaign audience.
+        </p>
         <button type="button" className="primary" onClick={startNew}>
           <Plus size={14} aria-hidden="true" /> New segment
         </button>
-      </header>
+      </div>
 
       <section className="segments-shell">
         <aside className="surface segments-list-pane">
