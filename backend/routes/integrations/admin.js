@@ -32,6 +32,8 @@ import {
 } from '../../lib/db.js';
 import { recordAudit } from '../../lib/audit.js';
 import { detectImageType, SAFE_IMAGE_EXTENSIONS } from '../../lib/imageType.js';
+import { requirePermission } from '../../lib/permissions.js';
+import { getSetupStatus } from '../../lib/setupStatus.js';
 import { validate, z } from '../../lib/validate.js';
 import { asyncRoute } from '../../utils/store.js';
 import {
@@ -54,12 +56,27 @@ const logoSchema = z.object({
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
 export function registerIntegrationRoutes(app, { logoRoot, publicBaseUrl }) {
+  registerSetupStatus(app);
   registerWebhookConfig(app);
   registerBounceSync(app);
   registerEventsFeed(app);
   registerLogoAssets(app, { logoRoot, publicBaseUrl });
   registerUnsubscribeAdmin(app);
   registerPreferenceCategories(app);
+}
+
+// GET /api/settings/status — "can this install send?" aggregate: provider key
+// validity, sender identity + verification, webhook. Reveals provider config,
+// so it's gated on the `connections` area (the general /settings read gate
+// would otherwise leave it open). Powers the Setup status card.
+function registerSetupStatus(app) {
+  app.get(
+    '/api/settings/status',
+    requirePermission('connections'),
+    asyncRoute(async (_req, res) => {
+      res.json(await getSetupStatus());
+    }),
+  );
 }
 
 function registerWebhookConfig(app) {

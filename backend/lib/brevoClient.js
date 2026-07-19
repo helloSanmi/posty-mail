@@ -24,6 +24,10 @@ export function fetchVerifiedSenders() {
   return getProvider().fetchVerifiedSenders();
 }
 
+export function checkAccount() {
+  return getProvider().checkAccount();
+}
+
 export function fetchMetrics(campaignId) {
   return getProvider().fetchMetrics(campaignId);
 }

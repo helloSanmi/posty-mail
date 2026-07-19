@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { prisma } from './lib/db.js';
 import { requireAuth } from './lib/auth.js';
 import { attachPermissions, permissionGate, ensureAllAccountsSeeded } from './lib/permissions.js';
+import { logProviderStatus } from './lib/setupStatus.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerRoleRoutes } from './routes/roles.js';
@@ -202,6 +203,11 @@ restoreCampaignJobs().catch((error) => {
 ensureAllAccountsSeeded().catch((error) => {
   console.error('Could not seed account roles', error);
 });
+
+// Boot-time provider check: logs whether the email provider key actually
+// WORKS (not just that it's set) + a sender-verification warning, so a bad
+// config is obvious at startup instead of only at send time. Non-blocking.
+logProviderStatus();
 
 // Catch up on any Brevo events that fired while we were down. Non-blocking.
 // startup is unaffected if Brevo is unreachable. Idempotent thanks to the

@@ -187,6 +187,14 @@ async function fetchVerifiedSenders() {
   }));
 }
 
+// Cheapest authenticated call — verifies the API key actually WORKS (not
+// just that it's set). Throws (mapped to 502 by brevoFetch) when the key is
+// rejected; returns the account body when valid; returns the dry-run stub
+// when no key is configured.
+async function checkAccount() {
+  return brevoFetch('/account');
+}
+
 async function fetchMetrics(campaignId) {
   if (!hasBrevoKey()) {
     return {
@@ -212,4 +220,5 @@ export const BrevoProvider = {
   fetchTransactionalEvents,
   fetchVerifiedSenders,
   fetchMetrics,
+  checkAccount,
 };

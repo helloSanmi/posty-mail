@@ -737,6 +737,58 @@
   font-size: 0.92em;
   padding: 1px 5px;
 }
+
+/* Setup status card — the "can this install send?" checklist. */
+.setup-head-right { align-items: center; display: flex; flex-shrink: 0; gap: 8px; }
+.setup-pill { font-weight: 600; }
+.setup-pill.setup-ok { background: #e7f6ec; color: #16794a; }
+.setup-pill.setup-warn { background: #fdf3e2; color: #9a5b13; }
+.setup-pill.setup-bad { background: #fdecec; color: #a12626; }
+.setup-refresh {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  min-height: 0;
+  padding: 0;
+  width: 30px;
+}
+.setup-refresh:hover:not(:disabled) { background: #f1f5fb; color: var(--blue); }
+.setup-refresh .is-spinning { animation: setup-spin 0.8s linear infinite; }
+@keyframes setup-spin { to { transform: rotate(360deg); } }
+
+.setup-checklist { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.setup-row {
+  align-items: flex-start;
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  padding: 10px 8px;
+}
+.setup-row + .setup-row { border-top: 1px solid #f1f4f8; border-radius: 0; }
+.setup-row-icon {
+  align-items: center;
+  border-radius: 50%;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+.setup-ok .setup-row-icon { background: #e7f6ec; color: #16794a; }
+.setup-warn .setup-row-icon { background: #fdf3e2; color: #9a5b13; }
+.setup-bad .setup-row-icon { background: #fdecec; color: #a12626; }
+.setup-muted .setup-row-icon { background: #eef1f6; color: #8a97a8; }
+.setup-row-main { display: grid; gap: 3px; min-width: 0; }
+.setup-row-top { align-items: baseline; display: flex; flex-wrap: wrap; gap: 8px; }
+.setup-row-top strong { font-size: 0.9rem; }
+.setup-row-value { color: var(--muted); font-size: 0.84rem; word-break: break-word; }
+.setup-row-hint { font-size: 0.8rem; line-height: 1.4; }
 /* Deliverability card. Three rows (SPF / DKIM / DMARC) each with a pass/
    warn/fail pill, a one-line message, an optional hint, and either the
    actual TXT record or an example to paste at the DNS provider. */

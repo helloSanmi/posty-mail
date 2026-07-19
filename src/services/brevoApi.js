@@ -8,6 +8,13 @@ export async function getHealth() {
   return data;
 }
 
+// Aggregate "can this install send?" status: provider key validity, sender
+// identity + verification, webhook. Admin/connections-gated.
+export async function getSetupStatus() {
+  const { data } = await apiClient.get('/api/settings/status');
+  return data;
+}
+
 export async function getSenderSetting() {
   const { data } = await apiClient.get('/api/settings/sender');
   return data;

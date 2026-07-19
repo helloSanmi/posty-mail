@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { MailX, PlugZap, ShieldOff, UserPlus } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { BounceSyncCard } from '../components/settings/BounceSyncCard';
-import { BrevoApiStatusCard } from '../components/settings/BrevoApiStatusCard';
+import { SetupStatusCard } from '../components/settings/SetupStatusCard';
 import { DeliverabilityCard } from '../components/settings/DeliverabilityCard';
 import { PreferenceCenterCard } from '../components/settings/PreferenceCenterCard';
 import { SenderCard } from '../components/settings/SenderCard';
@@ -92,7 +92,7 @@ export function SettingsPage({ notify }) {
         <div className="settings-content">
           {active === 'connections' && can('connections') && (
             <>
-              <BrevoApiStatusCard />
+              <SetupStatusCard />
               <SenderCard
                 notify={notify}
                 onChange={() => setSenderEpoch((n) => n + 1)}
