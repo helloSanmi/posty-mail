@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { getSenderSetting } from '../services/brevoApi';
+import { useAuth } from '../auth/AuthContext';
 
 // First-run + ongoing onboarding checklist.
 //
@@ -34,8 +35,14 @@ const DISMISS_KEY = 'posty:onboarding-dismissed';
 
 export function OnboardingChecklist({ mode = 'full', contacts, campaigns }) {
   const navigate = useNavigate();
+  const { can } = useAuth();
+  // The sender lives behind the account-level Connections area. Only fetch +
+  // show that step for users who can actually configure it — otherwise the
+  // (connections-gated) sender request 403s and pops a scary "no access"
+  // toast on the dashboard for editors, who can't act on it anyway.
+  const canManageSender = can('connections');
   const [senderEffective, setSenderEffective] = useState(null);
-  const [senderLoaded, setSenderLoaded] = useState(false);
+  const [senderLoaded, setSenderLoaded] = useState(!canManageSender);
   const [dismissed, setDismissed] = useState(() => {
     try {
       return localStorage.getItem(DISMISS_KEY) === '1';
@@ -45,6 +52,7 @@ export function OnboardingChecklist({ mode = 'full', contacts, campaigns }) {
   });
 
   useEffect(() => {
+    if (!canManageSender) return undefined;
     let cancelled = false;
     getSenderSetting()
       .then((data) => {
@@ -61,10 +69,10 @@ export function OnboardingChecklist({ mode = 'full', contacts, campaigns }) {
         if (!cancelled) setSenderLoaded(true);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [canManageSender]);
 
   const steps = [
-    {
+    ...(canManageSender ? [{
       id: 'sender',
       icon: Mail,
       label: 'Configure sender',
@@ -74,7 +82,7 @@ export function OnboardingChecklist({ mode = 'full', contacts, campaigns }) {
       done: Boolean(senderEffective),
       cta: 'Open Settings',
       go: () => navigate('/settings'),
-    },
+    }] : []),
     {
       id: 'audience',
       icon: Users,
@@ -165,7 +173,7 @@ export function OnboardingChecklist({ mode = 'full', contacts, campaigns }) {
       <div className="onboarding-card-head">
         <div>
           <span className="eyebrow muted">Welcome to Posty</span>
-          <h2>{allDone ? 'You\'re all set up.' : 'Three steps to your first send.'}</h2>
+          <h2>{allDone ? 'You\'re all set up.' : `${steps.length} steps to your first send.`}</h2>
           <p className="muted">
             {allDone
               ? 'Send another campaign or check your reports.'
