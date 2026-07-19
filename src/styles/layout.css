@@ -507,6 +507,15 @@ nav button.active, nav .nav-link.active {
 
 .toast.error { background: #8a1f1f; }
 
+/* Fallback shown while a lazily-loaded route chunk downloads. Kept minimal
+   so route changes don't flash a heavy spinner. */
+.route-loading {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 48px 24px;
+  text-align: center;
+}
+
 .auth-shell {
   /* Soft brand-tinted gradient so the auth screen doesn't read as a
      bare white page. Subtle — the card still carries the focus. */

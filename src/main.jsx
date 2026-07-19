@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+  Suspense, lazy, useCallback, useEffect, useState,
+} from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   BrowserRouter,
@@ -13,18 +15,24 @@ import { UiProvider, useUi } from './components/UiProvider';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { blankTemplate } from './templates/defaultTemplates';
 import { getSavedContacts } from './services/brevoApi';
-import { DashboardPage } from './pages/DashboardPage';
-import { ContactsPage } from './pages/ContactsPage';
-import { TemplatesPage } from './pages/TemplatesPage';
-import { BuilderPage } from './pages/BuilderPage';
-import { CampaignsPage } from './pages/CampaignsPage';
-import { CampaignDetailPage } from './pages/CampaignDetailPage';
-import { AnalyticsPage } from './pages/AnalyticsPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { AdminPage } from './pages/AdminPage';
-import { WorkspacesPage } from './pages/WorkspacesPage';
+// LoginPage stays eager — it's the first paint for signed-out users, so
+// lazy-loading it would only add a flash. Every in-app page is split into
+// its own chunk (loaded on navigation) so the initial bundle is small.
+// The pages are named exports, so map them onto `default` for React.lazy.
 import { LoginPage } from './pages/LoginPage';
 import './styles.css';
+
+const named = (loader, name) => lazy(() => loader().then((m) => ({ default: m[name] })));
+const DashboardPage = named(() => import('./pages/DashboardPage'), 'DashboardPage');
+const ContactsPage = named(() => import('./pages/ContactsPage'), 'ContactsPage');
+const TemplatesPage = named(() => import('./pages/TemplatesPage'), 'TemplatesPage');
+const BuilderPage = named(() => import('./pages/BuilderPage'), 'BuilderPage');
+const CampaignsPage = named(() => import('./pages/CampaignsPage'), 'CampaignsPage');
+const CampaignDetailPage = named(() => import('./pages/CampaignDetailPage'), 'CampaignDetailPage');
+const AnalyticsPage = named(() => import('./pages/AnalyticsPage'), 'AnalyticsPage');
+const SettingsPage = named(() => import('./pages/SettingsPage'), 'SettingsPage');
+const AdminPage = named(() => import('./pages/AdminPage'), 'AdminPage');
+const WorkspacesPage = named(() => import('./pages/WorkspacesPage'), 'WorkspacesPage');
 
 function RequireAuth({ children }) {
   const { token, user, bootstrapping } = useAuth();
@@ -105,7 +113,8 @@ function ProtectedShell() {
 
   return (
     <AppShell>
-      <Routes>
+      <Suspense fallback={<div className="route-loading" role="status">Loading…</div>}>
+        <Routes>
         <Route
           index
           element={
@@ -177,8 +186,9 @@ function ProtectedShell() {
           path="/workspaces"
           element={<Guard superAdmin><WorkspacesPage notify={notify} /></Guard>}
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </AppShell>
   );
 }
