@@ -36,6 +36,17 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 app.set('trust proxy', 1);
 app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      // Email previews render arbitrary sender HTML, which routinely pulls
+      // images from remote hosts. Helmet's default `img-src 'self' data:`
+      // blocks those, so the preview shows broken images. Allow https + data.
+      // (Note: <iframe> in email content stays blocked by default-src — email
+      // clients strip iframes anyway, so the preview matches real inboxes.)
+      'img-src': ["'self'", 'data:', 'https:'],
+    },
+  },
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 

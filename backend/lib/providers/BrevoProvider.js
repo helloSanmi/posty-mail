@@ -40,8 +40,19 @@ async function brevoFetch(path, options = {}) {
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const error = new Error(body.message || `Brevo request failed with ${response.status}`);
-    error.status = response.status;
+    // A 401/403 from Brevo means OUR API key is bad/expired ("Key not
+    // found") — a server-config problem, NOT the user's session. Never
+    // forward it as an app 401: the frontend treats a 401 as "your login
+    // expired" and logs the user out. Map provider auth failures to 502
+    // (Bad Gateway) with a message that points at the real cause, so the
+    // user sees an error toast and stays signed in.
+    const authFailure = response.status === 401 || response.status === 403;
+    const message = authFailure
+      ? `Email provider rejected the API key${body.message ? ` (${body.message})` : ''}. Check BREVO_API_KEY.`
+      : (body.message || `Brevo request failed with ${response.status}`);
+    const error = new Error(message);
+    error.status = authFailure ? 502 : response.status;
+    error.providerStatus = response.status;
     error.body = body;
     throw error;
   }
