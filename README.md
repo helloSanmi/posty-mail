@@ -78,9 +78,41 @@ All listed in `.env.example` with inline notes. The ones that matter most:
 | `BREVO_API_KEY` | Brevo transactional key. Without it, sends are dry-runs (logged, not delivered). |
 | `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` | "From" identity. The email must be a verified sender in Brevo. |
 | `BREVO_WEBHOOK_TOKEN` *or* `BREVO_WEBHOOK_SECRET` | Verifies incoming Brevo webhooks. One is required in production. |
-| `CORS_ORIGIN` | Extra origins to allow. `PUBLIC_BASE_URL` is auto-allowed; in dev `localhost:5173` is too. Only set this when you need *additional* origins. |
+| `CORS_ORIGIN` | Extra origins to allow. `PUBLIC_BASE_URL` is auto-allowed; in dev **any `localhost` / `127.0.0.1` port** is allowed automatically (so a shifted Vite port doesn't break sign-in). Only set this when you need *additional* origins. |
 | `ALLOW_OPEN_SIGNUP` | `false` (default) → only first user signs up freely; rest are admin-created. |
 | `ALLOW_PASSWORD_RESET` | `false` disables the public reset endpoint; admins reset via the user modal. |
+
+---
+
+## Troubleshooting sends
+
+**Check the startup log first.** On boot the backend prints one line about the provider:
+
+```
+[setup] Email provider: key OK (account you@example.com, free plan).
+```
+
+or, if something's wrong:
+
+```
+[setup] Email provider: API KEY REJECTED — Email provider rejected the API key (Key not found)…
+[setup] Tip: a BREVO_API_KEY exported in your shell overrides .env …
+```
+
+There's also a live **Setup status** card in **Settings → Connections** (key valid? · sender configured? · sender verified? · webhook?).
+
+**"Key not found" even though `.env` looks right.** `dotenv` never overrides a variable that's *already set* in the environment — so a stale `BREVO_API_KEY` exported in your shell (or cached by a process manager) wins over `.env`. In the terminal where you run the app:
+
+```bash
+echo "$BREVO_API_KEY"     # if this prints anything, it's overriding .env
+unset BREVO_API_KEY       # clear it, then restart
+```
+
+With **pm2**, env is cached across restarts — after editing `.env` run `pm2 restart posty --update-env`.
+
+**Nothing is delivered (everything "sends" but no email arrives).** No `BREVO_API_KEY` set, or `DEMO_MODE` on → the app runs in **dry-run** (sends are logged, not delivered). The startup log and the Setup status card both say so.
+
+**Emails bounce or land in spam.** Your `BREVO_SENDER_EMAIL` must be a **verified sender** (or on an authenticated domain) in Brevo. The Setup status card flags an unverified sender, and the campaign builder warns before you send.
 
 ---
 
