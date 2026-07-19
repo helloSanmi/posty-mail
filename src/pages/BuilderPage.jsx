@@ -10,6 +10,7 @@ import { SendReview } from '../components/SendReview';
 import { VariantsEditor } from '../components/VariantsEditor';
 import { defaultTemplates } from '../templates/defaultTemplates';
 import { chunkContacts, complianceIssues } from '../../shared/campaignUtils.js';
+import { readinessToChecks } from '../utils/sendReadiness';
 import {
   deleteDraft,
   getGroupContacts,
@@ -18,6 +19,7 @@ import {
   getSavedTemplates,
   getSegmentContacts,
   getSegments,
+  getSendReadiness,
   preflightCampaign,
   saveDraft,
   scheduleCampaign,
@@ -98,6 +100,10 @@ export function BuilderPage(props) {
   // changes; cleared while a new fetch is in flight.
   const [preflight, setPreflight] = useState(null);
   const preflightTimerRef = useRef(null);
+  // Send readiness (provider key working? sender configured + verified?),
+  // fetched once. Surfaced as pre-send checks so a rejected key / unverified
+  // sender is caught here rather than as a silent failure at send time.
+  const [readiness, setReadiness] = useState(null);
   // Inbox-preview modal open/closed.
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -114,7 +120,13 @@ export function BuilderPage(props) {
   const held = heldList.length;
   const readyContacts = readyList.length;
   const canSchedule = readyContacts > 0;
-  const preflightErrors = (preflight?.checks || []).filter((c) => c.severity === 'error');
+  // Combine template lint (from the backend) with send-readiness checks so
+  // both show in one panel and both can block Send on error severity.
+  const allChecks = useMemo(
+    () => [...readinessToChecks(readiness), ...(preflight?.checks || [])],
+    [readiness, preflight],
+  );
+  const preflightErrors = allChecks.filter((c) => c.severity === 'error');
   const hasPreflightErrors = preflightErrors.length > 0;
   // Send button is only enabled once every required field has been touched
   // AND the pre-send checklist has no error-severity rows. We keep validation
@@ -143,6 +155,7 @@ export function BuilderPage(props) {
       .catch(() => setHiddenBuiltins(new Set()));
     getGroups().then(setGroups).catch(() => setGroups([]));
     getSegments().then(setSegments).catch(() => setSegments([]));
+    getSendReadiness().then(setReadiness).catch(() => setReadiness(null));
     // Force the parent's contacts state to refresh. Its initial fetch happened
     // at app boot, so a contact added on the Audience page since then would not
     // be reflected in the audience count here.
@@ -514,7 +527,7 @@ export function BuilderPage(props) {
             baseTemplate={template}
           />
           {showAdvanced && <AdvancedSendSettings form={form} setForm={setForm} />}
-          <PreflightPanel result={preflight} />
+          <PreflightPanel result={{ checks: allChecks }} />
           <div className="send-secondary-actions">
             <button
               className="text-button"

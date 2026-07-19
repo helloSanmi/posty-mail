@@ -9,6 +9,7 @@
 // hitting Schedule.
 import { sendTestEmail } from '../../lib/brevoClient.js';
 import { runSendChecks } from '../../lib/preflight.js';
+import { getSetupStatus } from '../../lib/setupStatus.js';
 import { requireSender } from '../../lib/sender.js';
 import { findUnreachableImageUrls } from '../../lib/urlReachability.js';
 import { validate, z } from '../../lib/validate.js';
@@ -78,6 +79,25 @@ export function registerTestAndPreflightRoutes(app) {
       });
     }),
   );
+
+  // Sanitized "will this send actually go out?" signal for the Builder's
+  // pre-send panel. Unlike GET /api/settings/status (which exposes the
+  // account email + error and is connections-gated), this returns only
+  // coarse booleans so an editor — who can build campaigns but not see
+  // provider config — still gets warned about a rejected key / unverified
+  // sender before hitting Send. Reads are open to any signed-in user.
+  app.get('/api/campaigns/send-readiness', asyncRoute(async (_req, res) => {
+    const status = await getSetupStatus();
+    res.json({
+      provider: status.provider.dryRun
+        ? 'dryRun'
+        : (status.provider.valid ? 'ok' : 'rejected'),
+      sender: {
+        configured: status.sender.configured,
+        verified: status.sender.verified,
+      },
+    });
+  }));
 
   // Pre-send lint. Called from the Builder before "Send now" fires so the
   // admin sees a checklist of fail/warn rows and can fix them before the

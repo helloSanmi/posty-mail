@@ -317,6 +317,13 @@ export async function preflightCampaign({ template }) {
   return data;
 }
 
+// Coarse send-readiness (provider key working? sender configured + verified?)
+// for the Builder's pre-send panel. Safe for editors — no sensitive config.
+export async function getSendReadiness() {
+  const { data } = await apiClient.get('/api/campaigns/send-readiness');
+  return data;
+}
+
 export async function saveWebhookIntegration(payload) {
   const { data } = await apiClient.post('/api/integrations/webhook', payload);
   return data;
