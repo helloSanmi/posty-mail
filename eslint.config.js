@@ -11,6 +11,10 @@ export default [
       'backend/data/**',
       'backend/uploads/**',
       'prisma/migrations/**',
+      // Local AI-assistant tooling (settings + scratch worktrees). Those
+      // worktrees are full copies of the repo, build output and all, so
+      // without this `npm run lint` ends up linting minified vendor bundles.
+      '.claude/**',
     ],
   },
   js.configs.recommended,

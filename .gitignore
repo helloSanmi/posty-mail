@@ -5,6 +5,10 @@ dist
 coverage
 npm-debug.log*
 
+# Local AI-assistant tooling: editor settings + scratch worktrees. Never
+# belongs in the repo (the worktrees are full nested copies of it).
+.claude/
+
 # User-uploaded assets — these belong on the runtime filesystem, not in git.
 # Keep the directory itself via .gitkeep so a fresh clone has the path that
 # the upload route + express.static expect.
