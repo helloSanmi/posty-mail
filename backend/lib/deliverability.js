@@ -16,8 +16,10 @@ import dns from 'node:dns/promises';
 // Common DKIM selectors. Order matters. We stop at the first hit so a domain
 // with multiple selectors only reports one. Add more here if you adopt a new
 // provider that uses a different selector.
-const DKIM_SELECTORS = [
-  'mail',     // Brevo's documented selector
+export const DKIM_SELECTORS = [
+  'brevo1',   // Brevo (current): CNAMEs to a Brevo-hosted TXT
+  'brevo2',   // Brevo (current): second key, rotated alongside brevo1
+  'mail',     // Brevo/Sendinblue (legacy) — still live on older domains
   'default',
   'google',   // Google Workspace
   'selector1',
@@ -33,6 +35,15 @@ const DKIM_SELECTORS = [
 
 const DNS_TIMEOUT_MS = 4000;
 
+// dns.resolveTxt returns string[][]: one entry per TXT record, each split
+// into the 255-byte chunks the wire format uses. Join each record's chunks
+// with no separator, matching how resolvers reassemble them. Exported so the
+// reassembly is testable without mocking DNS.
+export function flattenTxtRecords(records) {
+  if (!Array.isArray(records)) return [];
+  return records.map((parts) => (Array.isArray(parts) ? parts.join('') : String(parts ?? '')));
+}
+
 // Wrap dns.resolveTxt with a soft timeout. Without it a slow / blackholed
 // resolver can hang the request for the full system DNS timeout. The catch
 // block downstream treats both "no record" and "timeout" the same (FAIL).
@@ -44,9 +55,7 @@ async function resolveTxtFlat(hostname) {
   });
   try {
     const records = await Promise.race([promise, timeout]);
-    // dns.resolveTxt returns string[][]. Each inner array is a multi-string
-    // TXT joined with no separator (matches how resolvers reassemble them).
-    return records.map((parts) => parts.join(''));
+    return flattenTxtRecords(records);
   } finally {
     clearTimeout(timer);
   }
@@ -64,7 +73,11 @@ export function domainFromEmail(email) {
 // ---- per-record classifiers ---------------------------------------------
 
 export function classifySpf(records) {
-  const spfs = records.filter((r) => r.toLowerCase().startsWith('v=spf1'));
+  // Match against the trimmed record: resolvers hand back whatever the zone
+  // file holds, and a stray leading space would otherwise hide a valid SPF.
+  const spfs = records
+    .map((record) => (typeof record === 'string' ? record.trim() : ''))
+    .filter((record) => record.toLowerCase().startsWith('v=spf1'));
   if (spfs.length === 0) {
     return {
       status: 'fail',
@@ -104,7 +117,7 @@ export function classifyDkim(hits) {
     return {
       status: 'fail',
       message: 'No DKIM record found at any common selector.',
-      hint: 'Add the DKIM TXT record your sending provider gave you. For Brevo it lives at mail._domainkey.<your-domain>.',
+      hint: 'Add the DKIM records your sending provider gave you. Brevo uses two, at brevo1._domainkey.<your-domain> and brevo2._domainkey.<your-domain> (older Brevo/Sendinblue domains use mail._domainkey instead).',
     };
   }
   // hits is [{ selector, value }]. Take the first that looks valid.

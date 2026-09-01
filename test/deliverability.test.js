@@ -8,10 +8,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  DKIM_SELECTORS,
   classifyDkim,
   classifyDmarc,
   classifySpf,
   domainFromEmail,
+  flattenTxtRecords,
 } from '../backend/lib/deliverability.js';
 
 test('domainFromEmail: extracts the host part', () => {
@@ -129,4 +131,92 @@ test('classifyDmarc: ignores non-DMARC TXTs', () => {
     'v=DMARC1; p=quarantine',
   ]);
   assert.equal(result.status, 'pass');
+});
+
+// ---- SPF parsing regressions --------------------------------------------
+//
+// These pin the shape dns.resolveTxt actually hands back: an array of
+// records, each an array of 255-byte chunks. The apex of a Brevo-verified
+// domain carries a provider verification TXT alongside the SPF, and which
+// one comes first is not ours to choose — so the SPF must be found wherever
+// it sits in the list, and however it happens to be chunked.
+
+test('flattenTxtRecords: joins each record\'s chunks, one string per record', () => {
+  assert.deepEqual(
+    flattenTxtRecords([['abc', 'def'], ['ghi']]),
+    ['abcdef', 'ghi'],
+  );
+});
+
+test('flattenTxtRecords: tolerates a non-array argument', () => {
+  assert.deepEqual(flattenTxtRecords(undefined), []);
+  assert.deepEqual(flattenTxtRecords(null), []);
+});
+
+test('classifySpf: finds the SPF when it is not the first TXT record', () => {
+  // Real apex of bloomnbecome.org.uk: the Brevo verification code sorts
+  // ahead of the SPF, and only looking at records[0] reported a false FAIL.
+  const apex = flattenTxtRecords([
+    ['brevo-code:5a64a70c94308544bbbd8ad4de07f22f'],
+    ['v=spf1 include:spf.brevo.com ~all'],
+  ]);
+  const result = classifySpf(apex);
+  assert.equal(result.status, 'pass');
+  assert.equal(result.found, 'v=spf1 include:spf.brevo.com ~all');
+});
+
+test('classifySpf: finds an SPF split across multiple chunks', () => {
+  const apex = flattenTxtRecords([
+    ['some-other-verification=xyz'],
+    ['v=spf1 include:spf.brevo.com include:_spf.exam', 'ple.com include:mail.example.net ~all'],
+  ]);
+  const result = classifySpf(apex);
+  assert.equal(result.status, 'pass');
+  assert.equal(
+    result.found,
+    'v=spf1 include:spf.brevo.com include:_spf.example.com include:mail.example.net ~all',
+  );
+});
+
+test('classifySpf: no SPF among several non-SPF records is fail', () => {
+  const apex = flattenTxtRecords([
+    ['brevo-code:5a64a70c94308544bbbd8ad4de07f22f'],
+    ['google-site-verification=abc'],
+    ['MS=ms12345678'],
+  ]);
+  const result = classifySpf(apex);
+  assert.equal(result.status, 'fail');
+  assert.match(result.message, /No SPF record found/i);
+  assert.match(result.example, /^v=spf1/);
+});
+
+test('classifySpf: surrounding whitespace does not hide the record', () => {
+  const result = classifySpf(['  v=spf1 include:spf.brevo.com ~all  ']);
+  assert.equal(result.status, 'pass');
+  assert.equal(result.found, 'v=spf1 include:spf.brevo.com ~all');
+});
+
+test('classifySpf: matches v=SPF1 case-insensitively', () => {
+  assert.equal(classifySpf(['V=SPF1 include:spf.brevo.com ~all']).status, 'pass');
+});
+
+// ---- DKIM selector coverage ---------------------------------------------
+
+test('DKIM_SELECTORS: probes the selectors Brevo actually publishes', () => {
+  // Brevo publishes two keys, at brevo1._domainkey and brevo2._domainkey.
+  // mail._domainkey is the Sendinblue-era selector and stays for old domains.
+  assert.ok(DKIM_SELECTORS.includes('brevo1'));
+  assert.ok(DKIM_SELECTORS.includes('brevo2'));
+  assert.ok(DKIM_SELECTORS.includes('mail'));
+});
+
+test('classifyDkim: accepts a chunked Brevo key with no v=DKIM1 tag', () => {
+  // Brevo's TXT starts at k=rsa and the key is long enough to be chunked.
+  const [value] = flattenTxtRecords([[
+    'k=rsa;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuH2LOIKSuLY',
+    '/rmNTUfIPG7iNV4BcI0NO9IbyaniURDlOcRmy7Hy9eoGoIDAQAB',
+  ]]);
+  const result = classifyDkim([{ selector: 'brevo1', value }]);
+  assert.equal(result.status, 'pass');
+  assert.equal(result.selector, 'brevo1');
 });
