@@ -1,5 +1,9 @@
 # Deploying Posty (self-hosted, one server)
 
+> Running a **second business on the same VM** (separate domain, database and
+> pm2 process)? See [SECOND-INSTANCE.md](SECOND-INSTANCE.md) after finishing
+> this guide once.
+
 Posty is designed to be **self-hosted**: each organization runs its own copy.
 This guide gets you from a fresh Linux server to a working install in about
 15 minutes. Everything — the app, the database, uploaded images — lives on
@@ -89,8 +93,16 @@ calls the API on its own origin (single-process deploy, see step 6).
 ## 5. Create the database schema
 
 ```bash
+npm run db:generate      # generate the Prisma client — REQUIRED, see note
 npm run db:deploy        # applies all migrations (prisma migrate deploy)
 ```
+
+> **Don't skip `db:generate`.** npm 12+ blocks package install scripts by
+> default, so `npm ci` no longer triggers Prisma's own client generation, and
+> `prisma migrate deploy` doesn't generate either. Without it the app starts
+> and immediately dies with *"The requested module '@prisma/client' does not
+> provide an export named 'PrismaClient'"*. `deploy.sh` runs this for you on
+> every subsequent deploy.
 
 ## 6. Build the frontend
 
