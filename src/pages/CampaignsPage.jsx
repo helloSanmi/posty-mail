@@ -128,7 +128,7 @@ export function CampaignsPage({ notify }) {
         <section className="surface campaigns-main">
           <div className="section-heading">
             <div>
-              <h2>Campaigns</h2>
+              <h2>All campaigns</h2>
               <span className="muted">
                 {totalCampaigns} total
                 {totalPages > 1 && ` · page ${page} of ${totalPages}`}

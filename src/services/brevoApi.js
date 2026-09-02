@@ -324,6 +324,15 @@ export async function getSendReadiness() {
   return data;
 }
 
+// The stored outbound-webhook config, or null when none is saved. The
+// endpoint has always existed; nothing on the client called it, so the card
+// rendered an empty field and "Not configured" even with a URL in the
+// Setting table.
+export async function getWebhookIntegration() {
+  const { data } = await apiClient.get('/api/integrations/webhook');
+  return data;
+}
+
 export async function saveWebhookIntegration(payload) {
   const { data } = await apiClient.post('/api/integrations/webhook', payload);
   return data;

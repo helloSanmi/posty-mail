@@ -683,9 +683,8 @@
 .integration-card > .integration-icon { grid-row: 1 / span 3; align-self: start; }
 .integration-card > *:not(.integration-icon) { grid-column: 2; }
 
-/* Settings page. Sidebar nav + content. */
-.settings-header h2 { margin: 0; }
-.settings-header p { margin: 4px 0 0; }
+/* Settings page. Sidebar nav + content. No page heading: the topbar
+   renders "Settings" and its eyebrow names the active section. */
 .settings-shell {
   display: grid;
   gap: 18px;
@@ -697,30 +696,32 @@
   gap: 4px;
 }
 .settings-nav-item {
-  align-items: flex-start;
+  align-items: center;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 10px;
   color: #374151;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 16px minmax(0, 1fr);
-  justify-items: start;
-  padding: 10px 12px;
+  display: flex;
+  gap: 10px;
+  min-height: 36px;
+  padding: 8px 12px;
   text-align: left;
   width: 100%;
 }
-.settings-nav-item svg { margin-top: 2px; }
+.settings-nav-item svg { flex: none; }
 .settings-nav-item:hover { background: #f1f5fb; }
 .settings-nav-item.is-active {
   background: #eef4ff;
   border-color: #d8e5fa;
   color: var(--blue);
+  font-weight: 500;
 }
-.settings-nav-item.is-active small { color: #4b6a93; }
-.settings-nav-label { display: grid; gap: 2px; min-width: 0; }
-.settings-nav-label strong { font-weight: 500; line-height: 1.2; }
-.settings-nav-label small { font-size: 0.78rem; line-height: 1.35; }
+.settings-nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .settings-content { display: grid; gap: 16px; }
 .settings-card { display: grid; gap: 14px; }
 .settings-card-head {
@@ -739,99 +740,151 @@
 }
 
 /* Setup status card — the "can this install send?" checklist. */
-.setup-head-right { align-items: center; display: flex; flex-shrink: 0; gap: 8px; }
-.setup-pill { font-weight: 600; }
-.setup-pill.setup-ok { background: #e7f6ec; color: #16794a; }
-.setup-pill.setup-warn { background: #fdf3e2; color: #9a5b13; }
-.setup-pill.setup-bad { background: #fdecec; color: #a12626; }
-.setup-refresh {
+/* A section heading that carries a count rather than a title - used where
+   the page name would otherwise be repeated inside the page. */
+.section-heading-quiet {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.86rem;
+  font-weight: 500;
+  gap: 7px;
+  margin: 0;
+}
+
+/* Generic status pills, used outside Settings too (contacts table). */
+.pill.amber { background: #fff1d5; color: #8a5a06; }
+.pill.red { background: #fdecec; color: #9f1d1d; }
+
+/* ---- Settings: grouped rows ----------------------------------------
+   A section of Settings is ONE surface with one heading and a list of
+   rows, replacing the previous stack of four bordered cards that each
+   carried their own h3, their own explanatory sentence and their own
+   status pill. A row shows what the setting is, what it is set to, and
+   its state; anything longer (an edit form, a raw DNS record, a
+   remediation hint) goes in the row's detail area, which only renders
+   when there is something worth saying. */
+.settings-group { display: grid; gap: 2px; }
+.settings-group-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding-bottom: 8px;
+}
+.settings-group-head h3 { margin: 0; font-size: 0.98rem; }
+.settings-group-side { align-items: center; display: flex; flex: none; gap: 8px; }
+.settings-group-refresh {
   align-items: center;
   background: transparent;
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--muted);
-  cursor: pointer;
   display: inline-flex;
-  height: 30px;
   justify-content: center;
-  min-height: 0;
+  min-height: 30px;
   padding: 0;
   width: 30px;
 }
-.setup-refresh:hover:not(:disabled) { background: #f1f5fb; color: var(--blue); }
-.setup-refresh .is-spinning { animation: setup-spin 0.8s linear infinite; }
-@keyframes setup-spin { to { transform: rotate(360deg); } }
+.settings-group-refresh:hover:not(:disabled) { background: #f1f5fb; color: var(--blue); }
+.settings-group-refresh .is-spinning { animation: settings-spin 0.8s linear infinite; }
+@keyframes settings-spin { to { transform: rotate(360deg); } }
 
-.setup-checklist { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
-.setup-row {
-  align-items: flex-start;
-  border-radius: 10px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 22px minmax(0, 1fr);
-  padding: 10px 8px;
-}
-.setup-row + .setup-row { border-top: 1px solid #f1f4f8; border-radius: 0; }
-.setup-row-icon {
-  align-items: center;
-  border-radius: 50%;
-  display: inline-flex;
-  height: 22px;
-  justify-content: center;
-  width: 22px;
-}
-.setup-ok .setup-row-icon { background: #e7f6ec; color: #16794a; }
-.setup-warn .setup-row-icon { background: #fdf3e2; color: #9a5b13; }
-.setup-bad .setup-row-icon { background: #fdecec; color: #a12626; }
-.setup-muted .setup-row-icon { background: #eef1f6; color: #8a97a8; }
-.setup-row-main { display: grid; gap: 3px; min-width: 0; }
-.setup-row-top { align-items: baseline; display: flex; flex-wrap: wrap; gap: 8px; }
-.setup-row-top strong { font-size: 0.9rem; }
-.setup-row-value { color: var(--muted); font-size: 0.84rem; word-break: break-word; }
-.setup-row-hint { font-size: 0.8rem; line-height: 1.4; }
-/* Deliverability card. Three rows (SPF / DKIM / DMARC) each with a pass/
-   warn/fail pill, a one-line message, an optional hint, and either the
-   actual TXT record or an example to paste at the DNS provider. */
-.deliverability-domain { font-size: 0.84rem; }
-.deliverability-results {
-  display: grid;
-  gap: 10px;
-}
-.deliverability-row {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  display: grid;
-  gap: 6px;
-  padding: 10px 14px;
-}
-.deliverability-row.is-pass { background: #f1faf3; border-color: #c7e9d4; }
-.deliverability-row.is-warn { background: #fff7ec; border-color: #f3d9a5; }
-.deliverability-row.is-fail { background: #fdf2f2; border-color: #f3c1c1; }
-.deliverability-row-head {
+.setting-rows { display: grid; }
+.setting-row { display: grid; gap: 8px; padding: 11px 0; }
+.setting-row + .setting-row { border-top: 1px solid #eef2f7; }
+.setting-row-main {
   align-items: center;
   display: flex;
-  gap: 10px;
+  gap: 14px;
+  justify-content: space-between;
 }
-.deliverability-row-message { font-size: 0.92rem; }
-.deliverability-row-hint { font-size: 0.82rem; }
-.deliverability-record {
-  background: #fff;
+.setting-row-label { display: grid; gap: 2px; min-width: 0; }
+.setting-row-name { font-weight: 500; line-height: 1.3; }
+.setting-row-value {
+  color: var(--muted);
+  font-size: 0.84rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.setting-row-value.is-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.79rem;
+}
+.setting-row-side { align-items: center; display: flex; flex: none; gap: 8px; }
+.setting-row-side button { min-height: 32px; padding: 5px 11px; }
+.setting-row-toggle {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.setting-row-toggle:hover { background: #f1f5fb; color: var(--blue); }
+.setting-row-detail { display: grid; gap: 10px; }
+.setting-row-hint {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 68ch;
+}
+.setting-row-hint.is-error { color: #9f1d1d; }
+.setting-row-hint code {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  font-size: 0.92em;
+  padding: 1px 5px;
+}
+.setting-row-foot { color: var(--muted); font-size: 0.8rem; margin: 8px 0 0; }
+.setting-row-foot code {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.setting-row-pre {
+  background: #fbfcfe;
   border: 1px solid var(--line);
   border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   margin: 0;
   overflow-x: auto;
   padding: 8px 10px;
   white-space: pre-wrap;
   word-break: break-all;
 }
-.deliverability-record.is-example { color: var(--muted); font-style: italic; }
-.deliverability-actions { display: flex; }
-.deliverability-actions button { min-width: 120px; }
-.deliverability-pill { font-size: 0.68rem; letter-spacing: 0.04em; padding: 2px 8px; }
-.pill.amber { background: #fff1d5; color: #8a5a06; }
-.pill.red { background: #fdecec; color: #9f1d1d; }
+.setting-row-pre.is-example { color: var(--muted); font-style: italic; }
+
+/* Row state. Semantic, and separate from the blue accent: 'off' means not
+   set up, which the old single muted pill could not distinguish from a
+   failure. */
+.setting-state {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  flex: none;
+  font-size: 0.73rem;
+  font-weight: 600;
+  gap: 5px;
+  letter-spacing: 0.01em;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+.setting-state-dot { border-radius: 50%; height: 6px; width: 6px; }
+.setting-state-ok { background: #e4f2ec; color: #12704b; }
+.setting-state-ok .setting-state-dot { background: var(--green); }
+.setting-state-warn { background: #fbf0dd; color: #8a5307; }
+.setting-state-warn .setting-state-dot { background: var(--amber); }
+.setting-state-bad { background: #fdecec; color: #9f1d1d; }
+.setting-state-bad .setting-state-dot { background: #c0392f; }
+.setting-state-off { background: #eef1f5; color: #5f6b7a; }
+.setting-state-off .setting-state-dot { background: #aeb7c2; }
+
+@media (max-width: 560px) {
+  .setting-row-main { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .setting-row-value { white-space: normal; word-break: break-word; }
+}
 
 .settings-status-pill {
   align-items: center;
@@ -841,26 +894,7 @@
 }
 .settings-count { flex-shrink: 0; }
 
-/* Sender identity card. Collapsed read-only view by default; Edit reveals
-   the two-field form below. */
-.sender-view {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-.sender-view-identity {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.sender-view-identity strong,
-.sender-view-identity .muted {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.sender-view-identity .muted { font-size: 0.86rem; }
+/* Sender edit form, revealed in the sender row's detail area. */
 .sender-form-grid {
   display: grid;
   gap: 12px;
@@ -876,9 +910,23 @@
 }
 
 @media (max-width: 720px) {
-  .settings-shell { grid-template-columns: 1fr; }
-  .settings-nav { grid-auto-flow: column; grid-auto-columns: 1fr; }
-  .settings-nav-item small { display: none; }
+  .settings-shell { grid-template-columns: minmax(0, 1fr); }
+  /* Horizontal strip of tabs. It SCROLLS rather than squeezing four items
+     into the width: with `grid-auto-columns: 1fr` the items refused to
+     shrink below their label, which widened the nav track, which widened
+     the whole shell and left the page scrolling sideways. max-content
+     columns plus overflow on the strip keeps every label readable and
+     confines the scrolling to the nav. */
+  .settings-nav {
+    grid-auto-columns: max-content;
+    grid-auto-flow: column;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+  .settings-nav-item { white-space: nowrap; width: auto; }
+  .settings-nav-label { overflow: visible; }
 }
 
 .inline-form { flex-wrap: wrap; }
@@ -2787,9 +2835,6 @@
 .admin-user-actions { align-items: center; display: flex; gap: 4px; }
 
 /* Admin page: header + underline sub-tabs (Team / Roles / Activity) */
-.admin-header { display: grid; gap: 4px; }
-.admin-header h2 { margin: 0; }
-.admin-header .muted { margin: 0; }
 
 .subtabs {
   border-bottom: 1px solid var(--line);

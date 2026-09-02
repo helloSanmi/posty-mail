@@ -64,10 +64,10 @@ export function WorkspacesPage({ notify }) {
     <div className="page-stack content-page">
       <section className="surface">
         <div className="section-heading">
-          <h2><Building2 size={18} aria-hidden="true" /> Workspaces</h2>
-          <span className="muted">
+          <h2 className="section-heading-quiet">
+            <Building2 size={16} aria-hidden="true" />
             {workspaces.length} workspace{workspaces.length === 1 ? '' : 's'} on this install
-          </span>
+          </h2>
         </div>
 
         {loading ? (

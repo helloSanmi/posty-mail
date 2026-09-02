@@ -15,6 +15,16 @@ import {
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { RolesManager } from '../components/RolesManager';
 import { CreateUserModal, EditUserModal } from '../components/UserModals';
+import { usePageSectionLabel } from '../components/PageSectionContext';
+
+// Mirrors the TABS list built inside the component. Kept at module scope so
+// the section eyebrow can be published before the early return for
+// non-admins, which sits above where TABS is defined.
+const SECTION_LABELS = {
+  team: 'Team members',
+  roles: 'Roles & access',
+  activity: 'Activity log',
+};
 
 export function AdminPage({ notify }) {
   const { user, can } = useAuth();
@@ -25,6 +35,8 @@ export function AdminPage({ notify }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [tab, setTab] = useState('team'); // 'team' | 'roles' | 'activity'
+  // Topbar already says "Admin"; the eyebrow names which tab is open.
+  usePageSectionLabel(SECTION_LABELS[tab]);
   const isAdmin = can('admin');
 
   const roleName = useMemo(
@@ -47,7 +59,6 @@ export function AdminPage({ notify }) {
     return (
       <div className="page-stack content-page">
         <section className="surface">
-          <h2>Admin</h2>
           <p className="empty-state">You need an admin role to view this page.</p>
         </section>
       </div>
@@ -111,11 +122,6 @@ export function AdminPage({ notify }) {
 
   return (
     <div className="page-stack content-page admin-page">
-      <header className="admin-header">
-        <h2>Admin</h2>
-        <p className="muted">Manage your team, what each role can access, and recent activity.</p>
-      </header>
-
       <div className="subtabs" role="tablist" aria-label="Admin sections">
         {TABS.map((item) => {
           const Icon = item.icon;

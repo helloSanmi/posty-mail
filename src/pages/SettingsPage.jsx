@@ -1,49 +1,52 @@
 import { useState } from 'react';
 import { MailX, PlugZap, ShieldOff, UserPlus } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { usePageSectionLabel } from '../components/PageSectionContext';
 import { BounceSyncCard } from '../components/settings/BounceSyncCard';
-import { SetupStatusCard } from '../components/settings/SetupStatusCard';
 import { DeliverabilityCard } from '../components/settings/DeliverabilityCard';
 import { PreferenceCenterCard } from '../components/settings/PreferenceCenterCard';
-import { SenderCard } from '../components/settings/SenderCard';
+import { SendingCard } from '../components/settings/SendingCard';
 import { SubscribeFormsCard } from '../components/settings/SubscribeFormsCard';
 import { UnsubscribeListCard } from '../components/settings/UnsubscribeListCard';
 import { WebhookCard } from '../components/settings/WebhookCard';
 
 // Top-level Settings page. Just the section nav + a router that renders the
-// right card(s) for the active section. Each card owns its own data
+// right group(s) for the active section. Each group owns its own data
 // fetching and state — SettingsPage stays a thin orchestrator instead of
 // the 800-line god-component this used to be.
+//
+// There is no page heading here on purpose. The topbar already renders
+// "Settings", and the eyebrow above it names the active section, so an h2
+// saying "Settings" was the third copy of the same word on screen. The nav
+// items lost their blurbs for the same reason: a one-line description under
+// every item added four sentences to explain four labels that already read
+// clearly.
 const SECTIONS = [
   {
     id: 'connections',
     label: 'Connections',
     icon: PlugZap,
-    // Sender identity, deliverability, the provider webhook — account-level
+    // Sender identity, deliverability, the outbound webhook — account-level
     // plumbing behind the `connections` area. Editors don't get it.
     permission: 'connections',
-    blurb: 'Sender and email provider.',
   },
   {
     id: 'forms',
     label: 'Subscribe forms',
     icon: UserPlus,
     permission: 'settings',
-    blurb: 'Add a sign-up form to your site.',
   },
   {
     id: 'email',
     label: 'Email behavior',
     icon: ShieldOff,
     permission: 'settings',
-    blurb: 'How bounces are handled.',
   },
   {
     id: 'unsubscribes',
     label: 'Unsubscribes',
     icon: MailX,
     permission: 'settings',
-    blurb: 'Suppression list and preferences.',
   },
 ];
 
@@ -55,17 +58,17 @@ export function SettingsPage({ notify }) {
   // Land on the first section the user can actually see.
   const [active, setActive] = useState(sections[0]?.id || 'forms');
   // Bumped after a sender save. DeliverabilityCard listens and re-reads its
-  // "is sender configured?" probe so the Check button enables immediately
-  // after a fresh setup, without a page refresh.
+  // "is sender configured?" probe so the check enables immediately after a
+  // fresh setup, without a page refresh.
   const [senderEpoch, setSenderEpoch] = useState(0);
+
+  // Feeds the topbar eyebrow, so the shell says which section is open
+  // rather than repeating the page name.
+  const activeLabel = sections.find((section) => section.id === active)?.label;
+  usePageSectionLabel(activeLabel);
 
   return (
     <div className="page-stack content-page settings-page">
-      <header className="settings-header">
-        <h2>Settings</h2>
-        <p className="muted">Your sender, sign-up forms, and unsubscribe handling.</p>
-      </header>
-
       <div className="settings-shell">
         <nav className="settings-nav" aria-label="Settings sections">
           {sections.map((section) => {
@@ -80,10 +83,7 @@ export function SettingsPage({ notify }) {
                 aria-current={isActive ? 'page' : undefined}
               >
                 <Icon size={16} aria-hidden="true" />
-                <span className="settings-nav-label">
-                  <strong>{section.label}</strong>
-                  <small className="muted">{section.blurb}</small>
-                </span>
+                <span className="settings-nav-label">{section.label}</span>
               </button>
             );
           })}
@@ -92,10 +92,9 @@ export function SettingsPage({ notify }) {
         <div className="settings-content">
           {active === 'connections' && can('connections') && (
             <>
-              <SetupStatusCard />
-              <SenderCard
+              <SendingCard
                 notify={notify}
-                onChange={() => setSenderEpoch((n) => n + 1)}
+                onSenderChange={() => setSenderEpoch((n) => n + 1)}
               />
               <DeliverabilityCard senderEpoch={senderEpoch} />
               <WebhookCard notify={notify} />

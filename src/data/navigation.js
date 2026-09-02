@@ -39,14 +39,21 @@ export const navItems = [
   },
 ];
 
+// The topbar heading per route. There is deliberately no `label` here any
+// more: every entry used to carry one identical to `title`, and the topbar
+// rendered both, so the eyebrow said "SETTINGS" directly above the heading
+// "Settings" (three times over on Settings, which added its own h2 as well).
+// A page with a genuine second level publishes it through
+// usePageSectionLabel instead, which is the only thing the eyebrow now
+// shows.
 export const pageTitles = {
-  '/': { title: 'Home', label: 'Home' },
-  '/contacts': { title: 'Audience', label: 'Audience' },
-  '/templates': { title: 'Email', label: 'Email' },
-  '/builder': { title: 'Campaigns', label: 'Campaigns' },
-  '/campaigns': { title: 'Campaigns', label: 'Campaigns' },
-  '/analytics': { title: 'Reports', label: 'Reports' },
-  '/settings': { title: 'Settings', label: 'Settings' },
-  '/admin': { title: 'Admin', label: 'Admin' },
-  '/workspaces': { title: 'Workspaces', label: 'Workspaces' },
+  '/': { title: 'Home' },
+  '/contacts': { title: 'Audience' },
+  '/templates': { title: 'Email' },
+  '/builder': { title: 'Campaigns' },
+  '/campaigns': { title: 'Campaigns' },
+  '/analytics': { title: 'Reports' },
+  '/settings': { title: 'Settings' },
+  '/admin': { title: 'Admin' },
+  '/workspaces': { title: 'Workspaces' },
 };

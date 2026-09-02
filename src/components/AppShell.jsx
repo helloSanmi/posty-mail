@@ -5,6 +5,7 @@ import {
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { navItems, pageTitles } from '../data/navigation';
 import { useAuth } from '../auth/AuthContext';
+import { PageSectionContext } from './PageSectionContext';
 import { DemoBanner } from './DemoBanner';
 import { GlobalSearch } from './GlobalSearch';
 import { NotificationBell } from './NotificationBell';
@@ -41,6 +42,10 @@ export function AppShell({ children }) {
   // Cmd/Ctrl+K opens the global search palette. Also toggled by the
   // search button in the topbar.
   const [searchOpen, setSearchOpen] = useState(false);
+  // The section the current page has open, published by the page itself via
+  // usePageSectionLabel. Drives the topbar eyebrow; null means the page has
+  // no second level and the eyebrow is not rendered at all.
+  const [section, setSection] = useState(null);
   // Resolve a page title for the current route. Exact match wins; otherwise
   // strip the trailing segments one at a time and try again so dynamic
   // routes like /campaigns/:id fall back to /campaigns ("Campaigns"). This
@@ -203,7 +208,9 @@ export function AppShell({ children }) {
             <PanelLeft size={18} aria-hidden="true" />
           </button>
           <div className="topbar-title">
-            <p className="eyebrow">{meta.label}</p>
+            {/* Only rendered when there is a second level to name. It used
+                to show meta.label, which was identical to the heading. */}
+            {section && <p className="eyebrow">{section}</p>}
             <h1>{meta.title}</h1>
           </div>
           {/* Global search trigger. Renders the keyboard shortcut hint
@@ -225,7 +232,9 @@ export function AppShell({ children }) {
           {user && <NotificationBell />}
         </header>
         <div id="main-content" tabIndex={-1}>
-          {children}
+          <PageSectionContext.Provider value={setSection}>
+            {children}
+          </PageSectionContext.Provider>
         </div>
       </section>
       {user && (
