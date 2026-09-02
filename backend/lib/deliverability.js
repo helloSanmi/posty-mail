@@ -10,6 +10,10 @@
 //     We probe a list of common selectors. anything beyond that is provider-
 //     specific and the admin will know their selector if it isn't here.
 //   - DMARC always sits at _dmarc.<domain>. Identified by `v=DMARC1`.
+//
+// DMARC and DKIM tags are matched with whitespace allowed around the `=`,
+// which their RFCs permit and real providers emit. SPF's version term does
+// not permit it, so that one stays an exact prefix match.
 
 import dns from 'node:dns/promises';
 
@@ -34,6 +38,27 @@ export const DKIM_SELECTORS = [
 ];
 
 const DNS_TIMEOUT_MS = 4000;
+
+// DMARC (RFC 7489 6.4) and DKIM (RFC 6376 3.2) records are tag-value lists
+// where whitespace is permitted around the "=". Brevo publishes DMARC as
+// "v=DMARC1; p= quarantine; ..." — valid, and honoured by receivers — which
+// a bare /\bp=(none|quarantine|reject)\b/ silently failed to read. That left
+// the policy reported as "unspecified", and worse: "p= none" skipped the
+// monitor-only branch entirely and reported PASS on a domain enforcing
+// nothing. `tag` builds a matcher that tolerates the whitespace the RFCs
+// allow.
+//
+// SPF is deliberately NOT built this way. RFC 7208 defines its version term
+// as the literal "v=spf1" with no whitespace inside it, so classifySpf keeps
+// its exact prefix check.
+function tag(name, value) {
+  return new RegExp(`\\b${name}\\s*=\\s*${value}`, 'i');
+}
+
+const DMARC_VERSION = tag('v', 'DMARC1\\b');
+const DMARC_POLICY = tag('p', '(none|quarantine|reject)\\b');
+const DKIM_VERSION = tag('v', 'DKIM1\\b');
+const DKIM_KEY = tag('p', '[A-Za-z0-9+/]');
 
 // dns.resolveTxt returns string[][]: one entry per TXT record, each split
 // into the 255-byte chunks the wire format uses. Join each record's chunks
@@ -121,7 +146,7 @@ export function classifyDkim(hits) {
     };
   }
   // hits is [{ selector, value }]. Take the first that looks valid.
-  const valid = hits.find(({ value }) => /v=DKIM1/i.test(value) || /\bp=[A-Za-z0-9+/]/.test(value));
+  const valid = hits.find(({ value }) => DKIM_VERSION.test(value) || DKIM_KEY.test(value));
   if (!valid) {
     return {
       status: 'warn',
@@ -140,7 +165,7 @@ export function classifyDkim(hits) {
 }
 
 export function classifyDmarc(records) {
-  const dmarcs = records.filter((r) => /v=DMARC1/i.test(r));
+  const dmarcs = records.filter((r) => DMARC_VERSION.test(r));
   if (dmarcs.length === 0) {
     return {
       status: 'fail',
@@ -158,7 +183,7 @@ export function classifyDmarc(records) {
     };
   }
   const dmarc = dmarcs[0];
-  const policy = dmarc.match(/\bp=(none|quarantine|reject)\b/i)?.[1]?.toLowerCase();
+  const policy = dmarc.match(DMARC_POLICY)?.[1]?.toLowerCase();
   if (policy === 'none') {
     return {
       status: 'warn',

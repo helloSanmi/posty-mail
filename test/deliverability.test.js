@@ -220,3 +220,63 @@ test('classifyDkim: accepts a chunked Brevo key with no v=DKIM1 tag', () => {
   assert.equal(result.status, 'pass');
   assert.equal(result.selector, 'brevo1');
 });
+
+// ---- Whitespace around "=" ----------------------------------------------
+//
+// DMARC (RFC 7489 6.4) and DKIM (RFC 6376 3.2) are tag-value lists that
+// permit whitespace around the "=", and providers emit it: Brevo publishes
+// "v=DMARC1; p= quarantine; ...". Matching on a bare "p=" read that as no
+// policy at all.
+
+test('classifyDmarc: p= quarantine (space after =) is read as quarantine', () => {
+  const result = classifyDmarc(['v=DMARC1; p= quarantine; adkim=r; aspf=r; rua=mailto:x@y.com']);
+  assert.equal(result.status, 'pass');
+  assert.match(result.message, /p=quarantine/);
+  assert.doesNotMatch(result.message, /unspecified/);
+});
+
+test('classifyDmarc: p= none (space after =) still warns, not passes', () => {
+  // The dangerous case. Skipping the monitor-only branch reported PASS on a
+  // domain enforcing nothing at all.
+  const result = classifyDmarc(['v=DMARC1; p= none; rua=mailto:x@y.com']);
+  assert.equal(result.status, 'warn');
+  assert.match(result.message, /monitor/i);
+});
+
+test('classifyDmarc: whitespace before the = is tolerated too', () => {
+  assert.equal(classifyDmarc(['v=DMARC1; p =reject']).status, 'pass');
+  assert.equal(classifyDmarc(['v=DMARC1; p = none']).status, 'warn');
+});
+
+test('classifyDmarc: a spaced v= tag still identifies the record', () => {
+  const result = classifyDmarc(['v = DMARC1; p=reject']);
+  assert.equal(result.status, 'pass');
+  assert.match(result.message, /p=reject/);
+});
+
+test('classifyDmarc: sp= and pct= are not mistaken for the policy', () => {
+  // \b keeps "sp=" out, and "pct=" has no "=" straight after the p.
+  const result = classifyDmarc(['v=DMARC1; pct=100; sp=reject; p=quarantine']);
+  assert.equal(result.status, 'pass');
+  assert.match(result.message, /p=quarantine/);
+});
+
+test('classifyDkim: a spaced p= key is accepted', () => {
+  const result = classifyDkim([{ selector: 'brevo1', value: 'k=rsa; p = MIGfMA0GCSqGSIb3DQ' }]);
+  assert.equal(result.status, 'pass');
+});
+
+test('classifyDkim: a spaced v= tag is accepted', () => {
+  const result = classifyDkim([{ selector: 'mail', value: 'v = DKIM1; k=rsa; p=MIGfMA0' }]);
+  assert.equal(result.status, 'pass');
+});
+
+test('classifyDkim: still rejects a record with neither tag', () => {
+  assert.equal(classifyDkim([{ selector: 'mail', value: 'k = rsa; note = nope' }]).status, 'warn');
+});
+
+test('classifySpf: keeps an exact v=spf1 prefix (RFC 7208 allows no space)', () => {
+  // Unlike DMARC/DKIM, "v = spf1" is not a valid SPF record and must not
+  // start passing as one.
+  assert.equal(classifySpf(['v = spf1 include:spf.brevo.com ~all']).status, 'fail');
+});
