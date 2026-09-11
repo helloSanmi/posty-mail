@@ -1,20 +1,13 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 import { ExternalLink, X } from 'lucide-react';
+import { Modal } from './Modal';
 
 export function EditLinkModal({ link, onSave, onCancel, onRemove }) {
   const [href, setHref] = useState(link.href || '');
   const [text, setText] = useState(link.text === '(no text)' ? '' : link.text || '');
-  const cancelRef = useRef(null);
   const hrefId = useId();
   const textId = useId();
   const isMergeTag = /\{\{[^}]+\}\}/.test(link.href || '');
-
-  useEffect(() => {
-    cancelRef.current?.focus();
-    function onKey(event) { if (event.key === 'Escape') onCancel(); }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onCancel]);
 
   const trimmed = href.trim();
   const validHref = trimmed.length > 0 && (
@@ -38,8 +31,7 @@ export function EditLinkModal({ link, onSave, onCancel, onRemove }) {
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Edit link">
-      <form className="modal-card surface user-modal" onSubmit={handleSubmit}>
+    <Modal label="Edit link" onClose={onCancel} className="user-modal" as="form" onSubmit={handleSubmit}>
         <div className="edit-contact-header">
           <div>
             <h2>Edit link</h2>
@@ -105,7 +97,7 @@ export function EditLinkModal({ link, onSave, onCancel, onRemove }) {
             </button>
           )}
           <div className="edit-link-actions-right">
-            <button ref={cancelRef} type="button" onClick={onCancel}>Cancel</button>
+            <button type="button" onClick={onCancel}>Cancel</button>
             <button type="submit" className="primary" disabled={!canSave}>
               Save link
             </button>
@@ -120,9 +112,8 @@ export function EditLinkModal({ link, onSave, onCancel, onRemove }) {
             className="edit-link-test"
           >
             <ExternalLink size={12} aria-hidden="true" /> Open in new tab
-          </a>
-        )}
-      </form>
-    </div>
+        </a>
+      )}
+    </Modal>
   );
 }

@@ -2029,16 +2029,33 @@
 }
 .segments-preview-list .muted { font-size: 0.78rem; }
 
-/* Modal */
+/* Modal
+   Every dialog is portaled to <body> by components/Modal.jsx, so nothing
+   here has to survive an ancestor's transform.
+
+   align-items is flex-START, not center, deliberately. A centred flex item
+   taller than its container overflows equally in both directions and the
+   part above the top edge cannot be scrolled to — which is how the Add
+   contact dialog ended up with its heading clipped off the top and its
+   submit button below the bottom on a 400px-tall viewport, with nothing
+   scrollable. flex-start plus `margin: auto` on the card still centres it
+   whenever there is room, and scrolls cleanly when there is not. */
 .modal-backdrop {
-  align-items: center;
+  align-items: flex-start;
   background: rgba(15, 23, 42, 0.45);
   display: flex;
   inset: 0;
   justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px;
   position: fixed;
   z-index: 50;
+}
+.modal-backdrop > * {
+  /* Absorbs the free space on both axes: centred when it fits, flush to the
+     top when it does not. */
+  margin: auto;
 }
 .modal-card {
   display: grid;
@@ -2047,6 +2064,9 @@
   padding: 20px;
   width: 100%;
 }
+/* The card itself never needs to be the scroller - the backdrop is - but it
+   must not be squeezed by its flex parent either. */
+.modal-card { flex: none; }
 .modal-card h2 {
   font-size: 1.05rem;
   line-height: 1.3;

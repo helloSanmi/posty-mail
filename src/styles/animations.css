@@ -51,8 +51,25 @@
 
 /* Surface cards land with a subtle slide+fade. Lists of cards stagger
    slightly so the eye reads them top-down rather than all at once.
-   Animation is `forwards` so the final state sticks after the keyframe
-   completes (no flash of opacity: 0 if the element re-renders). */
+   
+   Fill mode is `backwards`, NOT `both`. `backwards` is what the stagger
+   needs: during the animation-delay the element holds the `from` frame, so
+   a delayed card stays invisible instead of flashing in and animating
+   again. What it deliberately does not do is keep the `to` frame after the
+   animation finishes.
+   
+   `both` did that, and the `to` frame carries `transform: translateY(0)`,
+   which computes to matrix(1,0,0,1,0,0) — a transform, not `none`. Per the
+   CSS Transforms spec any transform other than `none` makes the element a
+   containing block for its `position: fixed` descendants. So every
+   `.surface` on screen permanently captured the fixed positioning of
+   anything inside it: the Groups sidebar rendered its "New group" dialog as
+   a 258x46 strip inside the rail, and the template editor's fullscreen
+   HTML editor expanded to fill its control panel rather than the viewport.
+   
+   Dropping the forwards fill costs nothing visually — after the animation
+   the element reverts to its own styles, which are opacity 1 and no
+   transform, exactly what the `to` frame was painting. */
 .surface,
 .kpi-card,
 .campaign-card,
@@ -62,7 +79,7 @@
 .template-card,
 .template-asset-row,
 .segment-card {
-  animation: posty-slide-up 0.22s ease-out both;
+  animation: posty-slide-up 0.22s ease-out backwards;
 }
 
 /* Stagger inside common card grids. Up to 8 children get incrementing
@@ -80,15 +97,15 @@
 /* Modals fade + scale in. Backdrop fades separately so a slow scale-in
    doesn't keep the page visibly bare for a noticeable beat. */
 .modal-backdrop {
-  animation: posty-fade-in 0.16s ease-out both;
+  animation: posty-fade-in 0.16s ease-out backwards;
 }
 .modal-backdrop > * {
-  animation: posty-scale-in 0.18s ease-out both;
+  animation: posty-scale-in 0.18s ease-out backwards;
 }
 
 /* Drilldown panel in Reports appears with the same slide-up as cards. */
 .analytics-drill {
-  animation: posty-slide-up 0.2s ease-out both;
+  animation: posty-slide-up 0.2s ease-out backwards;
 }
 
 /* Toasts / notifications slide in from the bottom-right (or wherever
@@ -96,7 +113,7 @@
    toast library swap still picks this up by class. */
 .notification,
 .toast {
-  animation: posty-slide-up 0.22s ease-out both;
+  animation: posty-slide-up 0.22s ease-out backwards;
 }
 
 /* The status pill on "running" campaigns gets a soft pulse so the eye

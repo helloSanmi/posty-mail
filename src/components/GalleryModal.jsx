@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import { Modal } from './Modal';
 import { galleryTemplates, galleryCategories } from '../templates/gallery';
 import { renderTemplate } from '../../shared/campaignUtils.js';
 
@@ -15,14 +16,6 @@ const SAMPLE = { firstname: 'Alex', lastname: 'Rivera', unsubscribeUrl: '#' };
 export function GalleryModal({ onPick, onClose }) {
   const [category, setCategory] = useState('All');
 
-  useEffect(() => {
-    function onKey(event) {
-      if (event.key === 'Escape') onClose();
-    }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const visible = useMemo(
     () => (category === 'All'
       ? galleryTemplates
@@ -31,8 +24,7 @@ export function GalleryModal({ onPick, onClose }) {
   );
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Template gallery">
-      <div className="modal-card gallery-modal surface">
+    <Modal label="Template gallery" onClose={onClose} className="gallery-modal" closeOnBackdrop>
         <div className="gallery-modal-header">
           <div>
             <h2>Start from a design</h2>
@@ -88,8 +80,7 @@ export function GalleryModal({ onPick, onClose }) {
               </div>
             </div>
           ))}
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

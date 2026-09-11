@@ -6,6 +6,7 @@ import {
   uploadLogoAsset,
 } from '../services/brevoApi';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Modal } from './Modal';
 
 // `mode` defaults to 'insert' so the link-URL field appears for the toolbar's
 // "Insert image" flow. Pass mode="replace" from the Images asset list (where
@@ -34,14 +35,6 @@ export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
   useEffect(() => {
     refresh();
   }, []);
-
-  useEffect(() => {
-    function onKey(event) {
-      if (event.key === 'Escape') onClose();
-    }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   async function refresh() {
     setLoading(true);
@@ -107,8 +100,8 @@ export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Image library">
-      <div className="modal-card logo-picker-card surface">
+    <>
+      <Modal label="Image library" onClose={onClose} className="logo-picker-card" closeOnBackdrop>
         <div className="logo-picker-header">
           <div>
             <h2>Image library</h2>
@@ -214,8 +207,11 @@ export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
         <div className="modal-actions">
           <button type="button" onClick={onClose}>Done</button>
         </div>
-      </div>
+      </Modal>
 
+      {/* Opened from inside this dialog. It portals to <body> like every
+          other dialog, so Modal's stack is what makes Escape and backdrop
+          clicks close the confirm and leave the library standing. */}
       {confirm && (
         <ConfirmDialog
           {...confirm}
@@ -226,6 +222,6 @@ export function LogoPicker({ onSelect, onClose, notify, mode = 'insert' }) {
           }}
         />
       )}
-    </div>
+    </>
   );
 }

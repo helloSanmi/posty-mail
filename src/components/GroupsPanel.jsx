@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { EyeOff, Eye, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Modal } from './Modal';
 import {
   createGroup,
   deleteGroup,
@@ -333,46 +334,46 @@ function RenameRow({ initialName, setName, onCommit, onCancel }) {
   );
 }
 
+// This is the dialog that was rendering as a 258x46 strip inside the Groups
+// rail: it sits inside <aside className="surface">, whose stuck
+// `transform: translateY(0)` made it the containing block for the backdrop's
+// `position: fixed`. Modal portals to <body>, so the rail's transform is no
+// longer in the way. Escape, backdrop click, focus and the scroll lock all
+// come from Modal too - the hand-rolled effect here also re-ran on every
+// parent render and re-focused the input mid-typing.
 function CreateGroupModal({ name, setName, onSubmit, onCancel }) {
-  const inputRef = useRef(null);
   const inputId = useId();
 
-  useEffect(() => {
-    inputRef.current?.focus();
-    function onKey(event) {
-      if (event.key === 'Escape') onCancel();
-    }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Create group">
-      <form className="modal-card surface create-group-card" onSubmit={onSubmit}>
-        <div className="edit-contact-header">
-          <h2>New group</h2>
-          <button type="button" onClick={onCancel} aria-label="Close">
-            <X size={16} aria-hidden="true" />
-          </button>
-        </div>
-        <label htmlFor={inputId}>
-          Group name
-          <input
-            ref={inputRef}
-            id={inputId}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="e.g. Newsletter subscribers"
-            required
-          />
-        </label>
-        <div className="modal-actions">
-          <button type="button" onClick={onCancel}>Cancel</button>
-          <button type="submit" className="primary" disabled={!name.trim()}>
-            Create group
-          </button>
-        </div>
-      </form>
-    </div>
+    <Modal
+      label="Create group"
+      onClose={onCancel}
+      className="create-group-card"
+      as="form"
+      onSubmit={onSubmit}
+    >
+      <div className="edit-contact-header">
+        <h2>New group</h2>
+        <button type="button" onClick={onCancel} aria-label="Close">
+          <X size={16} aria-hidden="true" />
+        </button>
+      </div>
+      <label htmlFor={inputId}>
+        Group name
+        <input
+          id={inputId}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="e.g. Newsletter subscribers"
+          required
+        />
+      </label>
+      <div className="modal-actions">
+        <button type="button" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="primary" disabled={!name.trim()}>
+          Create group
+        </button>
+      </div>
+    </Modal>
   );
 }

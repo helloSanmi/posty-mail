@@ -1,8 +1,9 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import {
   Lock, Pencil, Plus, Trash2, X,
 } from 'lucide-react';
 import { AREAS } from '../../shared/permissions.js';
+import { Modal } from './Modal';
 import {
   createRole, deleteRole, listRoles, updateRole,
 } from '../services/brevoApi';
@@ -158,15 +159,7 @@ function RoleModal({ role, onSave, onCancel }) {
   const [name, setName] = useState(role?.name || '');
   const [permissions, setPermissions] = useState(() => new Set(role?.permissions || []));
   const [submitting, setSubmitting] = useState(false);
-  const nameRef = useRef(null);
   const nameId = useId();
-
-  useEffect(() => {
-    nameRef.current?.focus();
-    function onKey(event) { if (event.key === 'Escape') onCancel(); }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onCancel]);
 
   function toggle(key) {
     setPermissions((prev) => {
@@ -190,8 +183,13 @@ function RoleModal({ role, onSave, onCancel }) {
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={role ? `Edit ${role.name}` : 'New role'}>
-      <form className="modal-card surface role-modal" onSubmit={handleSubmit}>
+    <Modal
+      label={role ? `Edit ${role.name}` : 'New role'}
+      onClose={onCancel}
+      className="role-modal"
+      as="form"
+      onSubmit={handleSubmit}
+    >
         <div className="edit-contact-header">
           <h2>{role ? 'Edit role' : 'New role'}</h2>
           <button type="button" onClick={onCancel} aria-label="Close">
@@ -203,7 +201,6 @@ function RoleModal({ role, onSave, onCancel }) {
           Role name
           <input
             id={nameId}
-            ref={nameRef}
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="e.g. Campaign manager"
@@ -237,7 +234,6 @@ function RoleModal({ role, onSave, onCancel }) {
             {submitting ? 'Saving…' : (role ? 'Save role' : 'Create role')}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

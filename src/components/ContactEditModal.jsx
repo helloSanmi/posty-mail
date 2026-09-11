@@ -1,5 +1,6 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import { Modal } from './Modal';
 import { otherCountryOptions, priorityCountryOptions } from '../data/countries';
 import { EMAIL_PATTERN } from '../../shared/campaignUtils.js';
 import { GroupSelector } from './GroupSelector';
@@ -8,7 +9,6 @@ export function ContactEditModal({ contact, groups = [], onSave, onCancel }) {
   const [draft, setDraft] = useState(contact);
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const cancelRef = useRef(null);
 
   // Initial set of groups this contact already belongs to.
   const initialGroupIds = useMemo(
@@ -24,15 +24,6 @@ export function ContactEditModal({ contact, groups = [], onSave, onCancel }) {
   const lastId = useId();
   const regionId = useId();
   const consentId = useId();
-
-  useEffect(() => {
-    cancelRef.current?.focus();
-    function onKey(event) {
-      if (event.key === 'Escape') onCancel();
-    }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onCancel]);
 
   const emailError = touched && draft.email && !EMAIL_PATTERN.test(draft.email)
     ? 'Invalid email format'
@@ -56,8 +47,13 @@ export function ContactEditModal({ contact, groups = [], onSave, onCancel }) {
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Edit contact">
-      <form className="modal-card edit-contact-card surface" onSubmit={handleSubmit}>
+    <Modal
+      label="Edit contact"
+      onClose={onCancel}
+      className="edit-contact-card"
+      as="form"
+      onSubmit={handleSubmit}
+    >
         <div className="edit-contact-header">
           <h2>Edit contact</h2>
           <button type="button" onClick={onCancel} aria-label="Close">
@@ -139,12 +135,11 @@ export function ContactEditModal({ contact, groups = [], onSave, onCancel }) {
         </div>
 
         <div className="modal-actions">
-          <button ref={cancelRef} type="button" onClick={onCancel}>Cancel</button>
+          <button type="button" onClick={onCancel}>Cancel</button>
           <button type="submit" className="primary" disabled={submitting || !valid}>
             {submitting ? 'Saving…' : 'Save changes'}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

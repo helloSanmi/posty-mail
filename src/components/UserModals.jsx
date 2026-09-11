@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 import { X } from 'lucide-react';
+import { Modal } from './Modal';
 import { PasswordInput } from './PasswordInput';
 
 // Fallback if the roles list hasn't loaded yet — the three built-ins always
@@ -14,18 +15,10 @@ export function CreateUserModal({ roles = [], onCreate, onCancel }) {
   const roleOptions = roles.length ? roles : FALLBACK_ROLES;
   const [draft, setDraft] = useState({ email: '', name: '', password: '', role: 'editor' });
   const [submitting, setSubmitting] = useState(false);
-  const cancelRef = useRef(null);
   const emailId = useId();
   const nameId = useId();
   const passwordId = useId();
   const roleId = useId();
-
-  useEffect(() => {
-    cancelRef.current?.focus();
-    function onKey(event) { if (event.key === 'Escape') onCancel(); }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onCancel]);
 
   const valid = draft.email && draft.password.length >= 8;
 
@@ -41,8 +34,7 @@ export function CreateUserModal({ roles = [], onCreate, onCancel }) {
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Add user">
-      <form className="modal-card surface user-modal" onSubmit={handleSubmit}>
+    <Modal label="Add user" onClose={onCancel} className="user-modal" as="form" onSubmit={handleSubmit}>
         <div className="edit-contact-header">
           <h2>Add user</h2>
           <button type="button" onClick={onCancel} aria-label="Close">
@@ -97,13 +89,12 @@ export function CreateUserModal({ roles = [], onCreate, onCancel }) {
         </div>
 
         <div className="modal-actions">
-          <button ref={cancelRef} type="button" onClick={onCancel}>Cancel</button>
+          <button type="button" onClick={onCancel}>Cancel</button>
           <button type="submit" className="primary" disabled={submitting || !valid}>
             {submitting ? 'Creating…' : 'Create user'}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }
 
@@ -114,17 +105,9 @@ export function EditUserModal({
   const [draft, setDraft] = useState({ name: user.name || '', role: user.role });
   const [newPassword, setNewPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const cancelRef = useRef(null);
   const nameId = useId();
   const roleId = useId();
   const passwordId = useId();
-
-  useEffect(() => {
-    cancelRef.current?.focus();
-    function onKey(event) { if (event.key === 'Escape') onCancel(); }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onCancel]);
 
   const profileChanged = draft.name !== (user.name || '') || draft.role !== user.role;
   const passwordEntered = newPassword.length > 0;
@@ -146,8 +129,13 @@ export function EditUserModal({
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={`Edit ${user.email}`}>
-      <form className="modal-card surface user-modal" onSubmit={handleSubmit}>
+    <Modal
+      label={`Edit ${user.email}`}
+      onClose={onCancel}
+      className="user-modal"
+      as="form"
+      onSubmit={handleSubmit}
+    >
         <div className="edit-contact-header">
           <div>
             <h2>Edit user</h2>
@@ -215,12 +203,11 @@ export function EditUserModal({
         </div>
 
         <div className="modal-actions">
-          <button ref={cancelRef} type="button" onClick={onCancel}>Cancel</button>
+          <button type="button" onClick={onCancel}>Cancel</button>
           <button type="submit" className="primary" disabled={submitting || !canSave}>
             {submitting ? 'Saving…' : 'Save'}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

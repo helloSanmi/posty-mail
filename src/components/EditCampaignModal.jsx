@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 import { X } from 'lucide-react';
+import { Modal } from './Modal';
 
 const FREQUENCIES = ['once', 'daily', 'weekly', 'monthly'];
 
@@ -13,17 +14,9 @@ export function EditCampaignModal({ campaign, onSave, onCancel }) {
   const [scheduledAt, setScheduledAt] = useState(initialDate);
   const [frequency, setFrequency] = useState(campaign.schedule?.frequency || 'once');
   const [submitting, setSubmitting] = useState(false);
-  const cancelRef = useRef(null);
   const nameId = useId();
   const dateId = useId();
   const freqId = useId();
-
-  useEffect(() => {
-    cancelRef.current?.focus();
-    function onKey(event) { if (event.key === 'Escape') onCancel(); }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onCancel]);
 
   const nameChanged = name.trim() && name.trim() !== campaign.name;
   const dateChanged = canReschedule && scheduledAt && scheduledAt !== initialDate;
@@ -46,8 +39,7 @@ export function EditCampaignModal({ campaign, onSave, onCancel }) {
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Edit campaign">
-      <form className="modal-card surface user-modal" onSubmit={handleSubmit}>
+    <Modal label="Edit campaign" onClose={onCancel} className="user-modal" as="form" onSubmit={handleSubmit}>
         <div className="edit-contact-header">
           <div>
             <h2>Edit campaign</h2>
@@ -101,13 +93,12 @@ export function EditCampaignModal({ campaign, onSave, onCancel }) {
         )}
 
         <div className="modal-actions">
-          <button ref={cancelRef} type="button" onClick={onCancel}>Cancel</button>
+          <button type="button" onClick={onCancel}>Cancel</button>
           <button type="submit" className="primary" disabled={submitting || !canSave}>
             {submitting ? 'Saving…' : 'Save'}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }
 
