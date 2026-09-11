@@ -11,12 +11,12 @@ nothing about it depends on unfinished multi-workspace features.
 
 |                  | Business A (existing)              | Business B (new)                   |
 | ---------------- | ---------------------------------- | ---------------------------------- |
-| Checkout         | `~/posty`                          | `~/posty-b`                        |
+| Checkout         | `~/posty-mail`                     | `~/posty-b`                        |
 | Port             | `4010`                             | `4011`                             |
 | Database         | `campaign_app`                     | `business_b_app`                   |
 | pm2 app          | `posty`                            | `posty-b`                          |
 | Domain           | `mail.business-a.com`              | `mail.business-b.com`              |
-| Deploy           | `./deploy.sh`                      | `./deploy.sh posty-b`              |
+| Deploy           | `./deploy.sh`                      | `./deploy.sh`                      |
 
 Both talk to the **same** Postgres server on `127.0.0.1:5432`, just different
 databases. One Postgres container is enough — do **not** run `npm run docker:db`
@@ -215,12 +215,17 @@ Admin → Team members.
 
 ## Updating later
 
-From each checkout, naming its own pm2 app:
+From each checkout, after pushing to GitHub:
 
 ```bash
-cd ~/posty   && ./deploy.sh            # Business A
-cd ~/posty-b && ./deploy.sh posty-b    # Business B
+cd ~/posty-mail && ./deploy.sh    # Business A
+cd ~/posty-b    && ./deploy.sh    # Business B
 ```
+
+No pm2 name needed either side: the script reads which app pm2 records as
+running from the current directory. Passing one explicitly still works
+(`./deploy.sh posty-b`), and is checked against this checkout rather than
+trusted.
 
 ---
 
@@ -238,10 +243,24 @@ pins `container_name: campaign-postgres`, the volume name, and
 container instead of creating anything useful. Business B uses the existing
 Postgres via its own `DATABASE_URL` (step 1).
 
-**Pass the pm2 name when deploying B.** `./deploy.sh` with no argument targets
-`posty` — from B's directory that would pull and build B's code, then restart
-*A*, leaving B on stale code. The script echoes the target name at the top;
-read it.
+**Deploying one instance can no longer restart the other.** It used to:
+`./deploy.sh` with no argument always targeted `posty`, so running it from B's
+directory pulled and built B's code and then restarted *A*, leaving B serving
+stale code behind a clean `git status` and a green "Done." That is how a DKIM
+fix once looked deployed for two hours while the old process kept answering.
+
+The script now resolves the target from pm2's record of which directory each
+app runs in, so a bare `./deploy.sh` is correct in both checkouts. If you name
+one explicitly and it belongs to the other checkout, the deploy aborts before
+pulling anything:
+
+```
+ERROR: pm2 app 'posty' runs from /home/ubuntu/posty-mail, not /home/ubuntu/posty-b.
+       This directory is served by 'posty-b'. Run: ./deploy.sh posty-b
+```
+
+It also checks the process actually came back — a `pm2 restart` that silently
+no-ops now fails the deploy instead of reporting success.
 
 **Ports must differ** (`4010` / `4011`), and each `.env` needs its own
 `PUBLIC_BASE_URL` — that value generates unsubscribe links and the image URLs

@@ -187,16 +187,24 @@ cd posty-mail
 ./deploy.sh
 ```
 
-It runs the whole update in order and stops on the first failure (so a
-broken build never restarts the app): `git pull` → `npm ci` →
-`npm run db:deploy` → `npm run build` → `pm2 restart posty`.
+It runs the whole update in order and stops on the first failure (so a broken
+build never restarts the app): `git pull --ff-only` → `npm ci` →
+`npm run db:generate` → `npm run db:deploy` → `npm run build` →
+`pm2 restart`.
+
+Before any of that it works out which pm2 app this checkout owns, and refuses
+to run if the answer is a process belonging to a different directory — see
+[SECOND-INSTANCE.md](./SECOND-INSTANCE.md) if you run more than one install on
+the box. Afterwards it verifies the process really restarted rather than
+trusting pm2's exit code.
 
 The manual equivalent, if you'd rather run the steps yourself:
 
 ```bash
 cd posty-mail
-git pull
+git pull --ff-only
 npm ci
+npm run db:generate      # REQUIRED — see the warning in step 5
 npm run db:deploy        # apply any new migrations
 npm run build            # rebuild the frontend
 pm2 restart posty
