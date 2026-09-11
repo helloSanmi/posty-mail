@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 import { X } from 'lucide-react';
+import { Modal } from './Modal';
 
 const STYLES = {
   primary: {
@@ -20,16 +21,8 @@ export function InsertButtonModal({ onInsert, onCancel }) {
   const [label, setLabel] = useState('Sign up now');
   const [url, setUrl] = useState('https://');
   const [styleKey, setStyleKey] = useState('primary');
-  const cancelRef = useRef(null);
   const labelId = useId();
   const urlId = useId();
-
-  useEffect(() => {
-    cancelRef.current?.focus();
-    function onKey(event) { if (event.key === 'Escape') onCancel(); }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onCancel]);
 
   const trimmedUrl = url.trim();
   const validUrl = /^https?:\/\/\S+/i.test(trimmedUrl);
@@ -63,8 +56,13 @@ export function InsertButtonModal({ onInsert, onCancel }) {
   };
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Insert button">
-      <form className="modal-card surface user-modal" onSubmit={handleSubmit}>
+    <Modal
+      label="Insert button"
+      onClose={onCancel}
+      className="user-modal"
+      as="form"
+      onSubmit={handleSubmit}
+    >
         <div className="edit-contact-header">
           <h2>Insert call-to-action button</h2>
           <button type="button" onClick={onCancel} aria-label="Close">
@@ -121,13 +119,12 @@ export function InsertButtonModal({ onInsert, onCancel }) {
           </div>
         </div>
 
-        <div className="modal-actions">
-          <button ref={cancelRef} type="button" onClick={onCancel}>Cancel</button>
-          <button type="submit" className="primary" disabled={!canInsert}>
-            Insert button
-          </button>
-        </div>
-      </form>
-    </div>
+      <div className="modal-actions">
+        <button type="button" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="primary" disabled={!canInsert}>
+          Insert button
+        </button>
+      </div>
+    </Modal>
   );
 }

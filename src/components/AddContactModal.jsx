@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 import { X } from 'lucide-react';
+import { Modal } from './Modal';
 import { otherCountryOptions, priorityCountryOptions } from '../data/countries';
 import { EMAIL_PATTERN } from '../../shared/campaignUtils.js';
 import { GroupSelector } from './GroupSelector';
@@ -23,19 +24,11 @@ export function AddContactModal({ groups, onCreate, onCancel, defaultGroupId }) 
   );
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const cancelRef = useRef(null);
   const emailId = useId();
   const firstId = useId();
   const lastId = useId();
   const regionId = useId();
   const consentId = useId();
-
-  useEffect(() => {
-    cancelRef.current?.focus();
-    function onKey(event) { if (event.key === 'Escape') onCancel(); }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onCancel]);
 
   const emailError = touched && draft.email && !EMAIL_PATTERN.test(draft.email)
     ? 'Invalid email format'
@@ -55,8 +48,7 @@ export function AddContactModal({ groups, onCreate, onCancel, defaultGroupId }) 
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Add contact">
-      <form className="modal-card surface user-modal" onSubmit={handleSubmit}>
+    <Modal label="Add contact" onClose={onCancel} className="user-modal" as="form" onSubmit={handleSubmit}>
         <div className="edit-contact-header">
           <h2>Add contact</h2>
           <button type="button" onClick={onCancel} aria-label="Close">
@@ -141,12 +133,11 @@ export function AddContactModal({ groups, onCreate, onCancel, defaultGroupId }) 
         </div>
 
         <div className="modal-actions">
-          <button ref={cancelRef} type="button" onClick={onCancel}>Cancel</button>
+          <button type="button" onClick={onCancel}>Cancel</button>
           <button type="submit" className="primary" disabled={submitting || !valid}>
             {submitting ? 'Saving…' : 'Add contact'}
           </button>
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }
