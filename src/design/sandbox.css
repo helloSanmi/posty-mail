@@ -112,7 +112,21 @@ html[data-theme] body {
   font-size: 0.76rem;
 }
 
-.sb-stage { flex: 1; min-height: 0; }
+/* The stage is a containing block for position:fixed descendants, on
+   purpose. A redesigned page's fixed chrome — a mobile drawer pinned to
+   top:0, a fullscreen editor — should be positioned against the PAGE's
+   viewport, not the browser's, or it slides underneath the sandbox bar and
+   loses its first few items.
+   
+   This is the same CSS mechanism that broke every dialog in the live app
+   (a transform on an ancestor captures fixed positioning), used
+   deliberately here rather than by accident. It does not affect anything
+   portaled to document.body, which is outside the stage. */
+.sb-stage {
+  flex: 1;
+  min-height: 0;
+  transform: translateZ(0);
+}
 
 .sb-empty {
   align-items: center;
