@@ -298,6 +298,9 @@
 }
 .cp-filter-dot { border-radius: 50%; height: 7px; width: 7px; }
 .cp-filter-dot.is-accent { background: var(--accent); }
+/* The Draft chip: a real status the mock's five did not cover, and neutral
+   by nature — a draft is not a state you act on. */
+.cp-filter-dot.is-muted { background: var(--border-strong); }
 .cp-filter-dot.is-pending { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .cp-filter-dot.is-success { background: var(--success); }
 .cp-filter-dot.is-warn { background: var(--warn); }
@@ -331,3 +334,10 @@
 }
 .cp-link:hover { background: var(--accent-soft); }
 .cp-link:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+/* Loading placeholders stack; without a gap the three skeleton cards sit
+   flush and read as one grey slab. */
+.cp-loading {
+  display: grid;
+  gap: var(--s3);
+}

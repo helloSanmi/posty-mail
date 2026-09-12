@@ -148,61 +148,87 @@ export function CampaignDetailPage() {
 
   return (
     <div className="page-stack content-page">
-      <div className="back-row">
-        <button type="button" onClick={() => navigate('/campaigns')}>
+      {/* The header band used to carry five identity signals at once: the
+          topbar's "Campaigns", a back button, the campaign-name heading, a
+          "Live · updated 14:32:07" badge and a labelled Refresh button. The
+          badge is now just a dot and a time, Refresh is an icon with its
+          label on aria-label/title, and the back link is quiet.
+          The heading itself stays: unlike the design sandbox's shell, this
+          app's topbar resolves /campaigns/:id to the plain title
+          "Campaigns", and its .eyebrow is display:none above 900px — so
+          dropping the h2 here would leave no visible campaign name at all. */}
+      <div className="sm-detail-head">
+        <button type="button" className="sm-back" onClick={() => navigate('/campaigns')}>
           <ArrowLeft size={14} aria-hidden="true" /> All campaigns
         </button>
-        <h2 className="campaign-detail-title">{metrics?.campaign?.name || 'Campaign'}</h2>
-        <div className="campaign-detail-actions">
-          <span className="campaign-live" title="Metrics auto-refresh every 25 seconds">
-            <span className="campaign-live-dot" aria-hidden="true" />
-            Live
-            {lastUpdatedAt && (
-              <span className="campaign-live-time"> · updated {formatClock(lastUpdatedAt)}</span>
-            )}
-          </span>
-          <button type="button" onClick={refresh} aria-label="Refresh">
-            <RefreshCw size={14} aria-hidden="true" /> Refresh
-          </button>
-        </div>
+        <h2 className="sm-detail-title sm-trunc">{metrics?.campaign?.name || 'Campaign'}</h2>
+        <span className="sm-spacer" />
+        <span className="sm-live" title="Metrics auto-refresh every 25 seconds">
+          <span className="sm-live-dot" aria-hidden="true" />
+          {lastUpdatedAt ? `Updated ${formatClock(lastUpdatedAt)}` : 'Live'}
+        </span>
+        <button
+          type="button"
+          className="sm-icon-btn"
+          onClick={refresh}
+          aria-label="Refresh"
+          title="Refresh"
+        >
+          <RefreshCw size={15} aria-hidden="true" />
+        </button>
       </div>
 
-      <div className="kpi-grid">
+      <section className="sm-kpis">
         <Kpi label="Sent" value={totals.sent} />
-        <Kpi label="Unique opens" value={totals.opens} />
-        <Kpi label="Unique clicks" value={totals.clicks} />
-        <Kpi label="Bounces" value={totals.bounces} />
-      </div>
+        <Kpi label="Unique opens" value={totals.opens} rate={rateOf(totals.opens, totals.sent)} tone="accent" />
+        <Kpi label="Unique clicks" value={totals.clicks} rate={rateOf(totals.clicks, totals.sent)} tone="success" />
+        <Kpi label="Bounces" value={totals.bounces} rate={rateOf(totals.bounces, totals.sent)} tone="danger" />
+      </section>
 
-      <div className="detail-tabs">
-        <button
-          type="button"
-          className={tab === 'recipients' ? 'active' : ''}
-          onClick={() => setTab('recipients')}
-        >
-          {/* Recipient tab count comes from the server-paginated total,
-              not from the rows on the current page. */}
-          Recipients ({recipientsPage.total})
-        </button>
-        <button
-          type="button"
-          className={tab === 'links' ? 'active' : ''}
-          onClick={() => setTab('links')}
-        >
-          Links ({links.links.length})
-        </button>
-        {variants.variants.length > 0 && (
-          <button
-            type="button"
-            className={tab === 'variants' ? 'active' : ''}
-            onClick={() => setTab('variants')}
-          >
-            A/B variants
-          </button>
-        )}
-      </div>
+      <section className="sm-card">
+        {/* The tab strip used to float above the panel it controlled, as a
+            separate inset object — two containers for one thing. It is now
+            the card's own head, and it is the only place the row counts are
+            printed. */}
+        <div className="sm-card-head">
+          <div className="sm-tabs" role="tablist" aria-label="Campaign detail">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'recipients'}
+              className={`sm-tab${tab === 'recipients' ? ' is-active' : ''}`}
+              onClick={() => setTab('recipients')}
+            >
+              Recipients
+              {/* Recipient tab count comes from the server-paginated total,
+                  not from the rows on the current page. */}
+              <span className="sm-tab-n">{recipientsPage.total.toLocaleString()}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'links'}
+              className={`sm-tab${tab === 'links' ? ' is-active' : ''}`}
+              onClick={() => setTab('links')}
+            >
+              Links
+              <span className="sm-tab-n">{links.links.length.toLocaleString()}</span>
+            </button>
+            {variants.variants.length > 0 && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === 'variants'}
+                className={`sm-tab${tab === 'variants' ? ' is-active' : ''}`}
+                onClick={() => setTab('variants')}
+              >
+                A/B variants
+                <span className="sm-tab-n">{variants.variants.length.toLocaleString()}</span>
+              </button>
+            )}
+          </div>
+        </div>
 
-      <section className="surface">
         {loadError ? (
           <p className="empty-state error" role="alert">
             {loadError} <button type="button" className="text-button" onClick={refresh}>Retry</button>
@@ -222,10 +248,10 @@ export function CampaignDetailPage() {
                 >
                   <ChevronLeft size={14} aria-hidden="true" /> Prev
                 </button>
+                {/* The recipient total is on the tab; this line says only
+                    where in the set you are. */}
                 <span className="muted pagination-status">
                   Page {recipientsPage.page} of {recipientsPage.totalPages}
-                  {' · '}
-                  {recipientsPage.total} recipient{recipientsPage.total === 1 ? '' : 's'}
                 </span>
                 <button
                   type="button"
@@ -248,13 +274,16 @@ export function CampaignDetailPage() {
   );
 }
 
-function Kpi({ label, value }) {
+function Kpi({
+  label, value, rate, tone,
+}) {
   return (
-    <div className="kpi-card">
-      <div>
-        <span className="muted">{label}</span>
-        <strong>{value.toLocaleString()}</strong>
-      </div>
+    <div className={`sm-kpi${tone ? ` is-${tone}` : ''}`}>
+      <span className="sm-kpi-label">{label}</span>
+      <strong className="sm-kpi-value">{value.toLocaleString()}</strong>
+      {/* The rate slot holds a blank when there is nothing to divide by, so
+          all four cards keep the same three-line height. */}
+      <span className="sm-kpi-rate">{rate || ' '}</span>
     </div>
   );
 }
@@ -264,28 +293,33 @@ function RecipientsTable({ rows }) {
     return <p className="empty-state">No recipient activity yet. Once Brevo posts events back, they&apos;ll appear here.</p>;
   }
   return (
-    <div className="data-table" role="table">
-      <div className="data-table-head" role="row">
-        <span role="columnheader">Email</span>
-        <span role="columnheader">Status</span>
-        <span role="columnheader">Opens</span>
-        <span role="columnheader">Clicks</span>
-        <span role="columnheader">Bounces</span>
-        <span role="columnheader">Last event</span>
-      </div>
-      {rows.map((row) => (
-        <div className="data-table-row" key={row.email} role="row">
-          <span>{row.email}</span>
-          <span>
-            <span className={`pill ${pillForStatus(row)}`}>{recipientLabel(row)}</span>
-          </span>
-          <span>{row.opens}</span>
-          <span>{row.clicks}</span>
-          <span>{row.bounces}</span>
-          <span className="muted">{formatDate(row.lastEventAt)}</span>
-        </div>
-      ))}
-    </div>
+    <table className="sm-table">
+      <thead>
+        <tr>
+          <th>Recipient</th>
+          <th className="sm-num">Opens</th>
+          <th className="sm-num">Clicks</th>
+          <th>Status</th>
+          <th>Last event</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => {
+          // One tone drives both the pill and the row's left rail, so a
+          // bounced row is legible without a column of its own.
+          const tone = toneForRecipient(row);
+          return (
+            <tr key={row.email} className={`sm-row is-${tone}`}>
+              <td className="sm-trunc">{row.email}</td>
+              <td className="sm-num">{row.opens}</td>
+              <td className="sm-num">{row.clicks}</td>
+              <td><span className={`sm-pill is-${tone}`}>{recipientLabel(row)}</span></td>
+              <td className="sm-dim sm-when">{formatDate(row.lastEventAt)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
 
@@ -294,42 +328,59 @@ function LinksTable({ links }) {
     return <p className="empty-state">No clicks tracked yet.</p>;
   }
   return (
-    <div className="links-table">
-      <p className="muted">Total clicks: {links.totalClicks}</p>
-      <ul className="links-list">
-        {links.links.map((link) => (
-          <li key={link.url}>
-            <a href={link.url} target="_blank" rel="noopener noreferrer">
-              {link.url} <ExternalLink size={12} aria-hidden="true" />
-            </a>
-            <strong>{link.clicks}</strong>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <>
+      {/* The aggregate the endpoint returns. It equals the sum of the
+          visible Clicks column, but it is the number people quote, and
+          fetching it only to never show it is worse than not fetching. */}
+      <p className="sm-dim sm-total-clicks">Total clicks: {links.totalClicks}</p>
+      <table className="sm-table">
+        <thead>
+          <tr>
+            <th>Link</th>
+            <th className="sm-num">Clicks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {links.links.map((link) => (
+            <tr key={link.url} className="sm-row">
+              <td className="sm-trunc">
+                <a href={link.url} target="_blank" rel="noopener noreferrer">
+                  {link.url} <ExternalLink size={12} aria-hidden="true" />
+                </a>
+              </td>
+              <td className="sm-num">{link.clicks}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 
 function VariantsTable({ variants }) {
   return (
-    <div className="data-table" role="table">
-      <div className="data-table-head variants-head" role="row">
-        <span role="columnheader">Variant</span>
-        <span role="columnheader">Subject</span>
-        <span role="columnheader">Weight</span>
-        <span role="columnheader">Opens</span>
-        <span role="columnheader">Clicks</span>
-      </div>
-      {variants.map((variant) => (
-        <div className="data-table-row variants-row" key={variant.id} role="row">
-          <span><strong>{variant.label || variant.id}</strong></span>
-          <span className="muted">{variant.subject || '-'}</span>
-          <span>{variant.weight}</span>
-          <span>{variant.opens}</span>
-          <span>{variant.clicks}</span>
-        </div>
-      ))}
-    </div>
+    <table className="sm-table">
+      <thead>
+        <tr>
+          <th>Variant</th>
+          <th>Subject</th>
+          <th className="sm-num">Weight</th>
+          <th className="sm-num">Opens</th>
+          <th className="sm-num">Clicks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {variants.map((variant) => (
+          <tr key={variant.id} className="sm-row">
+            <td><strong>{variant.label || variant.id}</strong></td>
+            <td className="sm-dim sm-trunc">{variant.subject || '-'}</td>
+            <td className="sm-num">{variant.weight}</td>
+            <td className="sm-num">{variant.opens}</td>
+            <td className="sm-num">{variant.clicks}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -341,12 +392,24 @@ function recipientLabel(row) {
   return row.status;
 }
 
-function pillForStatus(row) {
-  if (row.unsubscribed || row.bounces > 0) return 'amber';
-  if (row.clicks > 0 || row.opens > 0) return 'green';
-  if (row.status === 'sent') return '';
-  if (row.status === 'failed') return 'amber';
+// Tone for a recipient row, in the screen sheet's vocabulary. Same
+// precedence as recipientLabel above so the pill's colour always matches
+// the word inside it.
+function toneForRecipient(row) {
+  if (row.unsubscribed) return 'warn';
+  if (row.bounces > 0) return 'danger';
+  if (row.clicks > 0) return 'success';
+  if (row.opens > 0) return 'accent';
+  if (row.status === 'failed') return 'danger';
   return 'muted';
+}
+
+// Share of sent, for the second line of a KPI card. Empty when there is
+// nothing to divide by, so a campaign with no sends shows a blank rate
+// rather than "NaN%".
+function rateOf(value, sent) {
+  if (!sent) return '';
+  return `${((value / sent) * 100).toFixed(1)}%`;
 }
 
 function formatDate(value) {

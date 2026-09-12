@@ -5,6 +5,11 @@ import { PasswordInput } from '../components/PasswordInput';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// The brand line under the heading. On a self-hosted install the one thing
+// the screen can usefully add is WHICH install you are signing into, which
+// is why it replaces the old subheading rather than sitting beside it.
+const INSTALL_NAME = 'Posty';
+
 export function LoginPage() {
   const {
     hasUsers,
@@ -113,13 +118,19 @@ export function LoginPage() {
         ? 'Create your account'
         : 'Welcome back';
 
+  // The sign-in subheading DID say the heading twice ("Sign in" over "Sign
+  // in to your Posty workspace") and deserved to go. The other three did
+  // not: each is the only on-screen text explaining what the flow will
+  // actually do — most importantly that reset sets a new password here and
+  // now rather than emailing a link. So sign-in gets the install name, and
+  // the states that need instructing keep it.
   const subheading = isForgot
     ? 'Enter your email and a new password to regain access.'
     : !hasUsers
       ? 'This first account becomes the workspace admin.'
       : isSignup
         ? 'Set up a new workspace in a few seconds.'
-        : 'Sign in to your Posty workspace.';
+        : INSTALL_NAME;
 
   const submitLabel = isForgot
     ? (submitting ? 'Resetting…' : 'Reset password')
@@ -127,28 +138,45 @@ export function LoginPage() {
       ? (submitting ? 'Working…' : 'Create account')
       : (submitting ? 'Working…' : 'Sign in');
 
+  // One row of links, not a divider plus a stack. Only two of the three can
+  // ever be showing at once (the back-link owns the forgot mode outright),
+  // so a single separator between them is all the row needs.
+  const showForgotLink = !isForgot && hasUsers && passwordResetEnabled;
+  const showBackLink = isForgot;
+  const showSignupLink = !isForgot && allowSignup && hasUsers;
+  const showLinkRow = showForgotLink || showBackLink || showSignupLink;
+
   return (
     <div className="auth-shell">
-      <div className="auth-card surface">
-        <div className="auth-brand">
+      {/* The card IS the form — the design collapsed the card/form pair into
+          one element so .sm-authcard's own grid owns the field rhythm.
+          .auth-card rides along for its margin:auto, the one property
+          .sm-authcard does not set and the thing that centres the card in
+          the full-height shell (the design sandbox had no viewport to
+          centre in). .surface keeps the entrance animation; every visual
+          property of both is overridden by .sm-authcard. */}
+      <form className="sm-authcard auth-card surface" onSubmit={handleSubmit} noValidate>
+        <div className="sm-authbrand">
           <img src="/posty-mark.svg" alt="Posty" className="auth-logo" />
-          <h1 className="auth-heading">{heading}</h1>
-          <p className="auth-subheading">{subheading}</p>
+          <h1>{heading}</h1>
+          <span className="sm-dim">{subheading}</span>
         </div>
-        <form onSubmit={handleSubmit} className="auth-form" noValidate>
-          {isSignup && (
-            <>
-              <label htmlFor={nameId}>Your name (optional)</label>
-              <input
-                id={nameId}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Avery Stone"
-                autoComplete="name"
-              />
-            </>
-          )}
-          <label htmlFor={emailId}>Email</label>
+
+        {isSignup && (
+          <label className="sm-field" htmlFor={nameId}>
+            Your name (optional)
+            <input
+              id={nameId}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Avery Stone"
+              autoComplete="name"
+            />
+          </label>
+        )}
+
+        <label className="sm-field" htmlFor={emailId}>
+          Email
           <input
             id={emailId}
             type="email"
@@ -161,13 +189,20 @@ export function LoginPage() {
             aria-invalid={Boolean(emailError)}
             aria-describedby={emailError ? `${emailId}-err` : undefined}
           />
-          {emailError && (
-            <p id={`${emailId}-err`} className="field-error" role="alert">{emailError}</p>
-          )}
+        </label>
+        {emailError && (
+          <p id={`${emailId}-err`} className="field-error" role="alert">{emailError}</p>
+        )}
 
-          <label htmlFor={passwordId}>
-            {isForgot ? 'New password' : 'Password'}
-          </label>
+        {/* The label is a SIBLING here, not a wrapper. PasswordInput renders
+            a show/hide <button> inside itself, and accessible-name-from-
+            content walks the label's subtree — nesting it makes the field
+            announce as "Password Show password", and flip to "Password Hide
+            password" as the user toggles it. */}
+        <label className="sm-field-label" htmlFor={passwordId}>
+          {isForgot ? 'New password' : 'Password'}
+        </label>
+        <div className="sm-field">
           <PasswordInput
             id={passwordId}
             required
@@ -179,13 +214,17 @@ export function LoginPage() {
             autoComplete={isSignup || isForgot ? 'new-password' : 'current-password'}
             aria-invalid={Boolean(passwordError)}
           />
-          {passwordError && (
-            <p className="field-error" role="alert">{passwordError}</p>
-          )}
+        </div>
+        {passwordError && (
+          <p className="field-error" role="alert">{passwordError}</p>
+        )}
 
-          {isForgot && (
-            <>
-              <label htmlFor={confirmId}>Confirm new password</label>
+        {isForgot && (
+          <>
+            <label className="sm-field-label" htmlFor={confirmId}>
+              Confirm new password
+            </label>
+            <div className="sm-field">
               <PasswordInput
                 id={confirmId}
                 required
@@ -196,50 +235,41 @@ export function LoginPage() {
                 autoComplete="new-password"
                 aria-invalid={Boolean(confirmError)}
               />
-              {confirmError && (
-                <p className="field-error" role="alert">{confirmError}</p>
-              )}
-            </>
-          )}
+            </div>
+            {confirmError && (
+              <p className="field-error" role="alert">{confirmError}</p>
+            )}
+          </>
+        )}
 
-          {info && <p className="auth-info" role="status">{info}</p>}
-          {error && <p className="auth-error" role="alert">{error}</p>}
+        {info && <p className="auth-info" role="status">{info}</p>}
+        {error && <p className="auth-error" role="alert">{error}</p>}
 
-          <button className="primary" type="submit" disabled={submitting || !formValid}>
-            {submitLabel}
-          </button>
+        <button className="sm-authbtn" type="submit" disabled={submitting || !formValid}>
+          {submitLabel}
+        </button>
 
-          <div className="auth-form-links">
-            {!isForgot && hasUsers && passwordResetEnabled && (
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => switchMode('forgot')}
-              >
-                Forgot password?
+        {showLinkRow && (
+          <div className="sm-authlinks">
+            {showForgotLink && (
+              <button type="button" onClick={() => switchMode('forgot')}>
+                Forgot password
               </button>
             )}
-            {isForgot && (
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => switchMode('login')}
-              >
+            {showBackLink && (
+              <button type="button" onClick={() => switchMode('login')}>
                 Back to sign in
               </button>
             )}
-            {!isForgot && allowSignup && hasUsers && (
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => switchMode(isSignup ? 'login' : 'signup')}
-              >
-                {isSignup ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
+            {showForgotLink && showSignupLink && <span aria-hidden="true">·</span>}
+            {showSignupLink && (
+              <button type="button" onClick={() => switchMode(isSignup ? 'login' : 'signup')}>
+                {isSignup ? 'Sign in instead' : 'Create an account'}
               </button>
             )}
           </div>
-        </form>
-      </div>
+        )}
+      </form>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Pencil, ScrollText, ShieldCheck, Trash2, UserPlus, Users,
+  Pencil, RefreshCw, Trash2, UserPlus,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import {
@@ -58,7 +58,7 @@ export function AdminPage({ notify }) {
   if (!isAdmin) {
     return (
       <div className="page-stack content-page">
-        <section className="surface">
+        <section className="sm-card">
           <p className="empty-state">You need an admin role to view this page.</p>
         </section>
       </div>
@@ -114,64 +114,81 @@ export function AdminPage({ notify }) {
     });
   }
 
+  // The tab names the view, so the per-section h3 and its restated count are
+  // gone: the count rides on the tab and the section's one action joins the
+  // tab row rather than starting a second control row beneath it.
   const TABS = [
-    { id: 'team', label: 'Team members', icon: Users, count: users.length },
-    { id: 'roles', label: 'Roles & access', icon: ShieldCheck, count: roles.length },
-    { id: 'activity', label: 'Activity log', icon: ScrollText },
+    { id: 'team', label: 'Team members', count: users.length },
+    { id: 'roles', label: 'Roles & access', count: roles.length },
+    { id: 'activity', label: 'Activity log' },
   ];
 
   return (
     <div className="page-stack content-page admin-page">
-      <div className="subtabs" role="tablist" aria-label="Admin sections">
-        {TABS.map((item) => {
-          const Icon = item.icon;
-          const isActive = tab === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              className={`subtab${isActive ? ' is-active' : ''}`}
-              onClick={() => setTab(item.id)}
-            >
-              <Icon size={16} aria-hidden="true" />
-              {item.label}
-              {typeof item.count === 'number' && (
-                <span className="subtab-count">{item.count}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {tab === 'team' && (
-        <section className="surface">
-          <div className="section-heading">
-            <div>
-              <h3>Team members</h3>
-              <span className="muted">{users.length} {users.length === 1 ? 'member' : 'members'}</span>
-            </div>
-            <button type="button" className="primary" onClick={() => setCreateOpen(true)}>
-              <UserPlus size={14} aria-hidden="true" /> Add user
-            </button>
+      <section className="sm-card">
+        <div className="sm-card-head">
+          <div className="sm-tabs" role="tablist" aria-label="Admin sections">
+            {TABS.map((item) => {
+              const isActive = tab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`sm-tab${isActive ? ' is-active' : ''}`}
+                  onClick={() => setTab(item.id)}
+                >
+                  {item.label}
+                  {typeof item.count === 'number' && (
+                    <span className="sm-tab-n">{item.count}</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {users.length === 0 ? (
+          {/* The head's right slot carries the open tab's one action. Roles
+              has none here because RolesManager owns its own New role
+              button along with the modal it opens. */}
+          {tab === 'team' && (
+            <button type="button" className="sm-btn sm-btn-primary" onClick={() => setCreateOpen(true)}>
+              <UserPlus size={14} aria-hidden="true" /> Add user
+            </button>
+          )}
+          {tab === 'activity' && (
+            <button
+              type="button"
+              className="sm-btn"
+              onClick={() => getAuditLogs({ limit: 50 }).then(setLogs)}
+            >
+              <RefreshCw size={14} aria-hidden="true" /> Refresh
+            </button>
+          )}
+        </div>
+
+        {tab === 'team' && (
+          users.length === 0 ? (
             <p className="empty-state">No users yet.</p>
           ) : (
-            <ul className="admin-user-list">
+            <ul className="sm-rows">
               {users.map((item) => (
-                <li key={item.id}>
-                  <div className="admin-user-info">
-                    <strong>{item.name || item.email}</strong>
-                    <span className="muted">{item.email}</span>
-                  </div>
-                  <span className={`pill ${rolePill(item.role)}`}>{roleName[item.role] || item.role}</span>
-                  <div className="admin-user-actions">
+                <li key={item.id} className="sm-rowitem">
+                  <span className="sm-avatar" aria-hidden="true">
+                    {initials(item.name || item.email)}
+                  </span>
+                  <span className="sm-rowtext">
+                    <span className="sm-rowname">
+                      {item.name || item.email}
+                      {item.id === user.id && <span className="sm-chip">you</span>}
+                    </span>
+                    <span className="sm-dim sm-trunc">{item.email}</span>
+                  </span>
+                  <span className="sm-role">{roleName[item.role] || item.role}</span>
+                  <span className="sm-rowactions">
                     <button
                       type="button"
-                      className="row-action"
+                      className="sm-icon-btn"
                       onClick={() => setEditing(item)}
                       title="Edit user"
                       aria-label={`Edit ${item.email}`}
@@ -180,7 +197,7 @@ export function AdminPage({ notify }) {
                     </button>
                     <button
                       type="button"
-                      className="row-action row-action-danger"
+                      className="sm-icon-btn is-danger"
                       disabled={item.id === user.id}
                       onClick={() => confirmDelete(item)}
                       title={item.id === user.id ? "You can't delete yourself" : 'Delete user'}
@@ -188,46 +205,48 @@ export function AdminPage({ notify }) {
                     >
                       <Trash2 size={14} aria-hidden="true" />
                     </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-
-      {tab === 'roles' && (
-        <RolesManager notify={notify} onRolesChanged={reloadRoles} />
-      )}
-
-      {tab === 'activity' && (
-        <section className="surface">
-          <div className="section-heading">
-            <div>
-              <h3>Activity log</h3>
-              <span className="muted">The most recent changes in this workspace.</span>
-            </div>
-            <button type="button" onClick={() => getAuditLogs({ limit: 50 }).then(setLogs)}>
-              Refresh
-            </button>
-          </div>
-          {logs.length === 0 ? (
-            <p className="empty-state">No activity yet.</p>
-          ) : (
-            <ul className="audit-list">
-              {logs.map((log) => (
-                <li key={log.id}>
-                  <span className="audit-time">{formatTime(log.createdAt)}</span>
-                  <span className="audit-user">{log.userEmail || '-'}</span>
-                  <span className="audit-action">{log.action}</span>
-                  <span className="audit-resource">
-                    {log.resource}{log.resourceId ? `:${log.resourceId.slice(0, 8)}` : ''}
                   </span>
                 </li>
               ))}
             </ul>
-          )}
-        </section>
+          )
+        )}
+
+        {tab === 'activity' && (
+          logs.length === 0 ? (
+            <p className="empty-state">No activity yet.</p>
+          ) : (
+            <table className="sm-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Who</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log) => (
+                  <tr key={log.id} className="sm-row">
+                    <td className="sm-dim sm-when">{formatTime(log.createdAt)}</td>
+                    <td className="sm-trunc">{log.userEmail || '-'}</td>
+                    {/* The resource joins the action rather than claiming a
+                        fourth column for a value that only qualifies it. */}
+                    <td className="sm-dim sm-trunc">
+                      {log.action}
+                      {log.resource
+                        ? ` · ${log.resource}${log.resourceId ? `:${log.resourceId.slice(0, 8)}` : ''}`
+                        : ''}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
+        )}
+      </section>
+
+      {tab === 'roles' && (
+        <RolesManager notify={notify} onRolesChanged={reloadRoles} />
       )}
 
       {createOpen && (
@@ -263,10 +282,12 @@ export function AdminPage({ notify }) {
   );
 }
 
-function rolePill(role) {
-  if (role === 'admin') return 'green';
-  if (role === 'editor') return 'amber';
-  return 'muted';
+// Initials for the row avatar. Real users may have no name, so the email is
+// the fallback and a single-token value yields one letter.
+function initials(value) {
+  const parts = String(value || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  return parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 }
 
 function formatTime(value) {

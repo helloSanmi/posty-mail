@@ -272,36 +272,45 @@ export function ContactsPage({ onParsed, refreshContacts, notify }) {
 
   return (
     <div className="page-stack content-page audience-page">
-      <div className="subtabs" role="tablist" aria-label="Audience sections">
-        {TABS.map((item) => {
-          const Icon = item.icon;
-          const isActive = tab === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              className={`subtab${isActive ? ' is-active' : ''}`}
-              onClick={() => setTab(item.id)}
-            >
-              <Icon size={16} aria-hidden="true" />
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* THREE TOOLBARS BECAME ONE. The sub-tab strip and the floating
+          right-aligned Upload / Add contact row used to be two separate
+          bands of controls before a single contact was visible; they are
+          one row now. The design puts Import in the contacts card's own
+          head (beside the thing it imports into) and Add contact in the
+          shell topbar — both of those heads belong to components this page
+          only composes (ContactsTable, AppShell), so rather than drop the
+          two controls they live here, in the single remaining band. */}
+      <div className="au-card-head">
+        <div className="au-tabs" role="tablist" aria-label="Audience sections">
+          {TABS.map((item) => {
+            const Icon = item.icon;
+            const isActive = tab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`au-tab${isActive ? ' is-active' : ''}`}
+                onClick={() => setTab(item.id)}
+              >
+                <Icon size={15} aria-hidden="true" />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
 
-      {tab === 'contacts' && (
-        <>
-          <div className="audience-actions">
+        {tab === 'contacts' && (
+          <div className="au-head-tools">
             <button
               type="button"
+              className="au-btn"
               onClick={() => fileInputRef.current?.click()}
               title="Upload .csv, .xlsx, or .xls"
               data-tooltip="CSV, XLSX, or XLS"
             >
-              <Upload size={14} aria-hidden="true" /> Upload
+              <Upload size={14} aria-hidden="true" /> Import
             </button>
             <input
               ref={fileInputRef}
@@ -316,33 +325,41 @@ export function ContactsPage({ onParsed, refreshContacts, notify }) {
             />
             <button
               type="button"
-              className="primary"
+              /* .au-btn gives the head-row shape; button.primary (base.css)
+                 out-specifies it on colour, so this stays the page's one
+                 accented action. */
+              className="au-btn primary"
               onClick={() => setAddOpen(true)}
             >
               <UserPlus size={14} aria-hidden="true" /> Add contact
             </button>
           </div>
+        )}
+      </div>
 
-          <div className="audience-split">
-            <GroupsPanel
-              notify={notify}
-              refreshTick={groupsTick}
-              viewingGroupId={viewingGroupId}
-              onView={setViewingGroupId}
-              totalContacts={totalContacts}
-              onChange={bumpGroups}
-            />
-            <ContactsTable
-              key={refreshTick}
-              notify={notify}
-              groupsRefreshTick={groupsTick}
-              onGroupsChange={bumpGroups}
-              viewingGroupId={viewingGroupId}
-              onClearGroupView={() => setViewingGroupId(null)}
-              onTotalChange={setTotalContacts}
-            />
-          </div>
-        </>
+      {tab === 'contacts' && (
+        /* The groups rail is sticky in its own right (.groups-sidebar), so
+           it is a direct grid child here rather than being wrapped in the
+           design's .au-groups sticky shell — two sticky boxes would fight. */
+        <div className="au-grid">
+          <GroupsPanel
+            notify={notify}
+            refreshTick={groupsTick}
+            viewingGroupId={viewingGroupId}
+            onView={setViewingGroupId}
+            totalContacts={totalContacts}
+            onChange={bumpGroups}
+          />
+          <ContactsTable
+            key={refreshTick}
+            notify={notify}
+            groupsRefreshTick={groupsTick}
+            onGroupsChange={bumpGroups}
+            viewingGroupId={viewingGroupId}
+            onClearGroupView={() => setViewingGroupId(null)}
+            onTotalChange={setTotalContacts}
+          />
+        </div>
       )}
 
       {tab === 'segments' && <SegmentsPanel notify={notify} />}

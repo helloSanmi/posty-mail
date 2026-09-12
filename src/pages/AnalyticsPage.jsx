@@ -1,20 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  Activity,
-  ArrowDownRight,
-  ArrowUpRight,
-  ChevronRight,
-  ExternalLink,
-  Minus,
-  X,
-} from 'lucide-react';
+import { ArrowRight, ExternalLink, RefreshCw, X } from 'lucide-react';
 import { getCampaigns, getEvents } from '../services/brevoApi';
 import { SkeletonCard } from '../components/Skeleton';
 import { ActivityChart } from '../components/analytics/ActivityChart';
-import { EngagementFunnel } from '../components/analytics/EngagementFunnel';
 import { TopLinks } from '../components/analytics/TopLinks';
-import { eventLabel, eventPill, isBotEvent } from '../utils/brevoEvents';
+import { eventLabel, isBotEvent } from '../utils/brevoEvents';
 
 // Date-range presets for the Reports filter. Each one returns
 // `{ since, until }` Date objects (or null for "everything").
@@ -98,11 +89,39 @@ const OPEN_NAMES = new Set(['opened', 'open', 'unique_opened', 'proxy_open', 'lo
 const CLICK_NAMES = new Set(['click', 'clicked', 'unique_clicked']);
 const BOUNCE_NAMES = new Set(['hard_bounce', 'soft_bounce', 'blocked', 'invalid_email']);
 
+// `tone` is the product-wide identity for each metric: opens accent, clicks
+// success, bounces danger, unsubscribes warn — the same four colours these
+// carry on Home and in the campaign table, so they are learned once. The
+// summary column, its drill panel's top edge and the event pills inside it
+// all read from this one map.
 const METRIC_DEFINITIONS = {
-  opens: { label: 'Opens', empty: 'No opens yet.', match: (e) => OPEN_NAMES.has(e) },
-  clicks: { label: 'Clicks', empty: 'No clicks yet.', match: (e) => CLICK_NAMES.has(e) },
-  bounces: { label: 'Bounces', empty: 'No bounces yet.', match: (e) => BOUNCE_NAMES.has(e) },
-  unsubscribes: { label: 'Unsubscribes', empty: 'No unsubscribe events from Brevo yet.', match: (e) => e === 'unsubscribed' },
+  opens: { label: 'Opens', tone: 'accent', empty: 'No opens yet.', match: (e) => OPEN_NAMES.has(e) },
+  clicks: { label: 'Clicks', tone: 'success', empty: 'No clicks yet.', match: (e) => CLICK_NAMES.has(e) },
+  bounces: { label: 'Bounces', tone: 'danger', empty: 'No bounces yet.', match: (e) => BOUNCE_NAMES.has(e) },
+  unsubscribes: {
+    // "Unsubscribed" (the event verb) rather than "Unsubscribes", so the
+    // band column and the panel it opens read as the same thing.
+    label: 'Unsubscribed',
+    tone: 'warn',
+    empty: 'No unsubscribe events from Brevo yet.',
+    match: (e) => e === 'unsubscribed',
+  },
+  // "All events" is the drill target behind the drop-off strip's link. It
+  // carries what the standalone "Recent activity" surface used to show —
+  // the drill panel already rendered the same events with more fields and a
+  // hundred-row cap, so the log was a strictly poorer duplicate. No tone:
+  // it is not one metric's identity, so the panel keeps the neutral edge.
+  all: {
+    label: 'All events',
+    tone: null,
+    empty: (
+      <>
+        No webhook events received. Configure your Brevo webhook in
+        Settings to point at <code>/api/webhooks/brevo</code>.
+      </>
+    ),
+    match: () => true,
+  },
 };
 
 export function AnalyticsPage() {
@@ -194,6 +213,20 @@ export function AnalyticsPage() {
     [events, range.since, range.until],
   );
 
+  // Webhook liveness for the control row. Reads the raw (pre bot-filter)
+  // feed: the question this line answers is "is anything arriving at all",
+  // and a scanner's click still proves the webhook fired.
+  const lastEventAt = useMemo(() => {
+    let latest = null;
+    events.forEach((event) => {
+      if (!event.receivedAt) return;
+      const at = new Date(event.receivedAt).getTime();
+      if (Number.isNaN(at)) return;
+      if (latest == null || at > latest) latest = at;
+    });
+    return latest;
+  }, [events]);
+
   const totals = useMemo(() => {
     let sent = 0;
     let failed = 0;
@@ -255,74 +288,114 @@ export function AnalyticsPage() {
     setDrilledMetric((current) => (current === metric ? null : metric));
   }
 
+  // The only two numbers the engagement funnel had that the band above did
+  // not already show. Everything else it drew was a byte-for-byte repeat.
+  const sentToOpened = ratePercent(totals.opens, totals.sent);
+  const openedToClicked = ratePercent(totals.clicks, totals.opens);
+
   return (
     <div className="page-stack content-page reports-page">
-      {/* Time-range filter. URL-backed (?range=30d) so refresh / share works.
-          The default is "Last 7 days" — most useful at a glance without
-          getting too noisy. "All time" is the escape hatch. */}
-      <section className="reports-range-bar">
-        <span className="muted reports-range-label">Showing</span>
-        <div className="reports-range-tabs" role="tablist" aria-label="Time range">
+      {/* One control row. The range used to own a full-width sectioning
+          landmark plus a "Showing" label, pushing the numbers it scopes
+          about 64px down the page. Scope and figures are now one object.
+          Still URL-backed (?range=30d) so refresh / share works. */}
+      <div className="rp-controls">
+        <div className="rp-ranges" role="radiogroup" aria-label="Time range">
           {RANGES.map((r) => (
             <button
               key={r.id}
               type="button"
-              role="tab"
-              aria-selected={rangeId === r.id}
-              className={`reports-range-tab${rangeId === r.id ? ' is-active' : ''}`}
+              role="radio"
+              aria-checked={rangeId === r.id}
+              className={`rp-range${rangeId === r.id ? ' is-active' : ''}`}
               onClick={() => setRange(r.id)}
             >
               {r.label}
             </button>
           ))}
         </div>
-      </section>
+        <span className="rp-spacer" />
+        {/* Replaces a whole surface whose only unique content was "is the
+            webhook firing". One line answers it on every range. */}
+        <span className="rp-health">
+          {lastEventAt != null && <span className="rp-health-dot" aria-hidden="true" />}
+          {lastEventAt != null
+            ? `Last event ${relativeTime(lastEventAt)} ago`
+            : 'No events in this window'}
+        </span>
+        <button type="button" className="rp-icon-btn" onClick={refresh} aria-label="Refresh" title="Refresh">
+          <RefreshCw size={15} aria-hidden="true" />
+        </button>
+      </div>
 
-      {/* One unified summary band instead of five disconnected cards.
-          Each metric is a column with vertical dividers between them;
-          the engagement columns are clickable to open the drill-down.
-          Reads as a single dashboard header strip rather than a row of
-          separate widgets. */}
-      <section className="surface reports-summary">
-        <SummaryStat
-          label="Sent"
-          value={totals.sent}
-          delta={deltaPercent(totals.sent, prevTotals?.sent)}
-        />
-        <SummaryStat
-          label="Opens"
-          value={totals.opens}
-          rate={ratePercent(totals.opens, totals.sent)}
-          delta={deltaPercent(totals.opens, prevTotals?.opens)}
-          onClick={() => toggleDrill('opens')}
-          active={drilledMetric === 'opens'}
-        />
-        <SummaryStat
-          label="Clicks"
-          value={totals.clicks}
-          rate={ratePercent(totals.clicks, totals.sent)}
-          delta={deltaPercent(totals.clicks, prevTotals?.clicks)}
-          onClick={() => toggleDrill('clicks')}
-          active={drilledMetric === 'clicks'}
-        />
-        <SummaryStat
-          label="Bounces"
-          value={totals.bounces}
-          rate={ratePercent(totals.bounces, totals.sent)}
-          delta={deltaPercent(totals.bounces, prevTotals?.bounces)}
-          deltaIsBadWhenPositive
-          onClick={() => toggleDrill('bounces')}
-          active={drilledMetric === 'bounces'}
-        />
-        <SummaryStat
-          label="Unsubscribes"
-          value={totals.unsubscribes}
-          rate={ratePercent(totals.unsubscribes, totals.sent)}
-          delta={deltaPercent(totals.unsubscribes, prevTotals?.unsubscribes)}
-          deltaIsBadWhenPositive
-          onClick={() => toggleDrill('unsubscribes')}
-          active={drilledMetric === 'unsubscribes'}
-        />
+      {/* One unified summary band instead of five disconnected cards. Each
+          metric is a column carrying its product-wide identity colour; the
+          engagement columns are the controls that open the drill-down. */}
+      <section className="rp-band">
+        <div className="rp-metrics">
+          <SummaryStat
+            label="Sent"
+            value={totals.sent}
+            delta={deltaPercent(totals.sent, prevTotals?.sent)}
+          />
+          <SummaryStat
+            label="Opens"
+            tone={METRIC_DEFINITIONS.opens.tone}
+            value={totals.opens}
+            rate={ratePercent(totals.opens, totals.sent)}
+            delta={deltaPercent(totals.opens, prevTotals?.opens)}
+            onClick={() => toggleDrill('opens')}
+            active={drilledMetric === 'opens'}
+          />
+          <SummaryStat
+            label="Clicks"
+            tone={METRIC_DEFINITIONS.clicks.tone}
+            value={totals.clicks}
+            rate={ratePercent(totals.clicks, totals.sent)}
+            delta={deltaPercent(totals.clicks, prevTotals?.clicks)}
+            onClick={() => toggleDrill('clicks')}
+            active={drilledMetric === 'clicks'}
+          />
+          <SummaryStat
+            label="Bounces"
+            tone={METRIC_DEFINITIONS.bounces.tone}
+            value={totals.bounces}
+            rate={ratePercent(totals.bounces, totals.sent)}
+            delta={deltaPercent(totals.bounces, prevTotals?.bounces)}
+            onClick={() => toggleDrill('bounces')}
+            active={drilledMetric === 'bounces'}
+          />
+          <SummaryStat
+            label="Unsubscribed"
+            tone={METRIC_DEFINITIONS.unsubscribes.tone}
+            value={totals.unsubscribes}
+            rate={ratePercent(totals.unsubscribes, totals.sent)}
+            delta={deltaPercent(totals.unsubscribes, prevTotals?.unsubscribes)}
+            onClick={() => toggleDrill('unsubscribes')}
+            active={drilledMetric === 'unsubscribes'}
+          />
+        </div>
+        {/* All that survived the funnel: the only two numbers it had that
+            the band above did not already show. */}
+        <div className="rp-dropoff">
+          <span>
+            Sent <ArrowRight size={12} aria-hidden="true" /> Opened
+            {' '}<b>{sentToOpened != null ? `${sentToOpened}%` : '—'}</b>
+          </span>
+          <span>
+            Opened <ArrowRight size={12} aria-hidden="true" /> Clicked
+            {' '}<b>{openedToClicked != null ? `${openedToClicked}%` : '—'}</b>
+          </span>
+          <span className="rp-spacer" />
+          <button
+            type="button"
+            className={`rp-alllink${drilledMetric === 'all' ? ' is-active' : ''}`}
+            aria-pressed={drilledMetric === 'all'}
+            onClick={() => toggleDrill('all')}
+          >
+            All events
+          </button>
+        </div>
       </section>
 
       {drilledMetric && (
@@ -330,71 +403,18 @@ export function AnalyticsPage() {
           metric={drilledMetric}
           events={drillEvents}
           campaignsById={campaignsById}
+          loading={loading}
           onClose={() => setDrilledMetric(null)}
           onCampaignClick={(id) => navigate(`/campaigns/${id}`)}
         />
       )}
 
-      {/* Activity over time — daily opens + clicks chart across the
-          selected window. Hand-built SVG so we don't ship chart.js for
-          one visualization. Hidden when loading so users don't see a
-          flicker of empty chart while the request lands. */}
-      <section className="surface analytics-block">
-        <div className="section-heading">
-          <h2>Activity over time</h2>
-          <span className="muted">
-            {realEvents.length === 0 ? 'No events yet' : `${realEvents.length} events`}
-          </span>
-        </div>
-        {loading ? (
-          <SkeletonCard />
-        ) : (
-          <ActivityChart
-            events={realEvents}
-            since={range.since}
-            until={range.until}
-          />
-        )}
-      </section>
-
-      {/* Two-column row with the funnel + top links side-by-side on
-          wide screens; stacks below 760px. Both are computed from the
-          same realEvents + totals so they refresh together. */}
-      <div className="analytics-insight-grid">
-        <section className="surface analytics-block">
-          <div className="section-heading">
-            <h2>Engagement funnel</h2>
-            <span className="muted">Drop-off across the window</span>
-          </div>
-          {loading ? (
-            <SkeletonCard />
-          ) : (
-            <EngagementFunnel
-              sent={totals.sent}
-              opens={totals.opens}
-              clicks={totals.clicks}
-            />
-          )}
-        </section>
-        <section className="surface analytics-block">
-          <div className="section-heading">
-            <h2>Top clicked links</h2>
-            <span className="muted">By click count</span>
-          </div>
-          {loading ? (
-            <SkeletonCard />
-          ) : (
-            <TopLinks events={realEvents} />
-          )}
-        </section>
-      </div>
-
-      <section className="surface">
-        <div className="section-heading">
+      <section className="rp-card">
+        <div className="rp-card-head">
           <h2>Campaign performance</h2>
-          <button type="button" onClick={refresh} aria-label="Refresh">
-            <Activity size={14} aria-hidden="true" /> Refresh
-          </button>
+          <span className="rp-count">
+            {rangedCampaigns.length === 1 ? '1 campaign' : `${rangedCampaigns.length} campaigns`}
+          </span>
         </div>
         {loadError ? (
           <p className="empty-state error" role="alert">
@@ -409,79 +429,96 @@ export function AnalyticsPage() {
               : `No campaigns in this window. Try a wider range like "All time".`}
           </p>
         ) : (
-          <div className="reports-table reports-table-rates">
-            <div className="reports-table-head">
-              <span>Campaign</span>
-              <span>Status</span>
-              <span>Sent</span>
-              <span>Opens</span>
-              <span>Clicks</span>
-              <span>Bounces</span>
-              <span aria-hidden="true" />
-            </div>
-            {rangedCampaigns.map((campaign) => {
-              const stats = perCampaignStats(realEvents, campaign.id);
-              const sent = campaign.progress?.sent || 0;
-              return (
-                <button
-                  key={campaign.id}
-                  type="button"
-                  className="reports-table-row"
-                  onClick={() => navigate(`/campaigns/${campaign.id}`)}
-                >
-                  <span className="reports-row-name">
-                    <strong>{campaign.name}</strong>
-                    <span className="muted">{formatDate(campaign.createdAt)}</span>
-                  </span>
-                  <span className={`pill ${pillFor(campaign.status)}`}>
-                    {labelFor(campaign.status)}
-                  </span>
-                  <span className="reports-cell-stat">
-                    <strong>{sent}</strong>
-                  </span>
-                  <RateCell count={stats.opens} sent={sent} />
-                  <RateCell count={stats.clicks} sent={sent} />
-                  <RateCell count={stats.bounces} sent={sent} tone="bad" />
-                  <ChevronRight size={14} aria-hidden="true" className="muted" />
-                </button>
-              );
-            })}
-          </div>
+          <table className="rp-table">
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th className="rp-num">Sent</th>
+                <th className="rp-num">Opened</th>
+                <th className="rp-num">Clicked</th>
+                <th className="rp-num">Bounced</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rangedCampaigns.map((campaign) => {
+                const stats = perCampaignStats(realEvents, campaign.id);
+                const sent = campaign.progress?.sent || 0;
+                const state = stateFor(campaign.status);
+                const open = () => navigate(`/campaigns/${campaign.id}`);
+                return (
+                  <tr
+                    key={campaign.id}
+                    className="rp-row is-interactive"
+                    tabIndex={0}
+                    aria-label={`${campaign.name} — open campaign`}
+                    onClick={open}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' && e.key !== ' ') return;
+                      e.preventDefault();
+                      open();
+                    }}
+                  >
+                    <td>
+                      <span className="rp-cname">
+                        {/* Status was a 110px column where almost every row
+                            said "completed". It is now a dot, present only
+                            when the row needs attention — the full status
+                            still reaches screen readers on every row. */}
+                        {state && <span className={`rp-state is-${state}`} aria-hidden="true" />}
+                        <span className="rp-trunc">{campaign.name}</span>
+                      </span>
+                      <span className="rp-dim rp-when" title={formatDate(campaign.createdAt)}>
+                        {shortDate(campaign.createdAt)}
+                      </span>
+                      <span className="visually-hidden">Status: {labelFor(campaign.status)}</span>
+                    </td>
+                    <td className="rp-num">
+                      <span className="rp-figure">{sent.toLocaleString()}</span>
+                    </td>
+                    <RateCell count={stats.opens} sent={sent} tone="accent" />
+                    <RateCell count={stats.clicks} sent={sent} tone="success" />
+                    <RateCell count={stats.bounces} sent={sent} tone="danger" />
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </section>
 
-      <section className="surface">
-        <div className="section-heading">
-          <h2>Recent activity</h2>
-          <span className="muted">{realEvents.length === 0 ? 'No events yet' : `${realEvents.length} events`}</span>
+      {/* Activity over time — daily opens + clicks across the selected
+          window. Hidden behind a skeleton while loading so users don't see
+          a flicker of empty chart while the request lands. */}
+      <section className="rp-card">
+        <div className="rp-card-head">
+          <h2>Activity</h2>
+          <span className="rp-count">
+            {realEvents.length === 0 ? 'No events yet' : `${realEvents.length} events`}
+          </span>
         </div>
         {loading ? (
           <SkeletonCard />
-        ) : realEvents.length === 0 ? (
-          <p className="empty-state">
-            No webhook events received. Configure your Brevo webhook in
-            Settings to point at <code>/api/webhooks/brevo</code>.
-          </p>
         ) : (
-          <ul className="reports-events">
-            {realEvents.slice(0, 12).map((event) => (
-              <li key={event.id}>
-                <span className={`pill ${eventPill(event.payload?.event)}`}>
-                  {eventLabel(event.payload?.event || event.provider)}
-                </span>
-                <span className="reports-event-email">{event.payload?.email || '-'}</span>
-                <span className="muted">{formatDate(event.receivedAt)}</span>
-              </li>
-            ))}
-          </ul>
+          <ActivityChart
+            events={realEvents}
+            since={range.since}
+            until={range.until}
+          />
         )}
+      </section>
+
+      <section className="rp-card">
+        <div className="rp-card-head">
+          <h2>Top clicked links</h2>
+        </div>
+        {loading ? <SkeletonCard /> : <TopLinks events={realEvents} />}
       </section>
     </div>
   );
 }
 
 // Compute a percent rate as a string with one decimal, or null when there's
-// no denominator. Caller decides how to render null (we show "-" in the UI).
+// no denominator. Caller decides how to render null (we show "—" in the UI).
 function ratePercent(numerator, denominator) {
   if (!denominator) return null;
   return ((numerator / denominator) * 100).toFixed(1);
@@ -498,138 +535,149 @@ function deltaPercent(current, prev) {
   return Math.round(((current - prev) / prev) * 100);
 }
 
-// One column inside the unified summary band. No icon, no boxed chrome —
-// the wrapping surface provides the border. Click-target ones get a
-// hover background + active state ring. Reads as a horizontal stat
-// strip (label / value / delta / rate), divider-separated from the
-// neighbors via CSS.
-function SummaryStat({
-  label, value, rate, delta, deltaIsBadWhenPositive, onClick, active,
-}) {
+// One column inside the unified summary band. The engagement columns are
+// buttons; "Sent" is a plain div — no rule, no hue, marking it as a
+// different KIND of number (a volume with no rate) and as the one column
+// that is not a control.
+//
+// The delta chip is neutral on purpose: green used to fire both on rising
+// opens and on falling bounces, so one colour carried two unrelated
+// meanings — and painted the danger-identity metric green. Once each
+// column is identity-coloured the reader already knows which direction is
+// good, so the chip only has to carry the sign.
+function SummaryStat({ label, tone, value, rate, delta, onClick, active }) {
   const Tag = onClick ? 'button' : 'div';
-  // "More is worse" metrics (bounces, unsubscribes) flip the tone.
-  let deltaTone = 'neutral';
-  if (typeof delta === 'number' && delta !== 0) {
-    const isPositive = delta > 0;
-    if (deltaIsBadWhenPositive) deltaTone = isPositive ? 'bad' : 'good';
-    else deltaTone = isPositive ? 'good' : 'bad';
-  }
   return (
     <Tag
       type={onClick ? 'button' : undefined}
-      className={`summary-stat${onClick ? ' is-link' : ''}${active ? ' is-active' : ''}`}
-      onClick={onClick}
+      className={`rp-metric${tone ? ` is-${tone}` : ' is-plain'}${active ? ' is-drilled' : ''}`}
       aria-pressed={onClick ? Boolean(active) : undefined}
+      onClick={onClick}
     >
-      <span className="summary-stat-label">{label}</span>
-      <span className="summary-stat-value">{Number(value).toLocaleString()}</span>
-      <div className="summary-stat-foot">
-        {rate != null ? (
-          <span className="summary-stat-rate">{rate}%</span>
-        ) : (
-          <span className="summary-stat-rate-blank" aria-hidden="true" />
-        )}
+      <span className="rp-metric-label">{label}</span>
+      <strong className="rp-metric-value">{Number(value).toLocaleString()}</strong>
+      <span className="rp-metric-foot">
+        {rate != null && <span className="rp-metric-rate">{rate}%</span>}
         {typeof delta === 'number' && (
-          <span
-            className={`summary-stat-delta summary-stat-delta-${deltaTone}`}
-            title="vs previous period"
-          >
-            {delta > 0 && <ArrowUpRight size={11} aria-hidden="true" />}
-            {delta < 0 && <ArrowDownRight size={11} aria-hidden="true" />}
-            {delta === 0 && <Minus size={11} aria-hidden="true" />}
-            {Math.abs(delta)}%
+          <span className="rp-delta" title="vs previous period">
+            {delta > 0 ? '+' : ''}{delta}%
+            <span className="visually-hidden"> vs previous period</span>
           </span>
         )}
-      </div>
+      </span>
     </Tag>
   );
 }
 
-// Cell for the campaign-performance table. Shows the raw count plus a
-// small percent rate (count / sent) underneath. tone="bad" colors the
-// rate red when relevant (used for the Bounces column).
+// Cell for the campaign-performance table. The rate is the figure that
+// matters, so it leads and carries the metric's identity colour; the raw
+// count is support underneath (and drops out below 820px, where colour
+// survives the breakpoint but column position does not).
 function RateCell({ count, sent, tone }) {
   const rate = ratePercent(count, sent);
   return (
-    <span className="reports-cell-stat">
-      <strong>{count}</strong>
-      {rate != null && (
-        <span className={`reports-cell-rate${tone === 'bad' ? ' is-bad' : ''}`}>
-          {rate}%
-        </span>
-      )}
-    </span>
+    <td className="rp-num">
+      <span className={`rp-figure${tone ? ` is-${tone}` : ''}`}>
+        {rate != null ? `${rate}%` : '—'}
+      </span>
+      <span className="rp-sub">{count.toLocaleString()}</span>
+    </td>
   );
 }
 
-function DrillDown({ metric, events, campaignsById, onClose, onCampaignClick }) {
+// Adjacent to the band on purpose: the tie between the pressed column and
+// the panel it opened is the whole interaction. The top border takes the
+// pressed metric's identity colour.
+function DrillDown({ metric, events, campaignsById, loading, onClose, onCampaignClick }) {
   const def = METRIC_DEFINITIONS[metric];
   const showLink = metric === 'clicks';
   const visible = events.slice(0, 100);
   return (
-    <section className="surface analytics-drill">
-      <div className="section-heading">
-        <h2>
-          {def.label} <span className="muted">{events.length}</span>
-        </h2>
-        <button type="button" onClick={onClose} aria-label="Close drill-down">
-          <X size={14} aria-hidden="true" /> Close
+    <section className={`rp-drill${def.tone ? ` is-${def.tone}` : ''}`} aria-label={`${def.label} detail`}>
+      <div className="rp-card-head">
+        <h2>{def.label}</h2>
+        <span className="rp-spacer" />
+        {/* The list is capped at 100 rows, so "shown" has to describe what
+            is on screen — saying it about the unclamped total contradicts
+            the "showing first 100" footer directly below. */}
+        <span className="rp-count">
+          {visible.length < events.length
+            ? `${visible.length} of ${events.length}`
+            : `${events.length} shown`}
+        </span>
+        <button type="button" className="rp-icon-btn" onClick={onClose} aria-label="Close drill-down" title="Close">
+          <X size={14} aria-hidden="true" />
         </button>
       </div>
-      {events.length === 0 ? (
+      {loading ? (
+        <SkeletonCard />
+      ) : events.length === 0 ? (
         <p className="empty-state compact">{def.empty}</p>
       ) : (
-        <div className={`analytics-drill-table${showLink ? ' has-link' : ''}`}>
-          <div className="analytics-drill-head">
-            <span>Recipient</span>
-            <span>Campaign</span>
-            <span>Subject</span>
-            {showLink && <span>Link clicked</span>}
-            <span>When</span>
-          </div>
-          {visible.map((event) => {
-            const campaignId = eventCampaignId(event);
-            const campaign = campaignsById.get(campaignId);
-            const link = event.payload?.link;
-            return (
-              <div key={event.id} className="analytics-drill-row">
-                <span className="analytics-drill-email">{event.payload?.email || '-'}</span>
-                <span>
-                  {campaign ? (
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => onCampaignClick(campaign.id)}
-                    >
-                      {campaign.name}
-                    </button>
-                  ) : (
-                    <span className="muted">-</span>
-                  )}
-                </span>
-                <span className="muted analytics-drill-subject">
-                  {event.payload?.subject || '-'}
-                </span>
-                {showLink && (
-                  <span className="analytics-drill-link">
-                    {link ? (
-                      <a href={link} target="_blank" rel="noopener noreferrer" title={link}>
-                        <ExternalLink size={11} aria-hidden="true" />
-                        {summariseLink(link)}
-                      </a>
-                    ) : <span className="muted">-</span>}
-                  </span>
-                )}
-                <span className="muted analytics-drill-time">{formatDate(event.receivedAt)}</span>
-              </div>
-            );
-          })}
+        <>
+          <table className="rp-table rp-events">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Recipient</th>
+                <th>Campaign</th>
+                {showLink && <th>Link clicked</th>}
+                <th>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((event) => {
+                const campaignId = eventCampaignId(event);
+                const campaign = campaignsById.get(campaignId);
+                const link = event.payload?.link;
+                const name = event.payload?.event;
+                return (
+                  <tr key={event.id}>
+                    <td>
+                      <span className={`rp-pill is-${eventTone(name)}`}>
+                        {eventLabel(name || event.provider)}
+                      </span>
+                    </td>
+                    <td className="rp-trunc">{event.payload?.email || '-'}</td>
+                    <td className="rp-trunc rp-dim">
+                      {campaign ? (
+                        <button
+                          type="button"
+                          className="text-button"
+                          onClick={() => onCampaignClick(campaign.id)}
+                        >
+                          {campaign.name}
+                        </button>
+                      ) : '-'}
+                    </td>
+                    {showLink && (
+                      <td className="rp-trunc">
+                        {link ? (
+                          <a
+                            href={link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={link}
+                            className="rp-link-url"
+                          >
+                            <span className="rp-trunc">{summariseLink(link)}</span>
+                            <ExternalLink size={11} aria-hidden="true" />
+                          </a>
+                        ) : <span className="rp-dim">-</span>}
+                      </td>
+                    )}
+                    <td className="rp-dim rp-when" title={formatDate(event.receivedAt)}>
+                      {relativeTime(event.receivedAt)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
           {events.length > visible.length && (
-            <small className="muted analytics-drill-more">
-              Showing {visible.length} of {events.length}.
-            </small>
+            <small className="rp-dim">Showing {visible.length} of {events.length}.</small>
           )}
-        </div>
+        </>
       )}
     </section>
   );
@@ -639,6 +687,21 @@ function eventCampaignId(event) {
   const tags = event.payload?.tags || [];
   const tag = tags.find((t) => typeof t === 'string' && t.startsWith('campaign:'));
   return tag ? tag.replace('campaign:', '') : null;
+}
+
+// Four identities, not two. The pill map the page used to share with the
+// rest of the app painted opens and clicks the same green, bounces and
+// unsubscribes the same amber, and "Added to list" as a problem. Here a
+// pill's hue says WHICH METRIC the row belongs to — the same colour its
+// column wears in the band above — and anything outside those four is
+// chrome-grey.
+function eventTone(eventName) {
+  const e = String(eventName || '').toLowerCase();
+  if (OPEN_NAMES.has(e)) return 'accent';
+  if (CLICK_NAMES.has(e)) return 'success';
+  if (BOUNCE_NAMES.has(e)) return 'danger';
+  if (e === 'unsubscribed' || e === 'complaint' || e === 'spam') return 'warn';
+  return 'muted';
 }
 
 function summariseLink(url) {
@@ -673,11 +736,14 @@ function labelFor(status) {
   return status || '-';
 }
 
-function pillFor(status) {
-  if (status === 'completed') return 'green';
-  if (status === 'completed_with_errors' || status === 'running') return 'amber';
-  if (status === 'scheduled') return 'blue';
-  return 'muted';
+// The row-state dot only fires when a row needs attention: amber while a
+// send is in flight, red when it finished with failures. Everything else —
+// completed, draft, scheduled — carries no dot, which is what stops the
+// column from being a wall of "completed".
+function stateFor(status) {
+  if (status === 'running' || status === 'sending') return 'running';
+  if (status === 'completed_with_errors' || status === 'failed') return 'errors';
+  return null;
 }
 
 function formatDate(value) {
@@ -688,4 +754,32 @@ function formatDate(value) {
   } catch {
     return value;
   }
+}
+
+// Compact date for the campaign rows ("3 Sep"). The full timestamp stays
+// on the element's title so nothing is lost.
+function shortDate(value) {
+  if (!value) return '-';
+  try {
+    return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' })
+      .format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+// Age of an event as one short token ("12s", "4m", "1h", "3d"). The event
+// table's When column is 64px wide; a full timestamp cannot live there, so
+// it lives on the title attribute instead.
+function relativeTime(value) {
+  if (value == null || value === '') return '-';
+  const t = new Date(value).getTime();
+  if (Number.isNaN(t)) return '-';
+  const seconds = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
 }

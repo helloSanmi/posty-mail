@@ -15,6 +15,19 @@ import { NotificationBell } from './NotificationBell';
 // other UI prefs use.
 const SIDEBAR_COLLAPSED_KEY = 'posty.sidebar.collapsed';
 
+// Initials for the sidebar avatar. Derived from the signed-in user, never
+// stored: name first ("Sanmi Idowu" -> "SI"), falling back to the local
+// part of the email ("sanmi.idowu@..." -> "SI") so the row still reads as a
+// person for accounts that never set a display name.
+function userInitials(user) {
+  const source = String(user?.name || user?.email || '').trim();
+  if (!source) return '?';
+  const local = source.split('@')[0];
+  const parts = local.split(/[\s._-]+/).filter(Boolean);
+  const letters = parts.slice(0, 2).map((part) => part[0]).join('');
+  return (letters || local[0]).toUpperCase();
+}
+
 export function AppShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -108,51 +121,55 @@ export function AppShell({ children }) {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  // Three planes instead of one: the rail sits on surface-sunken, the
+  // topbar on surface, the page on bg. `is-collapsed` and `is-drawer-open`
+  // live on the frame because the rail's width (desktop) and its transform
+  // (mobile drawer) are both driven from the grid container.
   return (
-    <main className={`app-shell${collapsed ? ' sidebar-collapsed' : ''}`}>
+    <main className={`sh${collapsed ? ' is-collapsed' : ''}${drawerOpen ? ' is-drawer-open' : ''}`}>
       <a className="skip-link" href="#main-content">Skip to main content</a>
+      {/* Spans both grid columns (grid-column: 1 / -1) so it reads as a
+          band above the whole frame, not a strip over the content. */}
       <DemoBanner />
-      <aside
-        className={`sidebar${drawerOpen ? ' open' : ''}${collapsed ? ' collapsed' : ''}`}
-        aria-label="Primary navigation"
-      >
-        <div className="brand">
-          <img src="/posty-mark.svg" alt="" className="brand-mark" aria-hidden="true" />
-          <div className="brand-text">
+      <aside className="sh-side" aria-label="Primary navigation">
+        <div className="sh-brand">
+          <img src="/posty-mark.svg" alt="" className="sh-mark is-image" aria-hidden="true" />
+          <span className="sh-brand-text">
             <strong>Posty</strong>
-            {/* Current workspace name, so a user always knows which tenant
-                they're operating in. Hidden when the sidebar is collapsed
-                (only the mark shows) via the .brand-text display:none rule. */}
+            {/* The workspace name tells you WHICH tenant you're operating
+                in, so it sits with the brand rather than as a detached line
+                below it. Removed from the flow when collapsed via the
+                .sh-brand-text rule (only the mark shows). */}
             {user?.accountName && (
-              <span className="brand-workspace">{user.accountName}</span>
+              <span className="sh-workspace">{user.accountName}</span>
             )}
-          </div>
+          </span>
           {/* Collapse / expand toggle. Hidden on mobile (where the sidebar
               is a drawer instead of a persistent column) via the @media
-              rule on .sidebar-toggle. Title + aria-label flip with state
+              rule on .sh-collapse. Title + aria-label flip with state
               so screen readers + native tooltips announce the action. */}
           <button
             type="button"
-            className="sidebar-toggle"
+            className="sh-icon-btn sh-collapse"
             onClick={() => setCollapsed((value) => !value)}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-pressed={collapsed}
           >
             {collapsed
-              ? <PanelLeftOpen size={18} aria-hidden="true" />
-              : <PanelLeftClose size={18} aria-hidden="true" />}
+              ? <PanelLeftOpen size={16} aria-hidden="true" />
+              : <PanelLeftClose size={16} aria-hidden="true" />}
           </button>
           <button
             type="button"
-            className="drawer-close"
+            className="sh-icon-btn sh-drawer-close"
             aria-label="Close navigation"
             onClick={() => setDrawerOpen(false)}
           >
-            <X size={18} />
+            <X size={16} aria-hidden="true" />
           </button>
         </div>
-        <nav aria-label="Main">
+        <nav className="sh-nav" aria-label="Main">
           {visibleNav.map((item) => {
             const Icon = item.icon;
             return (
@@ -160,30 +177,34 @@ export function AppShell({ children }) {
                 key={item.id}
                 to={item.path}
                 end={item.path === '/'}
-                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+                // Active is a LIFT (surface-raised + one accent rail), not
+                // a filled block. NavLink sets aria-current="page" itself.
+                className={({ isActive }) => (isActive ? 'sh-nav-item is-active' : 'sh-nav-item')}
                 // title attribute surfaces the label as a native tooltip
                 // when the sidebar is collapsed and only the icon shows.
                 title={collapsed ? item.label : undefined}
               >
-                <Icon size={18} aria-hidden="true" />
-                <span>{item.label}</span>
+                <Icon size={17} aria-hidden="true" />
+                <span className="sh-nav-label">{item.label}</span>
               </NavLink>
             );
           })}
         </nav>
         {user && (
-          <div className="sidebar-user">
-            <div className="sidebar-user-text">
+          <div className="sh-user">
+            <span className="sh-avatar" aria-hidden="true">{userInitials(user)}</span>
+            <span className="sh-user-text">
               <strong>{user.name || user.email}</strong>
               <span>{user.role}</span>
-            </div>
+            </span>
             <button
               type="button"
+              className="sh-icon-btn"
               onClick={handleLogout}
               aria-label="Sign out"
-              title={collapsed ? 'Sign out' : undefined}
+              title="Sign out"
             >
-              <LogOut size={16} aria-hidden="true" />
+              <LogOut size={15} aria-hidden="true" />
             </button>
           </div>
         )}
@@ -191,47 +212,48 @@ export function AppShell({ children }) {
       {drawerOpen && (
         <button
           type="button"
-          className="drawer-backdrop"
+          className="sh-scrim"
           aria-label="Close navigation"
           onClick={() => setDrawerOpen(false)}
         />
       )}
-      <section className="workspace">
-        <header className="topbar">
+      <section className="sh-main">
+        <header className="sh-top">
           <button
             type="button"
-            className="mobile-menu"
+            className="sh-icon-btn sh-menu"
             aria-label="Open navigation"
             aria-expanded={drawerOpen}
             onClick={() => setDrawerOpen(true)}
           >
-            <PanelLeft size={18} aria-hidden="true" />
+            <PanelLeft size={17} aria-hidden="true" />
           </button>
-          <div className="topbar-title">
+          <div className="sh-title">
             {/* Only rendered when there is a second level to name. It used
                 to show meta.label, which was identical to the heading. */}
-            {section && <p className="eyebrow">{section}</p>}
+            {section && <span className="sh-eyebrow">{section}</span>}
             <h1>{meta.title}</h1>
           </div>
           {/* Global search trigger. Renders the keyboard shortcut hint
-              on wider screens; on mobile it collapses to an icon-only
-              button via the .topbar-search CSS @media rule. */}
+              on wider screens; on mobile the label and the kbd are hidden
+              via the shell sheet's @media rule and it collapses to the
+              icon. */}
           {user && (
             <button
               type="button"
-              className="topbar-search"
+              className="sh-search"
               onClick={() => setSearchOpen(true)}
               aria-label="Open search"
               title="Open search (⌘K)"
             >
               <Search size={14} aria-hidden="true" />
-              <span className="topbar-search-label">Search</span>
-              <kbd className="topbar-search-kbd">⌘K</kbd>
+              <span className="sh-search-label">Search</span>
+              <kbd>⌘K</kbd>
             </button>
           )}
           {user && <NotificationBell />}
         </header>
-        <div id="main-content" tabIndex={-1}>
+        <div id="main-content" className="sh-content" tabIndex={-1}>
           <PageSectionContext.Provider value={setSection}>
             {children}
           </PageSectionContext.Provider>
