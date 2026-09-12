@@ -16,6 +16,7 @@
       import { createElement as h, useState } from 'react';
       import { EmailPreview } from '/src/components/EmailPreview.jsx';
       import { TemplateList } from '/src/components/TemplateList.jsx';
+      import { AppearanceMenu } from '/src/components/AppearanceMenu.jsx';
 
       function Probe() {
         const [client, setClient] = useState('gmail');
@@ -25,7 +26,9 @@
         return h('main', { className: 'sh' },
           h('aside', { className: 'sh-side' }, h('div', { className: 'sh-brand' }, 'Posty')),
           h('section', { className: 'sh-main' },
-            h('header', { className: 'sh-top' }, h('div', { className: 'sh-title' }, h('h1', null, 'Email'))),
+            h('header', { className: 'sh-top' },
+              h('div', { className: 'sh-title' }, h('h1', null, 'Email')),
+              h(AppearanceMenu)),
             h('div', { className: 'sh-content' },
               h('div', { className: 'page-stack template-page' },
                 h('div', { className: 'em-grid' },
