@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Pencil, Plus, RefreshCw, Trash2, UserPlus,
+  Pencil, Plus, Trash2, UserPlus,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import {
@@ -13,6 +13,7 @@ import {
   updateAdminUser,
 } from '../services/brevoApi';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ActivityLog } from '../components/ActivityLog';
 import { RolesManager } from '../components/RolesManager';
 import { CreateUserModal, EditUserModal } from '../components/UserModals';
 
@@ -50,7 +51,7 @@ export function AdminPage({ notify }) {
     if (!isAdmin) return;
     listAdminUsers().then(setUsers).catch(() => {});
     reloadRoles();
-    getAuditLogs({ limit: 50 }).then(setLogs).catch(() => {});
+    getAuditLogs({ limit: 200 }).then(setLogs).catch(() => {});
   }, [isAdmin]);
 
   if (!isAdmin) {
@@ -163,15 +164,6 @@ export function AdminPage({ notify }) {
               <Plus size={14} aria-hidden="true" /> New role
             </button>
           )}
-          {tab === 'activity' && (
-            <button
-              type="button"
-              className="sm-btn"
-              onClick={() => getAuditLogs({ limit: 50 }).then(setLogs)}
-            >
-              <RefreshCw size={14} aria-hidden="true" /> Refresh
-            </button>
-          )}
         </div>
 
         {tab === 'team' && (
@@ -228,51 +220,11 @@ export function AdminPage({ notify }) {
           />
         )}
 
-        {/* An audit log exists to answer "who did what to which thing, when,
-            and from where". It was answering the first three and throwing
-            the rest away: resource, resourceId, ip and a whole metadata JSON
-            column are all recorded by the backend and all returned by the
-            endpoint. Detail is the entire point of the record. */}
         {tab === 'activity' && (
-          logs.length === 0 ? (
-            <p className="empty-state">No activity yet.</p>
-          ) : (
-            <table className="sm-table sm-audit">
-              <thead>
-                <tr>
-                  <th>When</th>
-                  <th>Who</th>
-                  <th>Action</th>
-                  <th>Target</th>
-                  <th>Details</th>
-                  <th className="sm-audit-ip">IP</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id} className="sm-row">
-                    <td className="sm-dim sm-when" title={new Date(log.createdAt).toString()}>
-                      {formatTime(log.createdAt)}
-                    </td>
-                    <td className="sm-trunc" title={log.userEmail || undefined}>
-                      {log.userEmail || 'system'}
-                    </td>
-                    <td><span className="sm-audit-action">{log.action}</span></td>
-                    <td className="sm-dim sm-trunc" title={targetTitle(log)}>
-                      {log.resource || '-'}
-                      {log.resourceId && (
-                        <span className="sm-audit-id">{log.resourceId.slice(0, 8)}</span>
-                      )}
-                    </td>
-                    <td className="sm-dim sm-trunc" title={describeMetadata(log.metadata) || undefined}>
-                      {describeMetadata(log.metadata) || '-'}
-                    </td>
-                    <td className="sm-dim sm-audit-ip">{log.ip || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )
+          <ActivityLog
+            logs={logs}
+            onRefresh={() => getAuditLogs({ limit: 200 }).then(setLogs)}
+          />
         )}
       </section>
 
@@ -317,34 +269,5 @@ function initials(value) {
   return parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 }
 
-// The metadata column is a free-form JSON blob whose shape differs per
-// action, so it cannot be given dedicated columns. Flattened to "key: value"
-// pairs it is still the most useful thing in the row — it is where "which
-// role", "from what to what" and "how many" actually live.
-function describeMetadata(metadata) {
-  if (!metadata || typeof metadata !== 'object') return '';
-  const parts = Object.entries(metadata)
-    .filter(([, value]) => value !== null && value !== undefined && value !== '')
-    .map(([key, value]) => {
-      const label = key.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
-      if (Array.isArray(value)) return `${label}: ${value.join(', ')}`;
-      if (typeof value === 'object') return `${label}: ${JSON.stringify(value)}`;
-      return `${label}: ${value}`;
-    });
-  return parts.join(' · ');
-}
 
-// The full target, for the cell's tooltip — the table truncates, and a
-// resource id is exactly the kind of thing someone needs in full.
-function targetTitle(log) {
-  if (!log.resource) return undefined;
-  return log.resourceId ? `${log.resource} ${log.resourceId}` : log.resource;
-}
 
-function formatTime(value) {
-  try {
-    return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}

@@ -433,12 +433,9 @@ td.sm-trunc, th.sm-trunc { display: table-cell; }
    Six columns, so the fixed layout has to be told what matters: When and IP
    are predictable widths, Details takes whatever is left because it is the
    column carrying the actual content. */
-.sm-audit { table-layout: fixed; }
-.sm-audit th:nth-child(1) { width: 128px; }
-.sm-audit th:nth-child(2) { width: 168px; }
-.sm-audit th:nth-child(3) { width: 132px; }
-.sm-audit th:nth-child(4) { width: 148px; }
-.sm-audit-ip { width: 116px; }
+/* No fixed per-column widths: the visible columns are chosen at runtime, so
+   an nth-child width is attached to whatever happens to be in that position.
+   See .al-col-* below, which pins by MEANING instead. */
 .sm-audit-action {
   background: var(--surface-sunken);
   border-radius: var(--r-sm);
@@ -455,11 +452,114 @@ td.sm-trunc, th.sm-trunc { display: table-cell; }
 
 /* Below this the six columns stop being readable; the ones that identify
    the event survive and the rest are available from the row's tooltips. */
-@media (max-width: 900px) {
-  .sm-audit th:nth-child(6),
-  .sm-audit td:nth-child(6) { display: none; }
+
+
+/* ---- activity log -------------------------------------------------------
+   Search, two filters, a column chooser and a count. The filters draw their
+   options from the rows themselves, so the row that does not exist cannot be
+   filtered for. */
+.al-tools {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  padding-bottom: var(--s3);
 }
-@media (max-width: 720px) {
-  .sm-audit th:nth-child(4),
-  .sm-audit td:nth-child(4) { display: none; }
+.al-search {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text-subtle);
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  /* base.css styles `label` as a grid with a bottom margin. */
+  margin: 0;
+  max-width: 260px;
+  min-width: 160px;
+  padding: 0 var(--s2);
 }
+.al-search input {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+  /* base.css gives inputs a 42px min-height; the wrapper owns it here. */
+  min-height: 0;
+  min-width: 0;
+  padding: 6px 0;
+  width: 100%;
+}
+.al-search input:focus { box-shadow: none; outline: none; }
+.al-search:focus-within {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 22%, transparent);
+}
+
+.al-filter { margin: 0; }
+.al-filter select {
+  font-size: var(--text-sm);
+  min-height: 32px;
+  padding: 4px 26px 4px 10px;
+  width: auto;
+}
+.al-count { color: var(--text-muted); font-size: var(--text-sm); }
+
+.al-chooser { position: relative; }
+.al-chooser-panel {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e3);
+  display: grid;
+  gap: 2px;
+  padding: var(--s2);
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 190px;
+  z-index: 40;
+}
+.al-chooser-row {
+  align-items: center;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--text-sm);
+  gap: var(--s2);
+  margin: 0;
+  padding: 5px var(--s2);
+}
+.al-chooser-row:hover { background: var(--surface-hover); }
+.al-chooser-row input { flex: none; }
+.al-chooser-row:has(input:disabled) { color: var(--text-muted); cursor: default; }
+.al-chooser-fixed {
+  color: var(--text-subtle);
+  font-size: var(--text-2xs);
+  margin-left: auto;
+}
+
+/* The log is the one table here that can run to hundreds of rows. */
+.al-frame {
+  max-height: 560px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.al-frame thead th {
+  background: var(--surface);
+  box-shadow: inset 0 -1px 0 var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.al-frame:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* Columns are chosen at runtime, so fixed per-column widths would be wrong
+   for most combinations. Only the predictable ones are pinned. */
+.sm-audit:has(.al-col-when) { table-layout: auto; }
+.al-col-when { width: 128px; }
+.al-col-device, .al-col-ip { width: 104px; }

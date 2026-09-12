@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Topbar probe</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body style="margin:0">
+    <div id="root"></div>
+    <script type="module">
+      import { createRoot } from 'react-dom/client';
+      import { createElement as h } from 'react';
+      import { AppearanceControls } from '/src/components/AppearanceControls.jsx';
+      createRoot(document.getElementById('root')).render(
+        h('main', { className: 'sh' },
+          h('aside', { className: 'sh-side' }, h('div', { className: 'sh-brand' }, 'Posty')),
+          h('section', { className: 'sh-main' },
+            h('header', { className: 'sh-top' },
+              h('div', { className: 'sh-title' }, h('h1', null, 'Campaigns')),
+              h('button', { type: 'button', className: 'sh-search', id: 'search' },
+                h('span', { className: 'sh-search-label' }, 'Search'),
+                h('kbd', null, '⌘K')),
+              h('div', { className: 'notif-bell' },
+                h('button', { type: 'button', className: 'notif-bell-button', id: 'bell' }, 'B')),
+              h(AppearanceControls)),
+            h('div', { className: 'sh-content' }))));
+    </script>
+  </body>
+</html>

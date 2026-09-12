@@ -328,6 +328,11 @@ model AuditLog {
   resourceId String?
   metadata   Json?
   ip         String?
+  // What the actor was using. An audit trail that says WHO and WHAT but not
+  // FROM WHERE cannot answer the question it exists for — "was that really
+  // them?" — and the raw string is kept rather than a parsed browser name so
+  // a future parser can do better on old rows.
+  userAgent  String?
   createdAt  DateTime @default(now())
   // Audit rows are tagged with the account whose data was touched. Some
   // super-admin actions (Account create/suspend/delete) have no parent

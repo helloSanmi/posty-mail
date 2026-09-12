@@ -11,6 +11,9 @@ export async function recordAudit(req, action, resource, resourceId = null, meta
         resourceId: resourceId ? String(resourceId) : null,
         metadata: metadata || null,
         ip: getClientIp(req),
+        // Truncated: a user agent is attacker-controlled and unbounded, and
+        // no real one needs more than this.
+        userAgent: String(req.headers['user-agent'] || '').slice(0, 400) || null,
         // Tag the row with the actor's account so the per-tenant audit
         // view can filter to "things that happened in MY workspace."
         // Super-admin actions on the Account model itself have no parent

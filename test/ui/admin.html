@@ -13,6 +13,7 @@
       import { createRoot } from 'react-dom/client';
       import { createElement as h } from 'react';
       import { AppearanceControls } from '/src/components/AppearanceControls.jsx';
+      import { ActivityLog } from '/src/components/ActivityLog.jsx';
 
       const AREAS = ['Audience','Email','Campaigns','Reports','Settings','Connections'];
       const ROLES = [
@@ -22,9 +23,9 @@
         { name:'Ops', people:1, perms:['Connections','Settings'] },
       ];
       const LOGS = [
-        { when:'2 min ago', who:'sanmi@example.com', action:'role.update', res:'role', id:'a1b2c3d4', meta:'name: Editor · permissions: contacts, templates', ip:'192.168.1.44' },
-        { when:'1 hr ago', who:'ops@example.com', action:'user.invite', res:'user', id:'9f8e7d6c', meta:'email: new@example.com · role: Viewer', ip:'10.0.0.8' },
-        { when:'Yesterday', who:'system', action:'campaign.send', res:'campaign', id:'44ab99cd', meta:'recipients: 4120 · template: September newsletter', ip:'-' },
+        { when:'2 min ago', who:'sanmi@example.com', action:'role.update', res:'role', id:'a1b2c3d4', meta:'Editor gained contacts', ip:'192.168.1.44', ua:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' },
+        { when:'1 hr ago', who:'ops@example.com', action:'user.invite', res:'user', id:'9f8e7d6c', meta:'invited new@example.com', ip:'10.0.0.8', ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0' },
+        { when:'Yesterday', who:'system', action:'campaign.send', res:'campaign', id:'44ab99cd', meta:'4120 recipients', ip:'-', ua:'curl/8.4.0' },
       ];
 
       function Probe() {
@@ -58,17 +59,11 @@
                         h('button',{className:'sm-icon-btn',type:'button'},'E'),
                         h('button',{className:'sm-icon-btn is-danger',type:'button'},'D'))))))),
                 h('section', { className:'sm-card', style:{marginTop:'16px'} },
-                  h('table', { className:'sm-table sm-audit' },
-                    h('thead', null, h('tr', null,
-                      h('th',null,'When'),h('th',null,'Who'),h('th',null,'Action'),
-                      h('th',null,'Target'),h('th',null,'Details'),h('th',{className:'sm-audit-ip'},'IP'))),
-                    h('tbody', null, LOGS.map((l,i)=>h('tr',{key:i,className:'sm-row'},
-                      h('td',{className:'sm-dim sm-when'},l.when),
-                      h('td',{className:'sm-trunc'},l.who),
-                      h('td',null,h('span',{className:'sm-audit-action'},l.action)),
-                      h('td',{className:'sm-dim sm-trunc'},l.res,h('span',{className:'sm-audit-id'},l.id)),
-                      h('td',{className:'sm-dim sm-trunc'},l.meta),
-                      h('td',{className:'sm-dim sm-audit-ip'},l.ip)))))))))); 
+                  h(ActivityLog, { logs: LOGS.map((l,i)=>({
+                    id:String(i), createdAt:new Date().toISOString(), userEmail:l.who,
+                    action:l.action, resource:l.res, resourceId:l.id,
+                    metadata:{ note:l.meta }, ip:l.ip, userAgent:l.ua,
+                  })) }))))));
       }
       createRoot(document.getElementById('root')).render(h(Probe));
     </script>

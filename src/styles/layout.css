@@ -319,7 +319,11 @@ nav button.active, nav .nav-link.active {
   border-radius: 10px;
   color: var(--text-muted);
   display: inline-flex;
-  height: 38px;
+  /* Matches every other control in the topbar. min-height as well as
+     height: base.css gives every button a 38px min-height, which wins over
+     a shorter height on its own. */
+  height: var(--topbar-control, 34px);
+  min-height: var(--topbar-control, 34px);
   justify-content: center;
   position: relative;
   width: 38px;

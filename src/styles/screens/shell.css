@@ -227,7 +227,13 @@
 .sh.is-collapsed .sh-user .sh-icon-btn { margin-left: 0; }
 .sh.is-collapsed .sh-avatar { display: none; }
 
-/* ---- topbar ----------------------------------------------------------- */
+/* ---- topbar -----------------------------------------------------------
+   Every control in this bar is the same height. They were not: the search
+   button and the notification bell derived 38px from base.css's `button`
+   rule, while the theme and accent trays set their own 28px — a 10px
+   mismatch sitting side by side in a 45px bar, which is exactly where a
+   size difference is most visible. 34px for all four. */
+:root { --topbar-control: 34px; }
 .sh-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 /* Fixed height band above the scrolling pane. flex:none so a long page
    cannot squeeze it. */
@@ -266,7 +272,8 @@
   font: inherit;
   font-size: var(--text-sm);
   gap: var(--s2);
-  padding: 6px 10px;
+  min-height: var(--topbar-control);
+  padding: 0 10px;
   transition: border-color var(--t-fast), color var(--t-fast);
 }
 .sh-search:hover { border-color: var(--border-strong); color: var(--text-muted); }
@@ -422,6 +429,7 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
 
 .ap-segment {
   background: var(--surface-sunken);
+  min-height: var(--topbar-control);
   border-radius: var(--r-md);
   display: flex;
   gap: 2px;
@@ -437,9 +445,9 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
   /* base.css styles `label` as a grid with a bottom margin, which would
      stack these and push the row apart. */
   margin: 0;
-  min-height: 24px;
+  min-height: 28px;
   transition: background var(--t-fast), color var(--t-fast);
-  width: 26px;
+  width: 28px;
 }
 .ap-seg:hover { color: var(--text); }
 .ap-seg.is-active {
@@ -462,6 +470,7 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
    only the chosen one is a filled dot. */
 .ap-accents {
   background: var(--surface-sunken);
+  min-height: var(--topbar-control);
   border-radius: var(--r-md);
   display: flex;
   gap: 2px;
@@ -474,9 +483,9 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
   display: inline-flex;
   justify-content: center;
   margin: 0;
-  min-height: 24px;
+  min-height: 28px;
   transition: background var(--t-fast);
-  width: 24px;
+  width: 28px;
 }
 .ap-swatch:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
 .ap-swatch.is-active {
