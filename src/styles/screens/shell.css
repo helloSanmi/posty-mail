@@ -43,7 +43,11 @@
   gap: 14px;
   min-height: 0;
   min-width: 0;
-  overflow-y: auto;
+  /* The pane itself does NOT scroll. It is furniture: the brand belongs at
+     the top and the user row at the bottom, and .sh-user pins there with
+     margin-top:auto — which only holds while nothing here scrolls. If the
+     nav ever outgrows the space, the nav is what scrolls. */
+  overflow: hidden;
   padding: var(--s3) 10px;
 }
 
@@ -109,7 +113,7 @@
 .sh-collapse { margin-left: auto; }
 .sh-drawer-close { display: none; margin-left: auto; }
 
-.sh-nav { display: flex; flex-direction: column; gap: 1px; }
+.sh-nav { display: flex; flex-direction: column; gap: 1px; min-height: 0; overflow-y: auto; }
 .sh-nav-item {
   align-items: center;
   background: transparent;
