@@ -32,7 +32,7 @@ function css(name) {
 // Stylesheets whose literals have been replaced. Add a file here in the
 // same commit that sweeps it — that is what makes the sweep's progress a
 // fact rather than a claim.
-const SWEPT = ['base.css', 'templates.css'];
+const SWEPT = ['base.css', 'templates.css', 'layout.css'];
 
 // Literals that must NOT be tokenised, as exact strings. Kept exact rather
 // than as a pattern so adding any other literal still fails: an allowlist
