@@ -212,6 +212,28 @@ pm2 restart posty
 
 ---
 
+## If a deploy fails
+
+**`npm error code EACCES` … `Your cache folder contains root-owned files`**
+
+```bash
+sudo chown -R $(id -u):$(id -g) "$(npm config get cache)"
+```
+
+Then run the deploy again. This happens when npm gets run under `sudo` once —
+it writes root-owned files into your user's cache, and every later `npm ci`
+as the normal user fails on them. The failure arrives part-way through the
+install, after a screen of unrelated deprecation warnings, so it reads like a
+dependency problem rather than a permissions one. `deploy.sh` now checks for
+it before installing and prints the exact command.
+
+Don't fix it by running the deploy with `sudo`. That works once and makes
+things worse: you get root-owned files in the checkout and in `node_modules`
+as well, and pm2 ends up with a second process list under root that the
+normal user cannot see or restart.
+
+---
+
 ## Notes
 
 - **Uploaded logos** live on disk under `backend/uploads/`. They persist across

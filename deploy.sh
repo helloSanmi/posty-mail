@@ -104,6 +104,32 @@ echo "==> [1/6] Pulling latest from GitHub"
 # never in the way.)
 git pull --ff-only
 
+# npm's cache is the usual reason a deploy dies here, and it dies badly: the
+# EACCES arrives after a screen of deprecation warnings, several seconds in,
+# looking like a dependency problem rather than a permissions one. It happens
+# when npm has been run under sudo at some point, leaving root-owned files in
+# a cache the deploy user then cannot write. Check it up front and say so.
+NPM_CACHE="$(npm config get cache 2>/dev/null || echo "${HOME}/.npm")"
+if [[ -d "$NPM_CACHE" ]]; then
+  FOREIGN="$(find "$NPM_CACHE" ! -user "$(id -un)" -print -quit 2>/dev/null || true)"
+  if [[ -n "$FOREIGN" || ! -w "$NPM_CACHE" ]]; then
+    echo "ERROR: npm's cache is not fully owned by $(id -un)." >&2
+    echo "       ${NPM_CACHE}" >&2
+    if [[ -n "$FOREIGN" ]]; then echo "       e.g. ${FOREIGN}" >&2; fi
+    echo "" >&2
+    echo "       npm ci cannot write there and will fail part-way through." >&2
+    echo "       Something ran npm as root here once; the cache kept the" >&2
+    echo "       root-owned files. Fix it with:" >&2
+    echo "" >&2
+    echo "         sudo chown -R $(id -u):$(id -g) \"${NPM_CACHE}\"" >&2
+    echo "" >&2
+    echo "       Then run this script again. Do not deploy with sudo — that" >&2
+    echo "       re-creates the problem and leaves root-owned files in the" >&2
+    echo "       checkout as well." >&2
+    exit 1
+  fi
+fi
+
 echo "==> [2/6] Installing dependencies (npm ci)"
 npm ci
 
