@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Loading indicator</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <style>body{padding:24px;display:grid;gap:20px;max-width:640px}</style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import { createRoot } from 'react-dom/client';
+      import { createElement as h } from 'react';
+      import { Loading, LoadingPage, Spinner } from '/src/components/Spinner.jsx';
+      createRoot(document.getElementById('root')).render(
+        h('div', null,
+          h('div', { className: 'surface' },
+            h('h3', null, 'Inline'),
+            h(Loading, { delay: 0 })),
+          h('div', { className: 'surface', style: { marginTop: '16px' } },
+            h('h3', null, 'Sizes'),
+            h('div', { style: { display: 'flex', gap: '18px', alignItems: 'center', paddingTop: '10px' } },
+              h(Spinner, { size: 14 }), h(Spinner, { size: 16 }),
+              h(Spinner, { size: 22 }), h(Spinner, { size: 32 }))),
+          h('div', { className: 'surface', style: { marginTop: '16px' } },
+            h('h3', null, 'Whole route'),
+            h(LoadingPage, { })))
+      );
+    </script>
+  </body>
+</html>

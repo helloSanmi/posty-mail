@@ -8,6 +8,7 @@ import {
   saveSegment,
 } from '../services/brevoApi';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { Loading } from './Spinner';
 
 // Dynamic segment management.
 //
@@ -215,7 +216,7 @@ export function SegmentsPanel({ notify }) {
       <section className="segments-shell">
         <aside className="surface segments-list-pane">
           {loading ? (
-            <p className="muted">Loading…</p>
+            <Loading size={14} />
           ) : segments.length === 0 ? (
             <p className="muted">No segments yet. Click <strong>New segment</strong> to create one.</p>
           ) : (

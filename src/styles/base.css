@@ -161,6 +161,63 @@ input:focus, select:focus, textarea:focus {
   color: var(--danger);
 }
 
+/* ---- loading indicator --------------------------------------------------
+   A ring with one quadrant coloured, rotating. Sized from a custom property
+   so one rule serves every size the app asks for. */
+.spinner {
+  animation: spinner-turn 0.7s linear infinite;
+  /* Track and quadrant are one hue at two intensities. The first attempt
+     used --border-strong for the track, which put only 1.6:1 between it and
+     the accent — the ring turned and you could barely tell. This is 4.6:1
+     in light and 4.0:1 in dark, while the track still reads against the
+     card (1.5:1 / 1.6:1). Plain --border scores better on the quadrant but
+     leaves the track at 1.1:1 in dark, effectively invisible. */
+  border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 50%;
+  /* The coloured quadrant IS the motion: a fully coloured ring rotating
+     looks completely static. */
+  border-top-color: var(--accent);
+  display: inline-block;
+  flex: none;
+  height: var(--spinner-size, 16px);
+  width: var(--spinner-size, 16px);
+}
+@keyframes spinner-turn { to { transform: rotate(360deg); } }
+
+.loading {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  gap: var(--s2);
+  margin: 0;
+  padding: var(--s3) 0;
+}
+
+.loading-page {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  min-height: 240px;
+  padding: var(--s8);
+}
+
+/* Rotation is the one thing this cannot keep for a reader who has asked for
+   less motion. The ring stays, so the indicator is still visibly present and
+   still distinguishable from an empty panel; it pulses instead, slowly
+   enough to sit under the threshold that makes motion uncomfortable. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: spinner-breathe 1.8s ease-in-out infinite;
+    border-color: var(--accent);
+    opacity: 0.7;
+  }
+  @keyframes spinner-breathe {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.9; }
+  }
+}
+
 .skeleton-card {
   background: var(--surface-raised);
   border: 1px solid var(--border);

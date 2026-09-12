@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { clearNotifications, getNotifications, markNotificationsRead } from '../services/brevoApi';
 import { eventLabel, eventPill } from '../utils/brevoEvents';
+import { Loading } from './Spinner';
 
 const POLL_INTERVAL = 60_000;
 
@@ -111,7 +112,7 @@ export function NotificationBell() {
           </div>
           <div className="notif-panel-body">
             {loading && data.items.length === 0 ? (
-              <p className="muted notif-panel-empty">Loading…</p>
+              <Loading className="notif-panel-empty" size={14} />
             ) : data.items.length === 0 ? (
               <p className="muted notif-panel-empty">No activity yet.</p>
             ) : (

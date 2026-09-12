@@ -5,6 +5,7 @@ import {
   saveUnsubscribeCategories,
 } from '../../services/brevoApi';
 import { StatusPill } from './StatusPill';
+import { Loading } from '../Spinner';
 
 // Admin editor for the preference-center category list. Each row defines a
 // topic (id + label + optional description) that the public /unsubscribe
@@ -89,7 +90,7 @@ export function PreferenceCenterCard({ notify }) {
       </div>
 
       {loading ? (
-        <p className="muted">Loading…</p>
+        <Loading />
       ) : (
         <>
           {categories.length === 0 ? (

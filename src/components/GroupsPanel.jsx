@@ -9,6 +9,7 @@ import {
   setGroupDisabled,
 } from '../services/brevoApi';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Loading } from './Spinner';
 
 // Natural-ordering collator so "Nest GRP 2" sits before "Nest GRP 10" and a
 // bare "Nest GRP" sorts ahead of "Nest GRP 2" — matches what a human scanning
@@ -181,7 +182,7 @@ export function GroupsPanel({
           </button>
         </li>
         {loading && (
-          <li className="muted groups-sidebar-loading">Loading…</li>
+          <li className="groups-sidebar-loading"><Loading size={14} /></li>
         )}
         {!loading && groups.length === 0 && (
           <li className="muted groups-sidebar-empty">

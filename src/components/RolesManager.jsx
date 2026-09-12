@@ -8,6 +8,7 @@ import {
   createRole, deleteRole, listRoles, updateRole,
 } from '../services/brevoApi';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Loading } from './Spinner';
 
 // Roles & access, as a matrix.
 //
@@ -91,7 +92,7 @@ export function RolesManager({
   return (
     <>
       {loading ? (
-        <p className="status-line">Loading…</p>
+        <Loading />
       ) : (
         <table className="sm-table roles-matrix">
           <thead>

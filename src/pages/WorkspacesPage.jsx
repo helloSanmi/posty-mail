@@ -3,6 +3,7 @@ import { Building2, Trash2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { listWorkspaces, deleteWorkspace } from '../services/brevoApi';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { Loading } from '../components/Spinner';
 
 // Install-level super-admin view: every workspace on the install with its
 // headline counts, plus the ability to delete one (cascade-wipes its data).
@@ -77,7 +78,7 @@ export function WorkspacesPage({ notify }) {
         </div>
 
         {loading ? (
-          <p className="empty-state" role="status">Loading…</p>
+          <Loading />
         ) : workspaces.length === 0 ? (
           <p className="empty-state">No workspaces yet.</p>
         ) : (

@@ -11,6 +11,7 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
+import { LoadingPage } from './components/Spinner';
 import { UiProvider, useUi } from './components/UiProvider';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { blankTemplate } from './templates/defaultTemplates';
@@ -39,7 +40,7 @@ function RequireAuth({ children }) {
   const location = useLocation();
 
   if (bootstrapping) {
-    return <div className="auth-shell"><p className="status-line">Loading…</p></div>;
+    return <div className="auth-shell"><LoadingPage label="Checking your session…" /></div>;
   }
 
   if (!token || !user) {
@@ -113,7 +114,10 @@ function ProtectedShell() {
 
   return (
     <AppShell>
-      <Suspense fallback={<div className="route-loading" role="status">Loading…</div>}>
+      {/* Lazy page chunks. LoadingPage waits 200ms before showing
+          anything, so a cached chunk — the common case — swaps in with no
+          flash at all. */}
+      <Suspense fallback={<LoadingPage />}>
         <Routes>
         <Route
           index

@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { PasswordInput } from '../components/PasswordInput';
+import { Loading } from '../components/Spinner';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -105,7 +106,7 @@ export function LoginPage() {
   if (bootstrapping) {
     return (
       <div className="auth-shell">
-        <p className="status-line" role="status">Loading…</p>
+        <Loading />
       </div>
     );
   }
