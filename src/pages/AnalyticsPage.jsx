@@ -8,6 +8,7 @@ import { SkeletonCard } from '../components/Skeleton';
 import { ActivityChart } from '../components/analytics/ActivityChart';
 import { TopLinks } from '../components/analytics/TopLinks';
 import { eventLabel, isBotEvent } from '../utils/brevoEvents';
+import { isBounceEvent, isClickEvent, isOpenEvent } from '../../shared/eventNames.js';
 
 // Date-range presets for the Reports filter. Each one returns
 // `{ since, until }` Date objects (or null for "everything").
@@ -87,9 +88,6 @@ function withinRange(value, since, until) {
 
 // Brevo event-name groups. Mirrors backend/routes/campaigns.js so the report
 // totals always agree with the per-campaign metrics.
-const OPEN_NAMES = new Set(['opened', 'open', 'unique_opened', 'proxy_open', 'loadedbyproxy']);
-const CLICK_NAMES = new Set(['click', 'clicked', 'unique_clicked']);
-const BOUNCE_NAMES = new Set(['hard_bounce', 'soft_bounce', 'blocked', 'invalid_email']);
 
 // `tone` is the product-wide identity for each metric: opens accent, clicks
 // success, bounces danger, unsubscribes warn — the same four colours these
@@ -97,9 +95,9 @@ const BOUNCE_NAMES = new Set(['hard_bounce', 'soft_bounce', 'blocked', 'invalid_
 // summary column, its drill panel's top edge and the event pills inside it
 // all read from this one map.
 const METRIC_DEFINITIONS = {
-  opens: { label: 'Opens', tone: 'accent', empty: 'No opens yet.', match: (e) => OPEN_NAMES.has(e) },
-  clicks: { label: 'Clicks', tone: 'success', empty: 'No clicks yet.', match: (e) => CLICK_NAMES.has(e) },
-  bounces: { label: 'Bounces', tone: 'danger', empty: 'No bounces yet.', match: (e) => BOUNCE_NAMES.has(e) },
+  opens: { label: 'Opens', tone: 'accent', empty: 'No opens yet.', match: (e) => isOpenEvent(e) },
+  clicks: { label: 'Clicks', tone: 'success', empty: 'No clicks yet.', match: (e) => isClickEvent(e) },
+  bounces: { label: 'Bounces', tone: 'danger', empty: 'No bounces yet.', match: (e) => isBounceEvent(e) },
   unsubscribes: {
     // "Unsubscribed" (the event verb) rather than "Unsubscribes", so the
     // band column and the panel it opens read as the same thing.
@@ -223,9 +221,9 @@ export function AnalyticsPage() {
     const byCampaign = new Map();
     realEvents.forEach((event) => {
       const name = String(event.payload?.event || '').toLowerCase();
-      const kind = OPEN_NAMES.has(name) ? 'opens'
-        : CLICK_NAMES.has(name) ? 'clicks'
-          : BOUNCE_NAMES.has(name) ? 'bounces' : null;
+      const kind = isOpenEvent(name) ? 'opens'
+        : isClickEvent(name) ? 'clicks'
+          : isBounceEvent(name) ? 'bounces' : null;
       if (!kind) return;
       // Unique ids per event. The function this replaced scanned once per
       // campaign and could only count an event once; iterating tags can see
@@ -342,9 +340,9 @@ export function AnalyticsPage() {
     });
     realEvents.forEach((event) => {
       const name = String(event.payload?.event || '').toLowerCase();
-      if (OPEN_NAMES.has(name)) opens += 1;
-      if (CLICK_NAMES.has(name)) clicks += 1;
-      if (BOUNCE_NAMES.has(name)) bounces += 1;
+      if (isOpenEvent(name)) opens += 1;
+      if (isClickEvent(name)) clicks += 1;
+      if (isBounceEvent(name)) bounces += 1;
       if (name === 'unsubscribed') unsubscribes += 1;
     });
     return { sent, failed, opens, clicks, bounces, unsubscribes };
@@ -370,9 +368,9 @@ export function AnalyticsPage() {
       .filter((event) => !isBotEvent(event.payload))
       .forEach((event) => {
         const name = String(event.payload?.event || '').toLowerCase();
-        if (OPEN_NAMES.has(name)) opens += 1;
-        if (CLICK_NAMES.has(name)) clicks += 1;
-        if (BOUNCE_NAMES.has(name)) bounces += 1;
+        if (isOpenEvent(name)) opens += 1;
+        if (isClickEvent(name)) clicks += 1;
+        if (isBounceEvent(name)) bounces += 1;
         if (name === 'unsubscribed') unsubscribes += 1;
       });
     return { sent, opens, clicks, bounces, unsubscribes };
@@ -900,9 +898,9 @@ function eventCampaignId(event) {
 // chrome-grey.
 function eventTone(eventName) {
   const e = String(eventName || '').toLowerCase();
-  if (OPEN_NAMES.has(e)) return 'accent';
-  if (CLICK_NAMES.has(e)) return 'success';
-  if (BOUNCE_NAMES.has(e)) return 'danger';
+  if (isOpenEvent(e)) return 'accent';
+  if (isClickEvent(e)) return 'success';
+  if (isBounceEvent(e)) return 'danger';
   if (e === 'unsubscribed' || e === 'complaint' || e === 'spam') return 'warn';
   return 'muted';
 }

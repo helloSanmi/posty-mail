@@ -1,21 +1,14 @@
-// Event-name classifiers for the metrics endpoints. Mirrors the UI's
-// classification sets in src/utils/brevoEvents.js — both halves are kept
-// in lockstep by the parity test in test/eventParity.test.js so a new
-// Brevo event variant can't be silently dropped from one side.
+// Event-name classifiers for the metrics endpoints.
 //
-// Brevo's webhook event names come in variants. We need all of them to
-// resolve to the same KPI so counts don't disagree between the activity
-// feed and the per-campaign metrics endpoint.
-export const OPEN_EVENTS = new Set([
-  'opened', 'open', 'unique_opened', 'proxy_open', 'loadedbyproxy',
-]);
-export const CLICK_EVENTS = new Set([
-  'click', 'clicked', 'unique_clicked',
-]);
-export const BOUNCE_EVENTS_METRICS = new Set([
-  'hard_bounce', 'soft_bounce', 'blocked', 'invalid_email',
-]);
+// These used to be a hand-kept copy of the UI's sets, held in lockstep by a
+// test that parsed both files. They now delegate to shared/eventNames.js, so
+// there is one definition and nothing to keep in step — and, more to the
+// point, one place that knows Brevo spells the same event two different ways
+// depending on whether it arrived by webhook or by API.
+import {
+  isBounceEvent, isClickEvent, isOpenEvent,
+} from '../../../shared/eventNames.js';
 
-export const isOpen = (e) => OPEN_EVENTS.has(e);
-export const isClick = (e) => CLICK_EVENTS.has(e);
-export const isBounce = (e) => BOUNCE_EVENTS_METRICS.has(e);
+export const isOpen = isOpenEvent;
+export const isClick = isClickEvent;
+export const isBounce = isBounceEvent;

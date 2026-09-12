@@ -1,62 +1,27 @@
-// Brevo's webhook event names are inconsistent: some come as `opened`, others
-// as `unique_opened` / `proxy_open`. The UI shouldn't care about the variants
-// Show one pill color per "kind of thing", and one human label per event.
-
-const POSITIVE = new Set([
-  'delivered',
-  // Brevo emits a small zoo of open variants depending on the mailbox provider:
-  // `opened` = standard pixel load, `unique_opened` = first open per recipient,
-  // `proxy_open` / `loadedbyproxy` = Apple Mail Privacy or Outlook image proxy.
-  'opened', 'open', 'unique_opened', 'proxy_open', 'loadedbyproxy',
-  'click', 'clicked', 'unique_clicked',
-]);
-
-const NEGATIVE = new Set([
-  'hard_bounce', 'soft_bounce', 'spam', 'blocked', 'invalid_email',
-  'unsubscribed', 'complaint', 'list_addition',
-]);
-
-const NEUTRAL = new Set([
-  'request', 'sent', 'deferred',
-]);
-
-// Human label for the event. Collapses Brevo's `unique_*` / `proxy_*` flavors
-// down to the everyday verb. Falls back to the raw key if we don't recognize
-// it (so new event types Brevo adds are still readable).
-const LABELS = {
-  delivered: 'Delivered',
-  opened: 'Opened',
-  open: 'Opened',
-  unique_opened: 'Opened',
-  proxy_open: 'Opened',
-  loadedbyproxy: 'Opened',
-  click: 'Clicked',
-  clicked: 'Clicked',
-  unique_clicked: 'Clicked',
-  hard_bounce: 'Hard bounce',
-  soft_bounce: 'Soft bounce',
-  spam: 'Spam',
-  blocked: 'Blocked',
-  invalid_email: 'Invalid email',
-  unsubscribed: 'Unsubscribed',
-  complaint: 'Complaint',
-  list_addition: 'Added to list',
-  request: 'Sent',
-  sent: 'Sent',
-  deferred: 'Deferred',
-};
+// Pill colour and human label for an event.
+//
+// The classification itself lives in shared/eventNames.js, which both this
+// file and the backend's metrics pipeline read — Brevo names the same event
+// differently over its webhook and its API, and that belongs in exactly one
+// place. This module is only about how an event is PRESENTED.
+import {
+  canonicalEventName, eventVerb, isBounceEvent, isClickEvent, isOpenEvent,
+  isSpamEvent, isUnsubscribeEvent,
+} from '../../shared/eventNames.js';
 
 export function eventPill(eventName) {
-  const e = String(eventName || '').toLowerCase();
-  if (POSITIVE.has(e)) return 'green';
-  if (NEGATIVE.has(e)) return 'amber';
-  if (NEUTRAL.has(e)) return 'muted';
+  if (isOpenEvent(eventName) || isClickEvent(eventName)) return 'green';
+  if (canonDelivered(eventName)) return 'green';
+  if (isBounceEvent(eventName) || isSpamEvent(eventName) || isUnsubscribeEvent(eventName)) return 'amber';
   return 'muted';
 }
 
+function canonDelivered(name) {
+  return canonicalEventName(name) === 'delivered';
+}
+
 export function eventLabel(eventName) {
-  const e = String(eventName || '').toLowerCase();
-  return LABELS[e] || eventName || 'Event';
+  return eventVerb(eventName);
 }
 
 // Mailbox providers (Gmail, Outlook, security gateways) prefetch every link in

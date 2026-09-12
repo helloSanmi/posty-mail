@@ -4,14 +4,14 @@
 // Practical insight: tells the admin which CTAs are pulling weight
 // across campaigns, without having to drill into each one.
 import { ExternalLink } from 'lucide-react';
+import { isClickEvent } from '../../../shared/eventNames.js';
 
-const CLICK_NAMES = new Set(['click', 'clicked', 'unique_clicked']);
 
 export function TopLinks({ events, limit = 8 }) {
   const aggregated = new Map();
   events.forEach((event) => {
     const eventName = String(event.payload?.event || '').toLowerCase();
-    if (!CLICK_NAMES.has(eventName)) return;
+    if (!isClickEvent(eventName)) return;
     const url = event.payload?.link || event.payload?.url;
     if (!url) return;
     aggregated.set(url, (aggregated.get(url) || 0) + 1);

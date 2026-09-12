@@ -10,9 +10,8 @@
 // first / middle / last day. Empty days render as a faint baseline tick
 // so the eye can still see the spacing even when nothing happened.
 import { useMemo, useState } from 'react';
+import { isClickEvent, isOpenEvent } from '../../../shared/eventNames.js';
 
-const OPEN_NAMES = new Set(['opened', 'open', 'unique_opened', 'proxy_open', 'loadedbyproxy']);
-const CLICK_NAMES = new Set(['click', 'clicked', 'unique_clicked']);
 
 // Local-time day key — toISOString would bucket past midnight UTC and
 // shift events into the wrong day for non-UTC admins.
@@ -42,11 +41,11 @@ function bucketEvents(events, since, until) {
     const at = event.receivedAt;
     if (!at) return;
     const name = String(event.payload?.event || '').toLowerCase();
-    if (!OPEN_NAMES.has(name) && !CLICK_NAMES.has(name)) return;
+    if (!isOpenEvent(name) && !isClickEvent(name)) return;
     const key = isoDay(new Date(at));
     const i = indexByKey.get(key);
     if (i == null) return;
-    if (OPEN_NAMES.has(name)) buckets[i].opens += 1;
+    if (isOpenEvent(name)) buckets[i].opens += 1;
     else buckets[i].clicks += 1;
   });
   return buckets;
