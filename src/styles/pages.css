@@ -2600,19 +2600,6 @@
   gap: 18px;
   grid-template-columns: minmax(0, 1fr) 320px;
 }
-.campaigns-main { display: grid; gap: 16px; }
-/* Drafts rail. Sticks to the top of the viewport as the user scrolls through
-   campaigns. The inner list scrolls within its own bounded box so a long
-   list (10+ drafts) doesn't dangle below the main column and leave a tall
-   patch of empty space next to the pagination footer. */
-.campaigns-drafts {
-  align-self: start;
-  position: sticky;
-  top: 16px;
-  max-height: calc(100vh - 32px);
-  display: flex;
-  flex-direction: column;
-}
 .campaigns-drafts .draft-list {
   flex: 1 1 auto;
   min-height: 0;
@@ -2620,7 +2607,6 @@
   padding-right: 4px; /* breathing room so cards don't kiss the scrollbar */
 }
 @media (max-width: 1080px) {
-  .campaigns-shell { grid-template-columns: 1fr; }
   /* On narrow screens the rail stacks under the main list; sticky positioning
      stops being useful, and the height cap would clip the list awkwardly. */
   .campaigns-drafts { position: static; max-height: none; }
@@ -2655,72 +2641,6 @@
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-}
-.campaign-card {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 1px 2px var(--shadow);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.campaign-card-body {
-  background: transparent;
-  border: 0;
-  color: inherit;
-  cursor: pointer;
-  display: grid;
-  flex: 1 1 auto;
-  font: inherit;
-  gap: 8px;
-  padding: 12px 14px;
-  text-align: left;
-}
-.campaign-card-body:hover { background: var(--surface-hover); }
-.campaign-card-body:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-.campaign-card-head {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-}
-.campaign-card-head strong {
-  font-size: 0.96rem;
-  line-height: 1.3;
-  /* Clamp to two lines so a long campaign name doesn't stretch the
-     card. word-break keeps unbreakable words wrapping cleanly. */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-word;
-}
-.campaign-card-meta-inline {
-  color: var(--text-muted);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 0.84rem;
-  gap: 4px 14px;
-}
-.campaign-card-meta-inline em {
-  color: var(--text-muted);
-  font-size: 0.7rem;
-  font-style: normal;
-  letter-spacing: 0.04em;
-  margin-right: 6px;
-  text-transform: uppercase;
-}
-.campaign-card-actions {
-  align-items: center;
-  border-top: 1px solid var(--surface-sunken);
-  display: flex;
-  gap: 2px;
-  justify-content: flex-end;
-  padding: 4px 6px;
 }
 /* Legacy classes kept for any other surface that still uses .meta-pair
    or .card-actions. Campaign cards now use the inline / actions
@@ -2912,47 +2832,7 @@
   text-align: center;
 }
 .subtab.is-active .subtab-count { background: var(--accent-soft); color: var(--accent); }
-
-/* Roles & access (Admin page) */
-.roles-list {
-  display: grid;
-  gap: 8px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.role-row {
-  align-items: flex-start;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  padding: 14px 16px;
-}
-.role-row-main { display: grid; gap: 8px; min-width: 0; }
-.role-row-head { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
-.role-row-head strong { font-size: 0.98rem; }
-.role-lock {
-  align-items: center;
-  background: var(--surface-hover);
-  border-radius: 999px;
-  color: var(--accent);
-  display: inline-flex;
-  font-size: 0.72rem;
-  font-weight: 600;
-  gap: 4px;
-  padding: 2px 9px;
-}
-.role-usercount { font-size: 0.8rem; }
 .role-areas { display: flex; flex-wrap: wrap; gap: 6px; }
-.role-area-pill {
-  background: var(--surface-sunken);
-  color: var(--text-muted);
-  font-size: 0.76rem;
-}
-.role-row-actions { align-items: center; display: flex; flex-shrink: 0; gap: 4px; }
 
 /* Role create/edit modal */
 .role-modal { max-width: 560px; width: 100%; }
@@ -3115,20 +2995,6 @@
   top: 0;
   z-index: 2;
 }
-.page-tab {
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  color: var(--text-muted);
-  display: inline-flex;
-  font-weight: 500;
-  margin-bottom: -1px;
-  min-height: 38px;
-  padding: 6px 12px;
-  text-decoration: none;
-}
-.page-tab:hover { color: var(--text); }
 .page-tab.active {
   border-bottom-color: var(--accent);
   color: var(--accent);
@@ -3136,158 +3002,22 @@
 
 /* Dashboard */
 .dashboard-page { gap: 16px; }
-
-/* Hero. Greeting + state summary + primary CTA. Replaces the loose row of
-   buttons that lived above the KPIs. */
-.dashboard-hero {
-  align-items: center;
-  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-raised) 60%);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: space-between;
-}
-.dashboard-hero-text { display: grid; gap: 4px; max-width: 640px; min-width: 0; }
 .dashboard-hero-text .eyebrow {
   display: inline-block;
   font-size: 0.78rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.dashboard-hero-text h2 {
-  font-size: clamp(1.4rem, 2.2vw, 1.8rem);
-  line-height: 1.2;
-  margin: 0;
-}
-.dashboard-hero-text p { margin: 0; }
-.dashboard-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-
-/* Recent campaigns. Taller list items with optional progress bar for runs. */
-.dashboard-campaign-main {
-  display: grid;
-  flex: 1;
-  gap: 4px;
-  min-width: 0;
-}
-.dashboard-campaign-line {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-  min-width: 0;
-}
-.dashboard-campaign-line strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.dashboard-progress {
-  background: var(--surface-sunken);
-  border-radius: 999px;
-  height: 4px;
-  margin-top: 4px;
-  overflow: hidden;
-  width: 100%;
-}
-.dashboard-progress-bar {
-  background: var(--accent);
-  border-radius: 999px;
-  height: 100%;
-  transition: width 0.3s ease;
-}
-
-.dashboard-kpi {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-/* KPI card layout. Vertical stack:
-   [icon] LABEL
-   42px value      [+12% chip]
-   12.3% open rate
-   Cards are also used on the Dashboard via .dashboard-kpi (single-row
-   flex), so the new vertical layout is scoped via the head / value-row /
-   rate sub-elements. Old kpi-card flat children still work for the
-   Dashboard usage. */
-.kpi-card {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  text-align: left;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
 .kpi-card.is-link { cursor: pointer; }
 .kpi-card.is-link:hover {
   border-color: var(--accent-border);
   box-shadow: 0 4px 12px var(--shadow);
-}
-.kpi-icon {
-  align-items: center;
-  background: var(--accent-soft);
-  border-radius: 8px;
-  color: var(--accent);
-  display: flex;
-  flex-shrink: 0;
-  height: 30px;
-  justify-content: center;
-  width: 30px;
-}
-.kpi-card-head {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-}
-.kpi-card-label {
-  font-size: 0.74rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.kpi-card-value-row {
-  align-items: baseline;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-}
-.kpi-card-value {
-  font-size: 1.6rem;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.05;
-}
-.kpi-card-rate { font-size: 0.78rem; }
-.kpi-card-rate > span { color: var(--text-muted); }
-
-/* Delta chip — small pill showing % change vs previous period. Good/bad
-   tones map by metric (more bounces = bad even though it's a positive
-   delta). Neutral is for 0% no-change. */
-.kpi-delta {
-  align-items: center;
-  border-radius: 999px;
-  display: inline-flex;
-  font-size: 0.74rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  gap: 2px;
-  padding: 2px 6px;
-}
-.kpi-delta-good { background: var(--success-soft); color: var(--success); }
-.kpi-delta-bad  { background: var(--danger-soft); color: var(--danger); }
-.kpi-delta-neutral { background: var(--surface-sunken); color: var(--text-muted); }
-
-/* Fallback for any legacy KPI card that still uses the old flat
-   structure (single <div> inside). Dashboard probably still wants the
-   simpler horizontal layout. */
-.kpi-card > div:not(.kpi-card-head):not(.kpi-card-value-row) {
-  display: grid;
-  gap: 2px;
 }
 .kpi-card > div .muted {
   font-size: 0.74rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.kpi-card > div strong { font-size: 1.4rem; line-height: 1.1; }
 
 /* Reports page — insight blocks (activity chart, funnel, top links).
    .analytics-block is a thin wrapper on .surface; the .section-heading
@@ -3600,35 +3330,7 @@
   font-variant-numeric: tabular-nums;
 }
 .reports-cell-rate.is-bad { color: var(--danger); }
-
-.dashboard-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-}
 .dashboard-block .section-heading { margin-bottom: 10px; }
-.dashboard-list {
-  display: grid;
-  gap: 4px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.dashboard-list-item {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  min-height: 0;
-  padding: 8px 10px;
-  text-align: left;
-  width: 100%;
-}
-.dashboard-list-item:hover { background: var(--surface-hover); }
-.dashboard-list-item div { display: grid; gap: 2px; }
 .dashboard-list-item .muted { font-size: 0.78rem; }
 /* Recent activity rows. Fixed-width pill column so the email column lines up
    across rows regardless of event name length, and the timestamp lives in its
@@ -3641,35 +3343,9 @@
   grid-template-columns: 96px minmax(0, 1fr) auto;
   padding: 6px 8px;
 }
-.dashboard-event:hover { background: var(--surface-hover); }
-.dashboard-event-pill {
-  justify-self: start;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.dashboard-event-email {
-  font-weight: 500;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.dashboard-event-time {
-  flex-shrink: 0;
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-}
 .dashboard-event.is-bot { opacity: 0.7; }
-.dashboard-event-bot { font-size: 0.72rem; }
 
 .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.dashboard-quick-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 
 /* Variants editor (Builder) */
 .variants-editor {
@@ -3740,11 +3416,6 @@
   /* On narrow screens drop the "updated …" timestamp; the dot + Refresh
      are enough and the header stays on one line. */
   .campaign-live-time { display: none; }
-}
-.kpi-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 .detail-tabs {
   background: var(--surface-sunken);

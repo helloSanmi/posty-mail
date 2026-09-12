@@ -1,16 +1,4 @@
-.app-shell {
-  display: grid;
-  grid-template-columns: 252px minmax(0, 1fr);
-  min-height: 100vh;
-  /* Transition column widths so collapsing the sidebar slides the
-     workspace into the freed space instead of snapping. Inner element
-     fades + visibility transitions are tuned to overlap, so labels
-     disappear as the column finishes shrinking. */
-  transition: grid-template-columns 0.22s ease-out;
-}
-.app-shell.sidebar-collapsed {
-  grid-template-columns: 68px minmax(0, 1fr);
-}
+
 
 .skip-link {
   background: var(--accent);
@@ -26,18 +14,6 @@
   z-index: 100;
 }
 .skip-link:focus { top: 0; }
-
-.sidebar {
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-  height: 100vh;
-  padding: 24px 16px;
-  position: sticky;
-  top: 0;
-}
 
 .brand, .section-heading, .actions-row,
 .inline-form, .preview-header, .audience-form-footer {
@@ -108,17 +84,6 @@ nav button.active, nav .nav-link.active {
   border-color: var(--accent-border);
   color: var(--accent);
 }
-.sidebar-user {
-  align-items: center;
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-  margin-top: auto;
-  padding-top: 14px;
-}
-.sidebar-user strong { display: block; font-size: 0.92rem; }
-.sidebar-user span { color: var(--text-muted); font-size: 0.78rem; text-transform: capitalize; }
 
 /* Sidebar collapse toggle. Sits at the right edge of the brand row on
    desktop, hidden on mobile (where the sidebar IS the drawer and the
@@ -140,9 +105,7 @@ nav button.active, nav .nav-link.active {
   transition: background 0.12s, color 0.12s;
   width: 28px;
 }
-.sidebar-toggle:hover { background: var(--accent-soft); color: var(--accent); }
 @media (max-width: 720px) {
-  .sidebar-toggle { display: none; }
 }
 
 /* Collapsed sidebar state. Hides the wordmark + tagline + nav labels +
@@ -181,44 +144,7 @@ nav button.active, nav .nav-link.active {
 }
 
 .workspace { min-width: 0; }
-
-/* Topbar search trigger. Compact pill on desktop with the ⌘K hint; on
-   mobile collapses to an icon-only button so the topbar doesn't crowd. */
-.topbar-search {
-  align-items: center;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 0.84rem;
-  font-weight: 500;
-  gap: 8px;
-  margin-left: auto;
-  padding: 6px 8px 6px 10px;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
-}
-.topbar-search:hover {
-  background: var(--surface-hover);
-  border-color: var(--border);
-  color: var(--text);
-}
-.topbar-search-label { min-width: 80px; text-align: left; }
-.topbar-search-kbd {
-  background: var(--surface-sunken);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text-muted);
-  font-family: inherit;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 1px 6px;
-}
 @media (max-width: 720px) {
-  .topbar-search-label,
-  .topbar-search-kbd { display: none; }
-  .topbar-search { padding: 6px; }
 }
 
 /* Global search palette. Renders into document.body via portal, so the
@@ -358,22 +284,6 @@ nav button.active, nav .nav-link.active {
   margin-right: 4px;
   padding: 1px 5px;
 }
-
-.topbar {
-  align-items: center;
-  background: var(--surface-raised);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  gap: 14px;
-  min-height: 64px;
-  padding: 14px clamp(20px, 4vw, 40px);
-  position: sticky;
-  top: 0;
-  z-index: 3;
-}
-
-.topbar h1 { font-size: clamp(1.25rem, 2vw, 1.6rem); margin: 0; }
-.topbar-title { flex: 1; min-width: 0; }
 .mobile-menu {
   align-items: center;
   background: transparent;
@@ -688,24 +598,11 @@ button:focus-visible, .nav-link:focus-visible, a:focus-visible {
   .manual-contact-grid, .send-form, .contact-row, .contact-row-edit {
     grid-template-columns: 1fr;
   }
-  .sidebar {
-    background: var(--surface);
-    box-shadow: var(--e3);
-    height: 100vh;
-    left: 0;
-    position: fixed;
-    top: 0;
-    transform: translateX(-100%);
-    transition: transform 0.22s ease;
-    width: min(300px, 84vw);
-    z-index: 50;
-  }
   .sidebar.open { transform: translateX(0); }
   .drawer-close { display: inline-flex; }
   .drawer-backdrop { display: block; }
   .mobile-menu { display: inline-flex; }
   .eyebrow { display: block; }
-  .topbar { position: static; }
   .page-stack { padding: 18px; }
   .home-setup { border-left: 0; border-top: 1px solid var(--border); }
   .template-control-panel { max-height: none; position: static; }

@@ -1,7 +1,4 @@
-.template-shell {
-  align-items: start;
-  grid-template-columns: 280px minmax(0, 1fr);
-}
+
 
 .template-list-panel, .template-control-panel {
   align-self: start;
@@ -12,10 +9,6 @@
      editor's own side rail; the inset pushed it that far below the fields
      it belongs to. */
   top: 0;
-}
-
-.template-list-panel {
-  padding: 14px;
 }
 
 .template-main {
@@ -40,19 +33,6 @@
   top: 64px;
   z-index: 2;
 }
-.template-tabs {
-  background: var(--surface-sunken);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-}
-
-.template-tabs button {
-  background: transparent;
-  border: 0;
-}
 
 .template-tabs button.active {
   background: var(--surface-raised);
@@ -70,17 +50,6 @@
   display: block;
   font-size: .82rem;
   margin-top: 2px;
-}
-
-.template-select-label {
-  margin: 16px 0 0;
-}
-
-.template-select-summary {
-  color: var(--text-muted);
-  font-size: .86rem;
-  line-height: 1.4;
-  margin-top: 10px;
 }
 
 .asset-row, .preview-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
@@ -575,9 +544,6 @@
 .email-device.mobile .message-frame { max-width: 390px; }
 
 @media (max-width: 1180px) {
-  .template-shell {
-    grid-template-columns: 1fr;
-  }
 
   .template-list-panel,
   .template-main {
