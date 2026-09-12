@@ -274,6 +274,23 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
   padding: var(--s5);
 }
 
+/* Every ported page still roots itself in the legacy .page-stack, which is
+   worth keeping — it supplies the grid, the 18px row gap and the 1240px
+   centred measure. Its PADDING is not: .sh-content already pads the
+   content column, so the two stack and every page sits in 44-60px of inset
+   instead of 20px. Neutralise the padding only, and let the shell own the
+   page margin as the redesign intends. The rule goes here rather than in
+   layout.css because it describes a relationship to the new shell; when
+   .page-stack is finally retired this rule goes with it.
+
+   The 1240px measure STAYS. Nothing in the new shell constrains the
+   content column, and the sandbox never revealed that because it was
+   reviewed at laptop width — dropped, a campaigns table would run the full
+   width of a 2560px monitor. */
+.sh-content > .page-stack {
+  padding: 0;
+}
+
 /* ---- drawer ----------------------------------------------------------- */
 .sh-scrim {
   background: var(--scrim);
