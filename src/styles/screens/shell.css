@@ -10,22 +10,40 @@
  * mark, the rail on the active nav item, and the primary button. Scarcity
  * is what makes it read as emphasis rather than as decoration. */
 
+/* The frame fills the viewport and never scrolls itself — the rail and the
+   topbar are part of the furniture, not part of the page, and scrolling a
+   long report should not take the navigation away with it.
+   
+   Rows are placed explicitly rather than by document order because
+   DemoBanner renders null outside demo mode: relying on order would put the
+   rail in the `auto` row, which sizes to its content and would scroll the
+   whole document again the moment a page got tall. With explicit rows the
+   banner row simply collapses to nothing when there is no banner. */
 .sh {
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr);
-  min-height: calc(100vh - 45px);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
   transition: grid-template-columns 0.18s ease;
 }
+.sh > .demo-banner { grid-row: 1; }
+.sh > .sh-side,
+.sh > .sh-main { grid-row: 2; }
 .sh.is-collapsed { grid-template-columns: 60px minmax(0, 1fr); }
 
 /* ---- sidebar ---------------------------------------------------------- */
+/* The rail fills its row and scrolls independently, so a long nav is
+   reachable without moving the page. */
 .sh-side {
   background: var(--surface-sunken);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-height: 0;
   min-width: 0;
+  overflow-y: auto;
   padding: var(--s3) 10px;
 }
 
@@ -206,12 +224,15 @@
 .sh.is-collapsed .sh-avatar { display: none; }
 
 /* ---- topbar ----------------------------------------------------------- */
-.sh-main { display: flex; flex-direction: column; min-width: 0; }
+.sh-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+/* Fixed height band above the scrolling pane. flex:none so a long page
+   cannot squeeze it. */
 .sh-top {
   align-items: center;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
+  flex: none;
   gap: var(--s3);
   padding: 10px var(--s5);
 }
@@ -272,12 +293,18 @@
    failure, so it must stay legible on the dark ground too. */
 html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
 
+/* THE scroll container. Everything above it is furniture. Because the
+   scrolling happens here rather than on the document, a sticky child
+   inside a page — the template list, a sticky table head — sticks to the
+   top of this pane and cannot slide under the topbar. */
 .sh-content {
   background: var(--bg);
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: var(--s4);
+  min-height: 0;
+  overflow-y: auto;
   padding: var(--s5);
 }
 

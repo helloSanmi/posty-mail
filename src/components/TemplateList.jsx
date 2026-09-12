@@ -1,4 +1,19 @@
-import { LayoutTemplate, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { LayoutTemplate, Plus, Search } from 'lucide-react';
+
+// The template picker, as a list rather than a dropdown.
+//
+// It was a <select>, which is why the panel never scrolled and sat there as
+// a short box with a lot of nothing under it. A select also hides the whole
+// set behind a click and can only show one line per template, so the
+// subject had to be printed separately underneath — meaning you could read
+// the subject of the template you had already chosen, and nothing about the
+// ones you had not.
+//
+// The list shows name and subject per row, which is what makes it
+// scannable: two templates both called "Newsletter" are told apart by their
+// subject, not their name. Search earns its place once the list is long
+// enough to scroll, which is the same condition that made the dropdown bad.
 
 export function TemplateList({
   templates,
@@ -7,42 +22,77 @@ export function TemplateList({
   onNew,
   onStartFromGallery,
 }) {
+  const [query, setQuery] = useState('');
   const hasTemplates = templates.length > 0;
-  const selected = templates.find((template) => template.id === selectedTemplateId);
+
+  const term = query.trim().toLowerCase();
+  const shown = term
+    ? templates.filter((template) => (
+      `${template.name || ''} ${template.subject || ''}`.toLowerCase().includes(term)
+    ))
+    : templates;
 
   return (
-    <aside className="surface template-list-panel">
-      <div className="template-list-header">
-        <div>
-          <strong>Templates</strong>
-          <span>{templates.length} available</span>
+    <aside className="em-card em-list">
+      <div className="em-card-head">
+        <h2>Templates</h2>
+        <div className="em-head-tools">
+          <button
+            type="button"
+            className="em-icon-btn"
+            onClick={onNew}
+            aria-label="New template"
+            title="New template"
+          >
+            <Plus size={15} aria-hidden="true" />
+          </button>
         </div>
-        <button type="button" className="primary" onClick={onNew}>
-          <Plus size={14} aria-hidden="true" /> New
-        </button>
       </div>
 
-      {hasTemplates ? (
-        <>
-          <label className="template-select-label" htmlFor="template-select">
-            Choose template
-            <select
-              id="template-select"
-              value={selectedTemplateId}
-              onChange={(event) => onSelect(event.target.value)}
-            >
-              {templates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name || 'Untitled template'}
-                </option>
-              ))}
-            </select>
-          </label>
+      {/* Only once there is enough to sift through. Below that the search
+          box is a control that can only ever filter a list you can already
+          see in full. */}
+      {templates.length > 6 && (
+        <span className="em-search">
+          <Search size={14} aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search templates"
+            aria-label="Search templates"
+          />
+        </span>
+      )}
 
-          <div className="template-select-summary">
-            {selected?.subject || 'No subject yet'}
-          </div>
-        </>
+      {hasTemplates ? (
+        <ul className="em-list-items">
+          {shown.map((template) => {
+            const isActive = template.id === selectedTemplateId;
+            return (
+              <li key={template.id}>
+                <button
+                  type="button"
+                  className={`em-item${isActive ? ' is-active' : ''}`}
+                  aria-current={isActive ? 'true' : undefined}
+                  onClick={() => onSelect(template.id)}
+                >
+                  <span className="em-item-name">
+                    {template.name || 'Untitled template'}
+                  </span>
+                  <span className="em-item-subject">
+                    {template.subject || 'No subject yet'}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+          {shown.length === 0 && (
+            <li className="em-list-none">
+              <p className="empty-state">No template matches “{query}”.</p>
+            </li>
+          )}
+        </ul>
       ) : (
         <div className="template-empty">
           <LayoutTemplate size={22} aria-hidden="true" />

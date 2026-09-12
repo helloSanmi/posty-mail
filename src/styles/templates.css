@@ -623,7 +623,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-height: min(86vh, 900px);
+  /* A definite height, not a maximum. With max-height the dialog shrank to
+     whatever the current category happened to contain, so picking a
+     different one resized the whole window under the pointer — and the
+     chips you were clicking moved. The grid inside scrolls instead. */
+  height: min(86vh, 900px);
   max-width: 960px;
   overflow: hidden;
   width: 100%;
