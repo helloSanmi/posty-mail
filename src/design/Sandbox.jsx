@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import {
-  ACCENTS, DEFAULT_ACCENT, DEFAULT_GROUND, GROUNDS, ROLES, applyTheme, resolveTheme,
+  DEFAULT_DIRECTION, DEFAULT_GROUND, DIRECTIONS, ROLES,
+  accentKeysFor, applyTheme, groundKeysFor, resolveTheme,
 } from './themes';
 import { DESIGN_PAGES } from './pages';
 import './sandbox.css';
 
-// The review harness. Picks a page and a theme, renders the page, and gets
-// out of the way.
+// The review harness. Picks a direction, a ground, an accent and a page,
+// renders it, and gets out of the way.
 //
-// It needs no login and no backend: every page here is driven by fixtures,
-// which is the point — redesigns can be reviewed (and screenshotted) without
+// It needs no login and no backend: every page here is fixture-driven,
+// which is the point — redesigns can be reviewed and screenshotted without
 // standing up the API or handing anyone credentials.
 
 const STORAGE = 'posty.design.sandbox';
@@ -24,25 +25,93 @@ function readStored() {
 
 export function Sandbox() {
   const stored = readStored();
-  const [page, setPage] = useState(stored.page || DESIGN_PAGES[0]?.key || 'tokens');
+  const [direction, setDirection] = useState(stored.direction || DEFAULT_DIRECTION);
   const [ground, setGround] = useState(stored.ground || DEFAULT_GROUND);
-  const [accent, setAccent] = useState(stored.accent || DEFAULT_ACCENT);
+  const [accent, setAccent] = useState(stored.accent || accentKeysFor(DEFAULT_DIRECTION)[0]);
+  const [page, setPage] = useState(stored.page || DESIGN_PAGES[0]?.key || 'tokens');
+
+  const grounds = groundKeysFor(direction);
+  const accents = accentKeysFor(direction);
+  // Switching direction can strand the current ground or accent — "Today"
+  // has no dark theme and no Harbour. Fall back rather than render nothing.
+  const safeGround = grounds.includes(ground) ? ground : grounds[0];
+  const safeAccent = accents.includes(accent) ? accent : accents[0];
 
   useEffect(() => {
-    applyTheme(ground, accent);
+    applyTheme(direction, safeGround, safeAccent);
     try {
-      window.localStorage.setItem(STORAGE, JSON.stringify({ page, ground, accent }));
+      window.localStorage.setItem(STORAGE, JSON.stringify({
+        direction, ground: safeGround, accent: safeAccent, page,
+      }));
     } catch { /* private mode — the sandbox just forgets between reloads */ }
-  }, [ground, accent, page]);
+  }, [direction, safeGround, safeAccent, page]);
 
   const active = DESIGN_PAGES.find((p) => p.key === page);
   const Active = active?.component;
-  const tokens = resolveTheme(ground, accent);
+  const tokens = resolveTheme(direction, safeGround, safeAccent);
+  const meta = DIRECTIONS[direction];
 
   return (
     <div className="sb-root">
       <div className="sb-bar">
         <div className="sb-brand">Posty <span>design sandbox</span></div>
+
+        <div className="sb-group">
+          <span className="sb-label">Direction</span>
+          <div className="sb-seg">
+            {Object.entries(DIRECTIONS).map(([key, d]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={direction === key}
+                title={d.note}
+                onClick={() => setDirection(key)}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="sb-group">
+          <span className="sb-label">Ground</span>
+          <div className="sb-seg">
+            {['light', 'dark'].map((key) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={safeGround === key}
+                disabled={!grounds.includes(key)}
+                title={grounds.includes(key) ? undefined : `${meta.label} has no ${key} theme`}
+                onClick={() => setGround(key)}
+              >
+                {key === 'light' ? 'Light' : 'Dark'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="sb-group">
+          <span className="sb-label">Accent</span>
+          <div className="sb-swatches">
+            {accents.map((key) => {
+              const a = meta.accents[key];
+              const swatch = (a[safeGround] || a.light).accent;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className="sb-swatch"
+                  aria-pressed={safeAccent === key}
+                  aria-label={a.label}
+                  title={a.label}
+                  style={{ '--swatch': swatch }}
+                  onClick={() => setAccent(key)}
+                />
+              );
+            })}
+          </div>
+        </div>
 
         {DESIGN_PAGES.length > 0 && (
           <div className="sb-group">
@@ -62,63 +131,25 @@ export function Sandbox() {
           </div>
         )}
 
-        <div className="sb-group">
-          <span className="sb-label">Ground</span>
-          <div className="sb-seg">
-            {Object.entries(GROUNDS).map(([key, g]) => (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={ground === key}
-                onClick={() => setGround(key)}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="sb-group">
-          <span className="sb-label">Accent</span>
-          <div className="sb-swatches">
-            {Object.entries(ACCENTS).map(([key, a]) => (
-              <button
-                key={key}
-                type="button"
-                className="sb-swatch"
-                aria-pressed={accent === key}
-                aria-label={a.label}
-                title={a.label}
-                style={{ '--swatch': (a[ground] || a.light).accent }}
-                onClick={() => setAccent(key)}
-              />
-            ))}
-          </div>
-        </div>
-
         <div className="sb-spacer" />
-        <span className="sb-note">Not the live app · nothing here ships until approved</span>
+        <span className="sb-note">Not the live app · nothing ships until approved</span>
       </div>
 
       <div className="sb-stage">
-        {Active ? <Active /> : <TokenSheet tokens={tokens} />}
+        {Active ? <Active /> : <TokenSheet tokens={tokens} note={meta.note} />}
       </div>
     </div>
   );
 }
 
-// Shown until the first page lands, and available afterwards as a check that
-// every role resolves in both grounds.
-function TokenSheet({ tokens }) {
+// Shown until a page is registered, and useful afterwards as a check that
+// every role resolves in every direction and ground.
+function TokenSheet({ tokens, note }) {
   return (
     <>
       <div className="sb-empty">
-        <strong>No redesigned pages yet.</strong>
-        <span>
-          Approved designs appear in the Page switcher above. Drop them in
-          {' '}<code>src/design/pages/</code> and register them in{' '}
-          <code>src/design/pages.js</code>.
-        </span>
+        <strong>{note}</strong>
+        <span>Switch Direction, Ground and Accent above to compare. Every role below is live.</span>
       </div>
       <div className="sb-tokens">
         {ROLES.map((role) => (
