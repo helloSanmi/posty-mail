@@ -1,0 +1,239 @@
+/* Design tokens.
+ *
+ * Roles are named for what they DO, never for what colour they are. The
+ * app's original four — --blue, --green, --amber and --line — are exactly
+ * why it could not be re-themed: nothing can repoint "--blue" at a teal
+ * accent without the name lying.
+ *
+ * THREE AXES: ground (light/dark) x accent x nothing else. Themes are
+ * applied as ATTRIBUTES on <html> rather than as inline custom properties,
+ * so the base theme works before any JavaScript runs and a reader with JS
+ * disabled still gets a coherent page.
+ *
+ * MIGRATION. The legacy names are kept at the bottom as aliases onto the
+ * new roles. That is what makes this change safe to land in one commit:
+ * every existing `var(--line)` in 5,700 lines of stylesheet becomes
+ * theme-aware without being edited, and the literal sweep can then proceed
+ * file by file behind a working theme rather than as a prerequisite for
+ * one. The aliases are deprecated on arrival — nothing new should use
+ * them — and they go when the last literal does.
+ */
+
+:root,
+html[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #e9edf4;
+  --surface: #f7f9fc;
+  --surface-raised: #ffffff;
+  --surface-sunken: #dde4ee;
+
+  --text: #14202f;
+  --text-muted: #4c5b6e;
+  --text-subtle: #58657a;
+
+  --border: #d3dbe6;
+  --border-strong: #6f7e93;
+
+  --accent-contrast: #ffffff;
+
+  --success: #0e7049;
+  --success-soft: #d8f0e3;
+  --warn: #8a5a05;
+  --warn-soft: #faeacb;
+  --danger: #b02418;
+  --danger-soft: #fbe2de;
+
+  --shadow: rgba(14, 27, 45, 0.12);
+  --scrim: rgba(11, 23, 38, 0.72);
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0e1620;
+  --surface: #16202c;
+  --surface-raised: #1e2a38;
+  --surface-sunken: #090f17;
+
+  --text: #e6edf5;
+  --text-muted: #9faec0;
+  --text-subtle: #8796ab;
+
+  --border: #263344;
+  --border-strong: #617790;
+
+  /* Ink, not white. White on these accents measures 1.8-2.3:1 — unreadable
+     button labels. The ground owns this value precisely so an accent can
+     never get it wrong. */
+  --accent-contrast: #071320;
+
+  --success: #45c489;
+  --success-soft: #10301f;
+  --warn: #e2a83c;
+  --warn-soft: #332409;
+  --danger: #f27a6b;
+  --danger-soft: #3a1613;
+
+  --shadow: rgba(0, 6, 13, 0.55);
+  --scrim: rgba(4, 9, 15, 0.84);
+}
+
+/* Follow the operating system unless the reader has chosen explicitly.
+   Guarded on :not([data-theme='light']) so an explicit light choice beats
+   a dark OS. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --bg: #0e1620;
+    --surface: #16202c;
+    --surface-raised: #1e2a38;
+    --surface-sunken: #090f17;
+
+    --text: #e6edf5;
+    --text-muted: #9faec0;
+    --text-subtle: #8796ab;
+
+    --border: #263344;
+    --border-strong: #617790;
+
+    --accent-contrast: #071320;
+
+    --success: #45c489;
+    --success-soft: #10301f;
+    --warn: #e2a83c;
+    --warn-soft: #332409;
+    --danger: #f27a6b;
+    --danger-soft: #3a1613;
+
+    --shadow: rgba(0, 6, 13, 0.55);
+    --scrim: rgba(4, 9, 15, 0.84);
+  }
+}
+
+/* ---- accents -------------------------------------------------------------
+   An accent supplies four values and never accent-contrast. Light is the
+   default so a missing data-accent still resolves. */
+:root,
+html[data-accent='harbour'] {
+  --accent: #15608f;
+  --accent-hover: #114f76;
+  --accent-soft: #e1edf6;
+  --focus-ring: #1e7cb8;
+}
+html[data-accent='verdigris'] {
+  --accent: #0f6675;
+  --accent-hover: #0b525e;
+  --accent-soft: #dceef1;
+  --focus-ring: #0f6675;
+}
+html[data-accent='iris'] {
+  --accent: #4a50ae;
+  --accent-hover: #3c4193;
+  --accent-soft: #e7e8f8;
+  --focus-ring: #4a50ae;
+}
+
+html[data-theme='dark'][data-accent='harbour'],
+html[data-theme='dark']:not([data-accent]) {
+  --accent: #6fb4e6;
+  --accent-hover: #93c9ef;
+  --accent-soft: #123048;
+  --focus-ring: #93c9ef;
+}
+html[data-theme='dark'][data-accent='verdigris'] {
+  --accent: #45bfd1;
+  --accent-hover: #74d2e0;
+  --accent-soft: #0c3138;
+  --focus-ring: #74d2e0;
+}
+html[data-theme='dark'][data-accent='iris'] {
+  --accent: #9ba4f2;
+  --accent-hover: #b6bcf7;
+  --accent-soft: #1e2350;
+  --focus-ring: #b6bcf7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not([data-accent]),
+  :root:not([data-theme='light'])[data-accent='harbour'] {
+    --accent: #6fb4e6;
+    --accent-hover: #93c9ef;
+    --accent-soft: #123048;
+    --focus-ring: #93c9ef;
+  }
+  :root:not([data-theme='light'])[data-accent='verdigris'] {
+    --accent: #45bfd1;
+    --accent-hover: #74d2e0;
+    --accent-soft: #0c3138;
+    --focus-ring: #74d2e0;
+  }
+  :root:not([data-theme='light'])[data-accent='iris'] {
+    --accent: #9ba4f2;
+    --accent-hover: #b6bcf7;
+    --accent-soft: #1e2350;
+    --focus-ring: #b6bcf7;
+  }
+}
+
+/* ---- non-colour foundations ---------------------------------------------
+   Fixed across themes. The live styles carry 47 distinct font-size values
+   and per-component padding, which is a large part of why the UI reads as
+   assembled rather than designed. */
+:root {
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
+
+  --tracking-tight: -0.018em;
+  --tracking-label: 0.07em;
+
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 999px;
+
+  --e1: 0 1px 2px var(--shadow);
+  --e2: 0 1px 2px var(--shadow), 0 2px 6px -2px var(--shadow);
+  --e3: 0 2px 4px var(--shadow), 0 12px 24px -8px var(--shadow);
+
+  --t-fast: 0.12s ease;
+  --t-base: 0.18s ease;
+}
+
+/* ---- legacy aliases, DEPRECATED -------------------------------------------
+   Every one of these is a name that describes a colour rather than a job,
+   which is the thing that made the app un-themeable. They exist only so the
+   5,700 lines of stylesheet written against them keep working — and now
+   respond to the theme — while the literals are swept file by file.
+
+   Do not use these in new code. They are deleted when the sweep finishes.
+
+   --line was borders; --muted was secondary text; --blue was simultaneously
+   the brand accent, the focus ring and the "selected" state, which is why
+   it could not be repointed. */
+:root {
+  --line: var(--border);
+  --muted: var(--text-muted);
+  --blue: var(--accent);
+  --green: var(--success);
+  --amber: var(--warn);
+}

@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Posty</title>
+    <script>
+      /* Applies the stored theme BEFORE first paint. Without this the page
+         renders light and then flips, which on a dark theme is worse than
+         having no dark theme at all.
+
+         Deliberately inline and tiny: a separate file would be another
+         round trip before paint, which is the thing this exists to avoid.
+         Wrapped in try/catch because localStorage throws outright in some
+         privacy modes, and a theme preference is never worth a blank page. */
+      (function () {
+        try {
+          var g = localStorage.getItem('posty.theme');
+          var a = localStorage.getItem('posty.accent');
+          if (g === 'light' || g === 'dark') {
+            document.documentElement.setAttribute('data-theme', g);
+          }
+          if (a === 'harbour' || a === 'verdigris' || a === 'iris') {
+            document.documentElement.setAttribute('data-accent', a);
+          }
+        } catch (e) { /* default theme is a correct answer */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

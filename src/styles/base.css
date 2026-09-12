@@ -1,19 +1,33 @@
-:root {
-  --bg: #f5f7f9;
-  --surface: #fff;
-  --line: #dfe5ec;
-  --text: #1f2937;
-  --muted: #687386;
-  --blue: #24599a;
-  --green: #17875f;
-  --amber: #a96500;
+/* Token DEFINITIONS live in tokens.css, which is imported before this file.
+   This block used to hold both: eight custom properties and the applied
+   paint, in one :root. That tangle is why a theme could not override it —
+   a [data-theme] block would have had to redeclare the font size and line
+   height to get at the colours.
+   
+   What is left here is only the applied paint, and it is applied to html
+   and body rather than :root so the ground is painted on the document
+   itself. A transparent body shows the browser's own white behind
+   overscroll, which reads as a flash of the wrong theme on a dark ground. */
+html,
+body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Avenir Next", Inter, "Segoe UI", system-ui, sans-serif;
+}
+
+html {
+  font-family: var(--font-sans);
   font-size: 14.5px;
   font-weight: 400;
   line-height: 1.5;
+  /* Every number in this product sits in a column beside another number.
+     Proportional digits make those columns ripple. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Prose keeps proportional figures — tabular digits inside a sentence look
+   spaced out and wrong. */
+p { font-variant-numeric: normal; }
 
 * { box-sizing: border-box; }
 body { margin: 0; font-weight: 400; }
