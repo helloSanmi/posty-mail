@@ -1,0 +1,290 @@
+/* Preview slice. Everything paints from semantic tokens, so switching
+ * direction / ground / accent repaints the whole thing with no other edit.
+ *
+ * The one place directions differ structurally is the sidebar, because that
+ * IS the difference between them: Signal on Slate keeps the chrome near
+ * silent, Postmark Ink runs the accent through it. Showing both with an
+ * identical sidebar would hide the actual choice being made. */
+
+.ds {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  min-height: calc(100vh - 45px);
+}
+
+/* ---- sidebar --------------------------------------------------------- */
+.ds-side {
+  background: var(--surface-sunken);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px 12px;
+}
+.ds-logo {
+  align-items: center;
+  display: flex;
+  font-size: 0.98rem;
+  font-weight: 600;
+  gap: 9px;
+  letter-spacing: -0.01em;
+  padding: 2px 8px;
+}
+.ds-mark {
+  background: var(--accent);
+  border-radius: 6px;
+  height: 20px;
+  width: 20px;
+}
+.ds-nav { display: flex; flex-direction: column; gap: 2px; }
+.ds-nav-item {
+  align-items: center;
+  border-radius: 8px;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 0.875rem;
+  gap: 10px;
+  padding: 8px 10px;
+  position: relative;
+}
+.ds-nav-item.is-active {
+  background: var(--surface-raised);
+  color: var(--text);
+  font-weight: 500;
+}
+/* Scarcity rule: the 3px rail appears on the active nav item and on a
+   non-passing status row. Nowhere else. */
+.ds-nav-item.is-active::before {
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  content: '';
+  height: 18px;
+  left: -12px;
+  position: absolute;
+  width: 3px;
+}
+
+/* Postmark Ink's thesis: the accent is structural chrome, so the sidebar
+   itself carries it and the active item reads as accent rather than as a
+   raised neutral chip. */
+html[data-direction='ink'] .ds-nav-item.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+html[data-direction='ink'] .ds-logo { color: var(--accent); }
+
+/* ---- topbar ---------------------------------------------------------- */
+.ds-main { display: flex; flex-direction: column; min-width: 0; }
+.ds-top {
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 14px;
+  padding: 12px 20px;
+}
+.ds-top h1 {
+  flex: 1;
+  font-size: 1.06rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.ds-search {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-subtle);
+  display: flex;
+  font-size: 0.8rem;
+  gap: 7px;
+  padding: 5px 9px;
+}
+.ds-search kbd {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 0 4px;
+}
+
+/* ---- body ------------------------------------------------------------ */
+.ds-body {
+  background: var(--bg);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.ds-btn {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 7px 13px;
+}
+.ds-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+.ds-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+.ds-muted { color: var(--text-muted); font-size: 0.82rem; }
+
+/* ---- tiles ----------------------------------------------------------- */
+.ds-tiles {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.ds-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: grid;
+  gap: 3px;
+  padding: 13px 15px;
+  position: relative;
+}
+/* Each metric owns a fixed hue — the colour IS the identity, not decoration. */
+.ds-tile::before {
+  border-radius: 10px 10px 0 0;
+  content: '';
+  height: 2px;
+  left: 13px;
+  position: absolute;
+  right: 13px;
+  top: 0;
+}
+.ds-tile.is-success::before { background: var(--success); }
+.ds-tile.is-accent::before { background: var(--accent); }
+.ds-tile.is-danger::before { background: var(--danger); }
+.ds-tile.is-warn::before { background: var(--warn); }
+
+.ds-tile-label {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.ds-tile-value {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.ds-delta { font-size: 0.78rem; font-weight: 500; }
+.ds-delta.is-success, .ds-delta.is-accent { color: var(--success); }
+/* Polarity is inverted where "up" is bad — more bounces is not good news. */
+.ds-delta.is-danger { color: var(--danger); }
+.ds-delta.is-warn { color: var(--warn); }
+
+/* ---- cards ----------------------------------------------------------- */
+.ds-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 15px 17px 17px;
+}
+.ds-card-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 10px;
+}
+.ds-card-head h2 { font-size: 0.95rem; font-weight: 600; margin: 0; }
+
+/* ---- table ----------------------------------------------------------- */
+.ds-table { border-collapse: collapse; width: 100%; }
+.ds-table th {
+  border-bottom: 1px solid var(--border);
+  color: var(--text-subtle);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 7px 8px;
+  text-align: left;
+  text-transform: uppercase;
+}
+.ds-table td {
+  border-bottom: 1px solid var(--border);
+  font-size: 0.87rem;
+  padding: 9px 8px;
+}
+.ds-table tbody tr:last-child td { border-bottom: 0; }
+.ds-table tbody tr:hover td { background: var(--accent-soft); }
+.ds-num { font-variant-numeric: tabular-nums; }
+
+/* State tints the row's left edge only, so a long table shows its problems
+   as a colour margin instead of a column of pills competing with the data. */
+.ds-table tbody tr td:first-child { border-left: 3px solid transparent; padding-left: 11px; }
+.ds-table tbody tr.is-warn td:first-child { border-left-color: var(--warn); }
+.ds-table tbody tr.is-danger td:first-child { border-left-color: var(--danger); }
+
+/* ---- pills ----------------------------------------------------------- */
+.ds-pill {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+.ds-pill.is-success { background: var(--success-soft); color: var(--success); }
+.ds-pill.is-accent { background: var(--accent-soft); color: var(--accent); }
+.ds-pill.is-warn { background: var(--warn-soft); color: var(--warn); }
+.ds-pill.is-danger { background: var(--danger-soft); color: var(--danger); }
+.ds-pill.is-muted { background: var(--surface-sunken); color: var(--text-muted); }
+/* Scheduled gets its own hue so five campaign states read as five things.
+   Derived from the accent so it moves with the chosen brand. */
+.ds-pill.is-plum { background: var(--accent-soft); color: var(--accent); }
+
+/* ---- setting rows ---------------------------------------------------- */
+.ds-rows { display: flex; flex-direction: column; }
+.ds-row {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 10px 0 10px 11px;
+  position: relative;
+}
+.ds-row:first-child { border-top: 0; }
+.ds-row.is-warn::before,
+.ds-row.is-danger::before {
+  border-radius: 2px;
+  bottom: 8px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 8px;
+  width: 3px;
+}
+.ds-row.is-warn::before { background: var(--warn); }
+.ds-row.is-danger::before { background: var(--danger); }
+.ds-row-label { display: grid; gap: 2px; min-width: 0; }
+.ds-row-label strong { font-size: 0.88rem; font-weight: 500; }
+.ds-row-label .ds-muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 14px; }
+
+@media (max-width: 860px) {
+  .ds { grid-template-columns: 1fr; }
+  .ds-side { display: none; }
+  .ds-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
