@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import { Shell } from './pages/Shell';
 import { Home } from './pages/Home';
-import { PreviewContent } from './pages/Preview';
+import { Campaigns } from './pages/Campaigns';
 
 // Registry of redesigned pages, in the agreed order: shell and theme first,
 // then Home, Campaigns, Audience, Reports, Email, Builder, and the small
@@ -30,8 +30,8 @@ export const DESIGN_PAGES = [
     key: 'campaigns',
     label: 'Campaigns',
     component: () => (
-      <Shell active="Campaigns" title="Campaigns" eyebrow="All campaigns">
-        <PreviewContent />
+      <Shell active="Campaigns" title="Campaigns" action={<NewCampaign />}>
+        <Campaigns />
       </Shell>
     ),
   },
