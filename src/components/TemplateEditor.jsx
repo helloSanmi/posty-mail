@@ -26,6 +26,13 @@ export function TemplateEditor({
 }) {
   // picker = null | { mode: 'insert' } | { mode: 'replace', index: number }
   const [picker, setPicker] = useState(null);
+  // More settings is a panel that FLOATS over the canvas rather than pushing
+  // it. Opening it used to move the editing surface 330px down the page —
+  // fine for a drawer you commit to, wrong for something you flick open to
+  // check a link and close again, because the thing you were looking at
+  // moves out from under you both times.
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef(null);
   const [buttonModalOpen, setButtonModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState(null);
   // Visual vs HTML editor. One visible at a time; the container has a
@@ -109,6 +116,24 @@ export function TemplateEditor({
   // for a while, and the habit is universal for that shape of thing — the
   // browser's own "save this page" is never what anyone wants here, so
   // preventDefault is the point rather than a side effect.
+  // A floating panel that can only be closed by the control that opened it
+  // is a trap, so: outside press and Escape, bound only while it is open.
+  useEffect(() => {
+    if (!moreOpen) return undefined;
+    function onOutside(event) {
+      if (!moreRef.current?.contains(event.target)) setMoreOpen(false);
+    }
+    function onKey(event) {
+      if (event.key === 'Escape') setMoreOpen(false);
+    }
+    document.addEventListener('mousedown', onOutside);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onOutside);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [moreOpen]);
+
   useEffect(() => {
     function onKey(event) {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return;
@@ -282,13 +307,21 @@ export function TemplateEditor({
         </label>
       </div>
 
-      <details className="template-more">
-        <summary>More settings<span>reply-to, category, images, links</span></summary>
-        {/* Reply-to, category, and the image and link inspectors. All of it
-            is either set once per template or consulted rather than written
-            — one click away, and out of the way of the canvas. The
-            inspectors come last because they are derived from the body:
-            there is nothing to inspect until something has been written. */}
+      <div className={`template-more${moreOpen ? ' is-open' : ''}`} ref={moreRef}>
+        <button
+          type="button"
+          className="template-more-toggle"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen((open) => !open)}
+        >
+          More settings
+          <span>reply-to, category, images, links</span>
+        </button>
+        {/* Reply-to, category, and the image and link inspectors: set once
+            per template, or consulted rather than written. The inspectors
+            come last because they are derived from the body — there is
+            nothing to inspect until something has been written. */}
+        {moreOpen && (
         <div className="template-more-body">
         <fieldset className="template-replyto-fieldset">
           <legend>Reply-to (optional)</legend>
@@ -427,7 +460,8 @@ export function TemplateEditor({
           </div>
         )}
         </div>
-      </details>
+        )}
+      </div>
 
       {/* Body editor. Visual / HTML are tabs that share a fixed-height
           container, so switching between them doesn't bump the rest of the

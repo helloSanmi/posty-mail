@@ -53,16 +53,47 @@ describe('TemplateEditor order', () => {
     expect(order('.template-header-fields', '.body-editor')).toBe(true);
   });
 
-  test('everything consulted rather than written is one click away', () => {
+  test('More settings is shut on load and says what is inside', () => {
     mount();
-    const more = document.querySelector('.template-more');
-    expect(more).not.toBeNull();
-    expect(more.open).toBe(false);
-    // Still rendered — a disclosure hides, it does not remove.
-    expect(more.querySelector('.template-replyto-fieldset')).not.toBeNull();
-    expect(more.querySelector('.template-assets')).not.toBeNull();
-    // The summary says what is inside, so it is not a mystery drawer.
-    expect(more.querySelector('summary').textContent).toMatch(/images/i);
+    expect(document.querySelector('.template-more-body')).toBeNull();
+    const toggle = document.querySelector('.template-more-toggle');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    // Not a mystery drawer.
+    expect(toggle.textContent).toMatch(/images/i);
+    expect(toggle.textContent).toMatch(/reply-to/i);
+  });
+
+  test('opening it reveals the fields and the inspectors', () => {
+    mount();
+    fireEvent.click(document.querySelector('.template-more-toggle'));
+    const body = document.querySelector('.template-more-body');
+    expect(body).not.toBeNull();
+    expect(body.querySelector('.template-replyto-fieldset')).not.toBeNull();
+    expect(body.querySelector('.template-assets')).not.toBeNull();
+    expect(document.querySelector('.template-more-toggle').getAttribute('aria-expanded')).toBe('true');
+  });
+
+  test('Escape and an outside press close it', () => {
+    // A floating panel that only closes via the control that opened it is a
+    // trap: it covers the canvas and the obvious gesture is to click away.
+    mount();
+    const open = () => fireEvent.click(document.querySelector('.template-more-toggle'));
+
+    open();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(document.querySelector('.template-more-body')).toBeNull();
+
+    open();
+    fireEvent.mouseDown(document.body);
+    expect(document.querySelector('.template-more-body')).toBeNull();
+  });
+
+  test('a press INSIDE the panel does not close it', () => {
+    // Otherwise typing in reply-to would dismiss the thing you are typing in.
+    mount();
+    fireEvent.click(document.querySelector('.template-more-toggle'));
+    fireEvent.mouseDown(document.querySelector('.template-more-body'));
+    expect(document.querySelector('.template-more-body')).not.toBeNull();
   });
 
   test('the footer actions are the same size as each other', () => {
@@ -86,13 +117,21 @@ describe('TemplateEditor order', () => {
     expect(footer.some((t) => t.includes('duplicate'))).toBe(true);
   });
 
-  test('every field is still rendered — moved, not removed', () => {
+  test('every field is still reachable — moved, not removed', () => {
     mount();
+    // On the surface, above the canvas.
     expect(document.querySelector('[placeholder="e.g. Welcome email"]')).not.toBeNull();
     expect(document.querySelector('[placeholder*="quick update"]')).not.toBeNull();
     expect(document.querySelector('[placeholder*="inbox previews"]')).not.toBeNull();
-    expect(document.querySelector('.template-replyto-fieldset')).not.toBeNull();
     expect(document.querySelector('.plain-text-details')).not.toBeNull();
+
+    // One press away. The panel UNMOUNTS when shut rather than hiding — the
+    // values live on the `template` object held by the page, so nothing is
+    // lost by not being in the DOM, and an absolutely-positioned panel that
+    // is merely hidden still costs layout and can still be tabbed into.
+    fireEvent.click(document.querySelector('.template-more-toggle'));
+    expect(document.querySelector('.template-replyto-fieldset')).not.toBeNull();
+    expect(document.querySelector('.template-assets')).not.toBeNull();
   });
 
   test('Cmd+S and Ctrl+S save, and stop the browser doing its own thing', () => {
