@@ -1,0 +1,398 @@
+/* Email (templates).
+ *
+ * Three columns: what you have, what you are editing, what it will look
+ * like. The middle column is the only one that changes shape at narrow
+ * widths, because the other two are the context that makes it make sense. */
+
+.em-grid {
+  display: grid;
+  gap: var(--s3);
+  grid-template-columns: 260px minmax(0, 1fr) 360px;
+  align-items: start;
+}
+
+.em-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1);
+  padding: var(--s4) var(--s4) var(--s4);
+}
+.em-card-head {
+  align-items: center;
+  display: flex;
+  gap: var(--s2);
+  justify-content: space-between;
+  min-height: 32px;
+  padding-bottom: var(--s3);
+}
+.em-card-head h2 {
+  align-items: center;
+  display: flex;
+  font-size: var(--text-md);
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.em-head-tools { align-items: center; display: flex; flex: none; gap: var(--s1); }
+
+.em-icon-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-subtle);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0;
+  transition: background var(--t-fast), color var(--t-fast);
+  width: 28px;
+}
+.em-icon-btn:hover { background: var(--surface-sunken); color: var(--text); }
+.em-icon-btn.is-danger:hover { background: var(--danger-soft); color: var(--danger); }
+.em-icon-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+.em-btn {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 6px var(--s3);
+}
+.em-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+.em-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.em-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.em-search {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text-subtle);
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--s2);
+  padding: 0 var(--s2);
+}
+.em-search input {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+  min-width: 0;
+  padding: 6px 0;
+  width: 100%;
+}
+.em-search input:focus { outline: none; }
+.em-search:focus-within { border-color: var(--accent); }
+
+/* ---- template list -----------------------------------------------------
+   A list, not a dropdown. Each row carries its subject because that is
+   what tells two templates apart; the name alone often does not. */
+.em-list { position: sticky; top: var(--s4); }
+.em-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  list-style: none;
+  margin: 0;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 0;
+}
+.em-item {
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 1px;
+  padding: 8px var(--s2);
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+.em-item:hover { background: var(--surface-sunken); }
+.em-item:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.em-item.is-active { background: var(--surface-sunken); }
+.em-item.is-active::before {
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  content: '';
+  bottom: 8px;
+  left: calc(var(--s2) * -1);
+  position: absolute;
+  top: 8px;
+  width: 3px;
+}
+.em-item-name {
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.em-item.is-active .em-item-name { color: var(--text); font-weight: 600; }
+.em-item-subject {
+  color: var(--text-subtle);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.em-item-meta { color: var(--text-subtle); font-size: var(--text-2xs); }
+
+.em-gallery {
+  align-items: center;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: var(--text-sm);
+  gap: 7px;
+  justify-content: center;
+  margin-top: var(--s3);
+  padding: 8px;
+  width: 100%;
+}
+.em-gallery:hover { border-color: var(--accent); color: var(--accent); }
+.em-gallery:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* ---- fields ------------------------------------------------------------ */
+.em-fields {
+  display: grid;
+  gap: var(--s3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.em-fields-advanced {
+  background: var(--surface-sunken);
+  border-radius: var(--r-md);
+  margin-top: var(--s2);
+  padding: var(--s3);
+}
+.em-field {
+  color: var(--text-muted);
+  display: grid;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: 5px;
+  min-width: 0;
+}
+.em-field-wide { grid-column: 1 / -1; }
+.em-field input, .em-field select {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-base);
+  min-width: 0;
+  padding: 7px var(--s2);
+  width: 100%;
+}
+.em-field input:focus, .em-field select:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.em-disclose {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: 5px;
+  margin-top: var(--s3);
+  padding: 4px 6px 4px 2px;
+}
+.em-disclose:hover { color: var(--text); }
+.em-disclose:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.em-disclose svg { transition: transform var(--t-fast); }
+.em-disclose.is-open svg { transform: rotate(180deg); }
+
+/* ---- body editor -------------------------------------------------------- */
+.em-body { margin-top: var(--s4); }
+.em-toolbar {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  display: flex;
+  gap: var(--s3);
+  justify-content: space-between;
+  padding: var(--s1) var(--s2);
+}
+.em-modes { display: flex; gap: 2px; }
+.em-modes button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: var(--text-sm);
+  gap: 5px;
+  padding: 4px var(--s2);
+}
+.em-modes button:hover { color: var(--text); }
+.em-modes button.is-active {
+  background: var(--surface-raised);
+  box-shadow: var(--e1);
+  color: var(--text);
+  font-weight: 500;
+}
+.em-modes button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.em-tools { display: flex; gap: 1px; }
+
+.em-canvas {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  min-height: 200px;
+  padding: var(--s4);
+}
+.em-canvas.is-code { background: var(--surface-sunken); padding: var(--s3); }
+.em-code {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+.em-visual h3 { font-size: 1.05rem; margin: 0 0 var(--s2); }
+.em-visual p { color: var(--text-muted); font-size: var(--text-base); line-height: 1.6; margin: 0 0 var(--s3); }
+/* A merge tag is machine text sitting inside prose, so it is marked as
+   such rather than left to read as a typo. */
+.em-tag {
+  background: var(--accent-soft);
+  border-radius: 4px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  padding: 1px 4px;
+}
+.em-cta, .em-mail-cta {
+  background: var(--accent);
+  border-radius: var(--r-md);
+  color: var(--accent-contrast);
+  display: inline-block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 8px var(--s4);
+}
+
+/* ---- preview ------------------------------------------------------------ */
+.em-preview { position: sticky; top: var(--s4); }
+.em-devices {
+  background: var(--surface-sunken);
+  border-radius: var(--r-md);
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+}
+.em-devices button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--text-subtle);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 6px;
+}
+.em-devices button.is-active { background: var(--surface-raised); box-shadow: var(--e1); color: var(--text); }
+.em-devices button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+.em-frame {
+  background: var(--surface-sunken);
+  border-radius: var(--r-md);
+  padding: var(--s3);
+}
+.em-mail {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  margin: 0 auto;
+  overflow: hidden;
+  transition: max-width var(--t-base);
+}
+.em-frame.is-desktop .em-mail { max-width: 100%; }
+.em-frame.is-mobile .em-mail { max-width: 240px; }
+
+.em-mail-head {
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  gap: 1px;
+  padding: var(--s2) var(--s3);
+}
+.em-mail-head strong { font-size: var(--text-sm); }
+.em-mail-head span { color: var(--text-subtle); font-size: var(--text-2xs); }
+.em-mail-subject {
+  font-size: var(--text-base);
+  font-weight: 600;
+  padding: var(--s2) var(--s3) 2px;
+}
+/* Preheader text, shown exactly where a real inbox shows it: directly
+   under the subject, greyed. Its own field's placeholder used to be the
+   only place this was explained. */
+.em-mail-preheader {
+  color: var(--text-subtle);
+  font-size: var(--text-sm);
+  padding: 0 var(--s3) var(--s2);
+}
+.em-mail-body {
+  border-top: 1px solid var(--border);
+  padding: var(--s3);
+}
+.em-mail-body h3 { font-size: var(--text-md); margin: 0 0 6px; }
+.em-mail-body p { color: var(--text-muted); font-size: var(--text-sm); line-height: 1.55; margin: 0 0 var(--s3); }
+.em-mail-cta { font-size: var(--text-xs); padding: 6px var(--s3); }
+
+/* ---- narrow --------------------------------------------------------------
+   The preview is the first thing to go, because below this width it stops
+   being a preview and becomes a thumbnail. */
+@media (max-width: 1280px) {
+  .em-grid { grid-template-columns: 240px minmax(0, 1fr); }
+  .em-preview { grid-column: 1 / -1; position: static; }
+  .em-frame.is-desktop .em-mail { max-width: 560px; }
+}
+@media (max-width: 900px) {
+  .em-grid { grid-template-columns: minmax(0, 1fr); }
+  .em-list { position: static; }
+  .em-list-items { max-height: 200px; }
+}
+@media (max-width: 560px) {
+  .em-fields { grid-template-columns: minmax(0, 1fr); }
+  .em-card-head { flex-wrap: wrap; }
+}
