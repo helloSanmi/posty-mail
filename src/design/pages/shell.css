@@ -1,0 +1,305 @@
+/* The application frame, redesigned.
+ *
+ * The governing idea of direction A: the chrome recedes so the work reads.
+ * Today the rail, the page and the cards are all near-white, so the frame
+ * and the content are the same material and nothing sits behind anything.
+ * Here the rail is sunken, the content sits on bg, and cards lift to
+ * surface — three planes instead of one.
+ *
+ * The accent appears in exactly three places in the whole frame: the brand
+ * mark, the rail on the active nav item, and the primary button. Scarcity
+ * is what makes it read as emphasis rather than as decoration. */
+
+.sh {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  min-height: calc(100vh - 45px);
+  transition: grid-template-columns 0.18s ease;
+}
+.sh.is-collapsed { grid-template-columns: 60px minmax(0, 1fr); }
+
+/* ---- sidebar ---------------------------------------------------------- */
+.sh-side {
+  background: var(--surface-sunken);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 10px;
+}
+
+.sh-brand {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  min-width: 0;
+  padding: 2px 4px 2px 6px;
+}
+.sh-mark {
+  background: var(--accent);
+  border-radius: 6px;
+  flex: none;
+  height: 22px;
+  width: 22px;
+}
+.sh-brand-text { display: grid; min-width: 0; }
+.sh-brand-text strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+/* The workspace name is the thing that tells you WHICH business you are
+   operating in, so it sits with the brand rather than as a detached line
+   of muted text below it. */
+.sh-workspace {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sh-icon-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0;
+  position: relative;
+  width: 28px;
+}
+.sh-icon-btn:hover { background: var(--surface-raised); color: var(--text); }
+.sh-icon-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.sh-collapse { margin-left: auto; }
+.sh-drawer-close { display: none; margin-left: auto; }
+
+.sh-nav { display: flex; flex-direction: column; gap: 1px; }
+.sh-nav-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.875rem;
+  gap: 11px;
+  min-width: 0;
+  padding: 8px 10px;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+.sh-nav-item svg { flex: none; }
+.sh-nav-item:hover { color: var(--text); }
+.sh-nav-item:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+/* Active is a LIFT, not a fill. Today's active item is a saturated tinted
+   block — the heaviest element on screen, competing with the page it is
+   pointing at. */
+.sh-nav-item.is-active {
+  background: var(--surface-raised);
+  color: var(--text);
+  font-weight: 500;
+}
+.sh-nav-item.is-active::before {
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  content: '';
+  height: 18px;
+  left: -10px;
+  position: absolute;
+  width: 3px;
+}
+.sh-nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sh-user {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 9px;
+  margin-top: auto;
+  min-width: 0;
+  padding: 12px 4px 2px 6px;
+}
+.sh-avatar {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 50%;
+  color: var(--accent);
+  display: inline-flex;
+  flex: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+.sh-user-text { display: grid; min-width: 0; }
+.sh-user-text strong {
+  font-size: 0.82rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sh-user-text span {
+  color: var(--text-subtle);
+  font-size: 0.72rem;
+  text-transform: capitalize;
+}
+.sh-user .sh-icon-btn { margin-left: auto; }
+
+/* Collapsed: icons only. Labels are removed from the flow rather than
+   hidden with opacity, so nothing reserves width behind the rail. */
+.sh.is-collapsed .sh-brand-text,
+.sh.is-collapsed .sh-nav-label,
+.sh.is-collapsed .sh-user-text { display: none; }
+.sh.is-collapsed .sh-brand { justify-content: center; padding-left: 0; }
+.sh.is-collapsed .sh-collapse {
+  margin: 0;
+  position: absolute;
+  right: 8px;
+  top: 52px;
+}
+.sh.is-collapsed .sh-side { padding-top: 14px; position: relative; }
+.sh.is-collapsed .sh-nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+.sh.is-collapsed .sh-nav-item.is-active::before { left: -10px; }
+.sh.is-collapsed .sh-user { justify-content: center; padding-left: 0; }
+.sh.is-collapsed .sh-user .sh-icon-btn { margin-left: 0; }
+.sh.is-collapsed .sh-avatar { display: none; }
+
+/* ---- topbar ----------------------------------------------------------- */
+.sh-main { display: flex; flex-direction: column; min-width: 0; }
+.sh-top {
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  padding: 10px 18px;
+}
+.sh-menu { display: none; }
+.sh-title { flex: 1; min-width: 0; }
+/* The eyebrow earns its place only when it names something the heading
+   does not already say. It used to repeat the heading verbatim. */
+.sh-eyebrow {
+  color: var(--text-subtle);
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+.sh-top h1 {
+  font-size: 1.08rem;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.sh-search {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-subtle);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.8rem;
+  gap: 8px;
+  padding: 5px 9px;
+}
+.sh-search:hover { border-color: var(--border-strong); color: var(--text-muted); }
+.sh-search:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.sh-search-label { min-width: 62px; text-align: left; }
+.sh-search kbd {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.7rem;
+  padding: 0 4px;
+}
+
+.sh-badge {
+  background: var(--danger);
+  border-radius: 999px;
+  color: var(--accent-contrast);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 4px;
+  position: absolute;
+  right: -2px;
+  top: -2px;
+}
+/* The badge is the one place danger is used for a count rather than a
+   failure, so it must stay legible on the dark ground too. */
+html[data-theme='dark'] .sh-badge { color: #0E1620; }
+
+.sh-content {
+  background: var(--bg);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+/* ---- drawer ----------------------------------------------------------- */
+.sh-scrim {
+  background: var(--scrim);
+  border: 0;
+  cursor: pointer;
+  display: none;
+  inset: 0;
+  position: fixed;
+  z-index: 30;
+}
+
+@media (max-width: 860px) {
+  .sh, .sh.is-collapsed { grid-template-columns: minmax(0, 1fr); }
+  .sh-side {
+    bottom: 0;
+    left: 0;
+    position: fixed;
+    top: 0;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    width: 240px;
+    z-index: 31;
+  }
+  .sh.is-drawer-open .sh-side { transform: translateX(0); }
+  .sh.is-drawer-open .sh-scrim { display: block; }
+  .sh-menu { display: inline-flex; }
+  .sh-collapse { display: none; }
+  .sh-drawer-close { display: inline-flex; }
+  /* Collapsed is a desktop-only state; as a drawer the rail is full width. */
+  .sh.is-collapsed .sh-brand-text,
+  .sh.is-collapsed .sh-nav-label,
+  .sh.is-collapsed .sh-user-text { display: initial; }
+  .sh.is-collapsed .sh-nav-item { justify-content: flex-start; padding: 8px 10px; }
+  .sh.is-collapsed .sh-avatar { display: inline-flex; }
+  .sh-search-label, .sh-search kbd { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sh, .sh-side { transition: none; }
+}

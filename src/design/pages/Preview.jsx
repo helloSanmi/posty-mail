@@ -1,25 +1,11 @@
-import {
-  BarChart3, Building2, Inbox, LayoutDashboard, MailCheck, PlugZap, Search, Users,
-} from 'lucide-react';
 import './preview.css';
 
-// A representative slice of the app — sidebar, topbar, tiles, a status
-// table and the deliverability rows — rendered purely from semantic tokens.
+// The page CONTENT used inside the redesigned shell — metric tiles, a
+// campaign table and the deliverability rows. The frame (sidebar, topbar)
+// belongs to Shell.jsx, so this is only what sits inside it.
 //
-// It exists so a palette can be judged by looking at it rather than by
-// reading hex values off a spec. The SAME markup renders in every
-// direction; only the tokens change, plus the few places where a direction
-// has a genuine point of view about the chrome (see preview.css).
-
-const NAV = [
-  { icon: LayoutDashboard, label: 'Home' },
-  { icon: MailCheck, label: 'Email' },
-  { icon: Users, label: 'Audience' },
-  { icon: Inbox, label: 'Campaigns', active: true },
-  { icon: BarChart3, label: 'Reports' },
-  { icon: PlugZap, label: 'Settings' },
-  { icon: Building2, label: 'Workspaces' },
-];
+// It exists so the palette and the density rules can be judged on
+// something that looks like the real product rather than on a swatch grid.
 
 const TILES = [
   { label: 'Delivered', value: '12,481', delta: '+4.2%', tone: 'success' },
@@ -42,87 +28,65 @@ const DNS = [
   { name: 'DMARC', value: 'Monitor only — nothing is enforced', state: 'Needs work', tone: 'warn' },
 ];
 
-export function Preview() {
+export function PreviewContent() {
   return (
-    <div className="ds">
-      <aside className="ds-side">
-        <div className="ds-logo"><span className="ds-mark" />Posty</div>
-        <nav className="ds-nav">
-          {NAV.map(({ icon: Icon, label, active }) => (
-            <span key={label} className={`ds-nav-item${active ? ' is-active' : ''}`}>
-              <Icon size={15} aria-hidden="true" />
-              {label}
-            </span>
-          ))}
-        </nav>
-      </aside>
+    <>
+      <section className="ds-tiles">
+        {TILES.map((t) => (
+          <div key={t.label} className={`ds-tile is-${t.tone}`}>
+            <span className="ds-tile-label">{t.label}</span>
+            <strong className="ds-tile-value">{t.value}</strong>
+            <span className={`ds-delta is-${t.tone}`}>{t.delta}</span>
+          </div>
+        ))}
+      </section>
 
-      <div className="ds-main">
-        <header className="ds-top">
-          <h1>Campaigns</h1>
-          <span className="ds-search"><Search size={13} aria-hidden="true" />Search<kbd>⌘K</kbd></span>
-          <button type="button" className="ds-btn ds-btn-primary">New campaign</button>
-        </header>
-
-        <div className="ds-body">
-          <section className="ds-tiles">
-            {TILES.map((t) => (
-              <div key={t.label} className={`ds-tile is-${t.tone}`}>
-                <span className="ds-tile-label">{t.label}</span>
-                <strong className="ds-tile-value">{t.value}</strong>
-                <span className={`ds-delta is-${t.tone}`}>{t.delta}</span>
-              </div>
-            ))}
-          </section>
-
-          <section className="ds-card">
-            <div className="ds-card-head">
-              <h2>All campaigns</h2>
-              <span className="ds-muted">5 of 28</span>
-            </div>
-            <table className="ds-table">
-              <thead>
-                <tr>
-                  <th>Campaign</th><th>Sent</th><th>Open</th><th>Click</th><th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ROWS.map((r) => (
-                  <tr key={r.name} className={`is-${r.tone}`}>
-                    <td>{r.name}</td>
-                    <td className="ds-num">{r.sent}</td>
-                    <td className="ds-num">{r.open}</td>
-                    <td className="ds-num">{r.click}</td>
-                    <td><span className={`ds-pill is-${r.tone}`}>{r.state}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-
-          <section className="ds-card">
-            <div className="ds-card-head">
-              <h2>Domain authentication</h2>
-              <span className="ds-pill is-warn">Needs attention</span>
-            </div>
-            <div className="ds-rows">
-              {DNS.map((d) => (
-                <div key={d.name} className={`ds-row is-${d.tone}`}>
-                  <span className="ds-row-label">
-                    <strong>{d.name}</strong>
-                    <span className="ds-muted">{d.value}</span>
-                  </span>
-                  <span className={`ds-pill is-${d.tone}`}>{d.state}</span>
-                </div>
-              ))}
-            </div>
-            <div className="ds-actions">
-              <button type="button" className="ds-btn">Re-check</button>
-              <button type="button" className="ds-btn ds-btn-primary">Fix DMARC</button>
-            </div>
-          </section>
+      <section className="ds-card">
+        <div className="ds-card-head">
+          <h2>All campaigns</h2>
+          <span className="ds-muted">5 of 28</span>
         </div>
-      </div>
-    </div>
+        <table className="ds-table">
+          <thead>
+            <tr>
+              <th>Campaign</th><th>Sent</th><th>Open</th><th>Click</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ROWS.map((r) => (
+              <tr key={r.name} className={`is-${r.tone}`}>
+                <td>{r.name}</td>
+                <td className="ds-num">{r.sent}</td>
+                <td className="ds-num">{r.open}</td>
+                <td className="ds-num">{r.click}</td>
+                <td><span className={`ds-pill is-${r.tone}`}>{r.state}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="ds-card">
+        <div className="ds-card-head">
+          <h2>Domain authentication</h2>
+          <span className="ds-pill is-warn">Needs attention</span>
+        </div>
+        <div className="ds-rows">
+          {DNS.map((d) => (
+            <div key={d.name} className={`ds-row is-${d.tone}`}>
+              <span className="ds-row-label">
+                <strong>{d.name}</strong>
+                <span className="ds-muted">{d.value}</span>
+              </span>
+              <span className={`ds-pill is-${d.tone}`}>{d.state}</span>
+            </div>
+          ))}
+        </div>
+        <div className="ds-actions">
+          <button type="button" className="ds-btn">Re-check</button>
+          <button type="button" className="ds-btn ds-btn-primary">Fix DMARC</button>
+        </div>
+      </section>
+    </>
   );
 }

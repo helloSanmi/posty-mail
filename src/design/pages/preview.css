@@ -1,124 +1,11 @@
-/* Preview slice. Everything paints from semantic tokens, so switching
- * direction / ground / accent repaints the whole thing with no other edit.
+/* Page CONTENT styles for the sandbox — tiles, table, status rows.
+ * The frame (sidebar, topbar, drawer) lives in shell.css.
  *
- * The one place directions differ structurally is the sidebar, because that
- * IS the difference between them: Signal on Slate keeps the chrome near
- * silent, Postmark Ink runs the accent through it. Showing both with an
- * identical sidebar would hide the actual choice being made. */
-
-.ds {
-  display: grid;
-  grid-template-columns: 210px minmax(0, 1fr);
-  min-height: calc(100vh - 45px);
-}
-
-/* ---- sidebar --------------------------------------------------------- */
-.ds-side {
-  background: var(--surface-sunken);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 16px 12px;
-}
-.ds-logo {
-  align-items: center;
-  display: flex;
-  font-size: 0.98rem;
-  font-weight: 600;
-  gap: 9px;
-  letter-spacing: -0.01em;
-  padding: 2px 8px;
-}
-.ds-mark {
-  background: var(--accent);
-  border-radius: 6px;
-  height: 20px;
-  width: 20px;
-}
-.ds-nav { display: flex; flex-direction: column; gap: 2px; }
-.ds-nav-item {
-  align-items: center;
-  border-radius: 8px;
-  color: var(--text-muted);
-  display: flex;
-  font-size: 0.875rem;
-  gap: 10px;
-  padding: 8px 10px;
-  position: relative;
-}
-.ds-nav-item.is-active {
-  background: var(--surface-raised);
-  color: var(--text);
-  font-weight: 500;
-}
-/* Scarcity rule: the 3px rail appears on the active nav item and on a
-   non-passing status row. Nowhere else. */
-.ds-nav-item.is-active::before {
-  background: var(--accent);
-  border-radius: 0 2px 2px 0;
-  content: '';
-  height: 18px;
-  left: -12px;
-  position: absolute;
-  width: 3px;
-}
-
-/* Postmark Ink's thesis: the accent is structural chrome, so the sidebar
-   itself carries it and the active item reads as accent rather than as a
-   raised neutral chip. */
-html[data-direction='ink'] .ds-nav-item.is-active {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-html[data-direction='ink'] .ds-logo { color: var(--accent); }
-
-/* ---- topbar ---------------------------------------------------------- */
-.ds-main { display: flex; flex-direction: column; min-width: 0; }
-.ds-top {
-  align-items: center;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  gap: 14px;
-  padding: 12px 20px;
-}
-.ds-top h1 {
-  flex: 1;
-  font-size: 1.06rem;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  margin: 0;
-}
-.ds-search {
-  align-items: center;
-  background: var(--surface-sunken);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-subtle);
-  display: flex;
-  font-size: 0.8rem;
-  gap: 7px;
-  padding: 5px 9px;
-}
-.ds-search kbd {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font: inherit;
-  font-size: 0.72rem;
-  padding: 0 4px;
-}
-
-/* ---- body ------------------------------------------------------------ */
-.ds-body {
-  background: var(--bg);
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px;
-}
+ * Everything paints from semantic tokens, so switching ground or accent
+ * repaints it with no other edit. Direction A (Signal on Slate) is the
+ * chosen palette: the chrome stays near-silent and the colour is spent on
+ * the data — fixed metric hues, a left-edge state rule on table rows,
+ * status pills. */
 
 .ds-btn {
   background: var(--surface-raised);
@@ -131,16 +18,18 @@ html[data-direction='ink'] .ds-logo { color: var(--accent); }
   font-weight: 500;
   padding: 7px 13px;
 }
+.ds-btn:hover { border-color: var(--text-subtle); }
 .ds-btn-primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-contrast);
 }
 .ds-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.ds-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 .ds-muted { color: var(--text-muted); font-size: 0.82rem; }
 
-/* ---- tiles ----------------------------------------------------------- */
+/* ---- metric tiles ----------------------------------------------------- */
 .ds-tiles {
   display: grid;
   gap: 12px;
@@ -152,17 +41,19 @@ html[data-direction='ink'] .ds-logo { color: var(--accent); }
   border-radius: 10px;
   display: grid;
   gap: 3px;
+  overflow: hidden;
   padding: 13px 15px;
   position: relative;
 }
-/* Each metric owns a fixed hue — the colour IS the identity, not decoration. */
+/* Each metric owns a fixed hue for the life of the product, so colour is
+   identity rather than decoration: the operator learns it once and then
+   recognises a metric by its colour wherever it appears. */
 .ds-tile::before {
-  border-radius: 10px 10px 0 0;
   content: '';
   height: 2px;
-  left: 13px;
+  left: 0;
   position: absolute;
-  right: 13px;
+  right: 0;
   top: 0;
 }
 .ds-tile.is-success::before { background: var(--success); }
@@ -185,11 +76,12 @@ html[data-direction='ink'] .ds-logo { color: var(--accent); }
 }
 .ds-delta { font-size: 0.78rem; font-weight: 500; }
 .ds-delta.is-success, .ds-delta.is-accent { color: var(--success); }
-/* Polarity is inverted where "up" is bad — more bounces is not good news. */
+/* Polarity is inverted where up is bad — a rising bounce rate must not
+   render as good news just because the arrow points the same way. */
 .ds-delta.is-danger { color: var(--danger); }
 .ds-delta.is-warn { color: var(--warn); }
 
-/* ---- cards ----------------------------------------------------------- */
+/* ---- cards ------------------------------------------------------------ */
 .ds-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -204,7 +96,7 @@ html[data-direction='ink'] .ds-logo { color: var(--accent); }
 }
 .ds-card-head h2 { font-size: 0.95rem; font-weight: 600; margin: 0; }
 
-/* ---- table ----------------------------------------------------------- */
+/* ---- table ------------------------------------------------------------ */
 .ds-table { border-collapse: collapse; width: 100%; }
 .ds-table th {
   border-bottom: 1px solid var(--border);
@@ -226,12 +118,13 @@ html[data-direction='ink'] .ds-logo { color: var(--accent); }
 .ds-num { font-variant-numeric: tabular-nums; }
 
 /* State tints the row's left edge only, so a long table shows its problems
-   as a colour margin instead of a column of pills competing with the data. */
+   as a colour margin down the side instead of a column of pills competing
+   with the numbers. */
 .ds-table tbody tr td:first-child { border-left: 3px solid transparent; padding-left: 11px; }
 .ds-table tbody tr.is-warn td:first-child { border-left-color: var(--warn); }
 .ds-table tbody tr.is-danger td:first-child { border-left-color: var(--danger); }
 
-/* ---- pills ----------------------------------------------------------- */
+/* ---- pills ------------------------------------------------------------ */
 .ds-pill {
   border-radius: 999px;
   display: inline-block;
@@ -241,15 +134,23 @@ html[data-direction='ink'] .ds-logo { color: var(--accent); }
   white-space: nowrap;
 }
 .ds-pill.is-success { background: var(--success-soft); color: var(--success); }
-.ds-pill.is-accent { background: var(--accent-soft); color: var(--accent); }
 .ds-pill.is-warn { background: var(--warn-soft); color: var(--warn); }
 .ds-pill.is-danger { background: var(--danger-soft); color: var(--danger); }
 .ds-pill.is-muted { background: var(--surface-sunken); color: var(--text-muted); }
-/* Scheduled gets its own hue so five campaign states read as five things.
-   Derived from the accent so it moves with the chosen brand. */
+
+/* Five campaign states must read as five things. Sending and Scheduled are
+   both "accent" conceptually — one is in flight, the other is waiting — so
+   they are separated by WEIGHT rather than by inventing a sixth hue: the
+   live one takes a solid fill, the pending one its soft tint. Adding a
+   distinct colour for each would have meant a palette role that exists
+   only to disambiguate two pills. */
+.ds-pill.is-accent {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
 .ds-pill.is-plum { background: var(--accent-soft); color: var(--accent); }
 
-/* ---- setting rows ---------------------------------------------------- */
+/* ---- status rows ------------------------------------------------------ */
 .ds-rows { display: flex; flex-direction: column; }
 .ds-row {
   align-items: center;
@@ -261,6 +162,8 @@ html[data-direction='ink'] .ds-logo { color: var(--accent); }
   position: relative;
 }
 .ds-row:first-child { border-top: 0; }
+/* Same scarcity rule as the nav rail: the 3px mark appears only where
+   something needs attention. */
 .ds-row.is-warn::before,
 .ds-row.is-danger::before {
   border-radius: 2px;
@@ -283,8 +186,10 @@ html[data-direction='ink'] .ds-logo { color: var(--accent); }
 
 .ds-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 14px; }
 
-@media (max-width: 860px) {
-  .ds { grid-template-columns: 1fr; }
-  .ds-side { display: none; }
+@media (max-width: 900px) {
   .ds-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .ds-tiles { grid-template-columns: 1fr; }
+  .ds-row { align-items: flex-start; flex-direction: column; gap: 8px; }
 }
