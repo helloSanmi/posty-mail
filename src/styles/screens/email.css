@@ -622,7 +622,14 @@
 .template-more-body .template-assets {
   display: contents;
 }
-.template-more-body .template-asset-group { max-height: 190px; overflow-y: auto; }
+/* 150px, which is what the reply-to column beside them comes to — so the
+   three boxes are one height and the band is as short as its tallest
+   necessary thing rather than as tall as its longest list. The lists scroll
+   inside; they were already capped, just higher than anything else here. */
+.template-more-body .template-asset-group {
+  max-height: 150px;
+  overflow-y: auto;
+}
 .template-more-body .template-asset-title {
   font-size: var(--text-2xs);
   letter-spacing: var(--tracking-label);

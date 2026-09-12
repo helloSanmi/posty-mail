@@ -74,6 +74,12 @@ describe('TemplateEditor order', () => {
     // Reply-to and both inspectors are siblings in one row, not stacked.
     expect(body.querySelector('.template-replyto-fieldset')).not.toBeNull();
     expect(body.querySelectorAll('.template-asset-group').length).toBeGreaterThan(0);
+    // The inspectors scroll rather than setting the band's height — the
+    // band should be as tall as its tallest NECESSARY thing, not as tall as
+    // its longest list.
+    body.querySelectorAll('.template-asset-list').forEach((list) => {
+      expect(list.closest('.template-asset-group')).not.toBeNull();
+    });
   });
 
   test('opening it reveals the fields and the inspectors', () => {
