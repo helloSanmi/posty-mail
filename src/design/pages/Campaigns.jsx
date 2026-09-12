@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ChevronLeft, ChevronRight, Copy, FileText, Pencil, RefreshCw, Trash2,
 } from 'lucide-react';
@@ -76,18 +77,53 @@ const DRAFTS = [
   { name: 'Untitled draft', updated: '3 Sep' },
 ];
 
+// Counts come from the server's own totals, not from the current page —
+// filtering by a status that has 12 matches must not say "3" because only
+// three of them happen to be on page one.
+const FILTERS = [
+  { key: 'all', label: 'All', count: 28, tone: null },
+  { key: 'accent', label: 'Sending', count: 1, tone: 'accent' },
+  { key: 'pending', label: 'Scheduled', count: 3, tone: 'pending' },
+  { key: 'success', label: 'Completed', count: 21, tone: 'success' },
+  { key: 'warn', label: 'Errors', count: 3, tone: 'warn' },
+];
+
 export function Campaigns() {
+  const [filter, setFilter] = useState('all');
+  const rows = filter === 'all' ? CAMPAIGNS : CAMPAIGNS.filter((c) => c.tone === filter);
+  const active = FILTERS.find((f) => f.key === filter);
+
   return (
     <div className="cp-grid">
       <section className="cp-card">
         <div className="cp-card-head">
           <div className="cp-card-title">
             <h2>All campaigns</h2>
-            <span className="cp-count">28 total</span>
+            <span className="cp-count">{active.count} total</span>
           </div>
           <button type="button" className="cp-icon-btn" aria-label="Refresh campaigns" title="Refresh">
             <RefreshCw size={15} aria-hidden="true" />
           </button>
+        </div>
+
+        {/* The filter doubles as the status summary — each chip carries its
+            own state colour and its count, so the distribution is readable
+            without clicking anything. A separate "3 campaigns have errors"
+            line would say the same thing in a sentence. */}
+        <div className="cp-filters" role="group" aria-label="Filter by status">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              className={`cp-filter${filter === f.key ? ' is-active' : ''}`}
+              aria-pressed={filter === f.key}
+              onClick={() => setFilter(f.key)}
+            >
+              {f.tone && <span className={`cp-filter-dot is-${f.tone}`} aria-hidden="true" />}
+              {f.label}
+              <span className="cp-filter-count">{f.count}</span>
+            </button>
+          ))}
         </div>
 
         <table className="cp-table">
@@ -101,7 +137,7 @@ export function Campaigns() {
             </tr>
           </thead>
           <tbody>
-            {CAMPAIGNS.map((c) => (
+            {rows.map((c) => (
               <tr key={c.name} className={`cp-row is-${c.tone}`}>
                 <td className="cp-name">{c.name}</td>
                 <td className="cp-dim">{c.schedule}</td>
@@ -144,6 +180,15 @@ export function Campaigns() {
             ))}
           </tbody>
         </table>
+
+        {rows.length === 0 && (
+          <p className="cp-empty">
+            No {active.label.toLowerCase()} campaigns.
+            <button type="button" className="cp-link" onClick={() => setFilter('all')}>
+              Show all
+            </button>
+          </p>
+        )}
 
         <nav className="cp-pagination" aria-label="Campaign pagination">
           <button type="button" className="cp-page-btn" disabled aria-label="Previous page">
