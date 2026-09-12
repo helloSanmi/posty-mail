@@ -81,16 +81,17 @@ test('swept stylesheets contain no colour literals', () => {
   });
 });
 
-test('swept stylesheets no longer use the legacy aliases', () => {
-  // --line, --muted, --blue, --green and --amber are named for colours
-  // rather than jobs, which is why the app could not be re-themed. They
-  // survive only to keep unswept files working; a swept file using one
-  // means the sweep missed a line.
+test('the legacy colour-named aliases are gone for good', () => {
+  // --line, --muted, --blue, --green and --amber were named for colours
+  // rather than jobs, which is why the app could not be re-themed at all.
+  // They existed only as a migration bridge and are now deleted; this
+  // asserts nothing reintroduces one, in any stylesheet.
   const legacy = /var\(\s*--(line|muted|blue|green|amber)\s*\)/g;
-  SWEPT.forEach((name) => {
-    const found = stripComments(css(name)).match(legacy) || [];
-    assert.deepEqual(found, [], `${name} still references ${found.join(', ')}`);
-  });
+  ['tokens.css', 'base.css', 'layout.css', 'pages.css', 'templates.css', 'animations.css']
+    .forEach((name) => {
+      const found = stripComments(css(name)).match(legacy) || [];
+      assert.deepEqual(found, [], `${name} reintroduced ${found.join(', ')}`);
+    });
 });
 
 test('accent-contrast is never used as a background or border', () => {
@@ -111,6 +112,53 @@ test('surface roles are never used as a text colour', () => {
   ['base.css', 'layout.css', 'pages.css', 'templates.css'].forEach((name) => {
     const found = stripComments(css(name)).match(bad) || [];
     assert.deepEqual(found, [], `${name}: ${found.join(' | ')}`);
+  });
+});
+
+test('tinted borders are derived from their own family, at one percentage', () => {
+  // These four cannot be hand-picked values again. They were, and both
+  // failure modes showed up under measurement:
+  //
+  //   - drift from the fill. The *-soft tokens are more saturated than the
+  //     panel backgrounds they replaced, because soft also backs the pills,
+  //     where the family colour must clear 4.5:1 as text. Every border lost
+  //     about 10% against its own fill; success reached 1.09:1.
+  //   - drift from the ACCENT. --accent-border was one ground-level value
+  //     while --accent-soft varies per accent, so the pair held only for
+  //     the accent it happened to be picked against. On iris it was 1.19:1.
+  //
+  // Deriving each border from its own family's soft and strong tokens makes
+  // both impossible, and a fourth accent correct for free. The ratio is
+  // checked in the browser (jsdom cannot resolve color-mix); what is
+  // checkable here is that the derivation is intact and uniform.
+  const source = css('tokens.css');
+  const families = ['accent', 'success', 'warn', 'danger'];
+  const percentages = new Set();
+
+  families.forEach((fam) => {
+    const rule = new RegExp(
+      `--${fam}-border:\\s*color-mix\\(in srgb, var\\(--${fam}\\) (\\d+)%, var\\(--${fam}-soft\\)\\)`,
+    );
+    const match = source.match(rule);
+    assert.ok(
+      match,
+      `--${fam}-border must be derived as color-mix of --${fam} into `
+        + `--${fam}-soft, not written as a literal.`,
+    );
+    percentages.add(match[1]);
+  });
+
+  assert.equal(
+    percentages.size,
+    1,
+    `all four tinted borders must use the same percentage, got: ${[...percentages].join(', ')}`,
+  );
+
+  // Each family defines its border exactly once — a per-ground or
+  // per-accent override would reintroduce exactly the drift this prevents.
+  families.forEach((fam) => {
+    const count = (source.match(new RegExp(`--${fam}-border:`, 'g')) || []).length;
+    assert.equal(count, 1, `--${fam}-border is defined ${count} times; it must be defined once`);
   });
 });
 
