@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Composer probe</title>
+    <!-- Mounts the REAL TemplateEditor so the distance from the top of the
+         card to the editing stage can be measured on the component that
+         ships, not on markup rebuilt by hand. Dev-only. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body style="margin:0">
+    <div id="root"></div>
+    <script type="module">
+      import { createRoot } from 'react-dom/client';
+      import { createElement as h, useState } from 'react';
+      import { TemplateEditor } from '/src/components/TemplateEditor.jsx';
+
+      // A template with plenty of assets — the case that used to push the
+      // composer furthest down.
+      const imgs = Array.from({ length: 8 }, (_, i) =>
+        `<img src="https://example.com/i${i}.png" alt="Image ${i + 1}">`).join('');
+      const links = Array.from({ length: 8 }, (_, i) =>
+        `<a href="https://example.com/l${i}">Link ${i + 1}</a>`).join('');
+
+      function Probe() {
+        const [template, setTemplate] = useState({
+          id: 't1', name: 'September newsletter', subject: 'A quick update',
+          previewText: '', html: `<p>Hello</p>${imgs}${links}`, text: '',
+        });
+        return h('main', { className: 'sh' },
+          h('aside', { className: 'sh-side' }, h('div', { className: 'sh-brand' }, 'Posty')),
+          h('section', { className: 'sh-main' },
+            h('header', { className: 'sh-top' },
+              h('div', { className: 'sh-title' }, h('p', { className: 'sh-greeting' }, 'Good morning'))),
+            h('div', { className: 'sh-content', id: 'pane' },
+              h('div', { className: 'page-stack template-page' },
+                h('div', { className: 'em-grid' },
+                  h('section', { className: 'em-card' }, 'Templates'),
+                  h('section', { className: 'em-card em-editor', id: 'card' },
+                    h('div', { className: 'em-card-head' }, h('h2', null, template.name)),
+                    h(TemplateEditor, {
+                      template, setTemplate,
+                      onSave: () => {}, saveStatus: '', notify: () => {},
+                      canDelete: true, onDelete: () => {}, onDuplicate: () => {},
+                      categories: [],
+                    })))))));
+      }
+      createRoot(document.getElementById('root')).render(h(Probe));
+    </script>
+  </body>
+</html>

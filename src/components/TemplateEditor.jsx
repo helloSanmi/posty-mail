@@ -104,6 +104,20 @@ export function TemplateEditor({
   const previewId = useId();
   const replyEmailId = useId();
   const replyNameId = useId();
+
+  // Cmd+S / Ctrl+S saves. The composer is a long document you sit inside
+  // for a while, and the habit is universal for that shape of thing — the
+  // browser's own "save this page" is never what anyone wants here, so
+  // preventDefault is the point rather than a side effect.
+  useEffect(() => {
+    function onKey(event) {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return;
+      event.preventDefault();
+      onSave?.();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onSave]);
   // htmlId removed: CodeArea owns its own label/id now.
   const textId = useId();
 
@@ -218,16 +232,18 @@ export function TemplateEditor({
 
   return (
     <aside className="surface template-control-panel">
+      {/* THE SUBJECT, AND THEN THE CANVAS.
+          Everything used to come first — name, subject, preheader, reply-to,
+          category, and the image and link inspectors — putting the composer
+          about 600px down: most of a screen of forms before you could type
+          in the thing the product is for.
+          Only the subject stays above it. A subject is part of the MESSAGE —
+          the first line a recipient reads, written while you are writing —
+          and it is the one field that belongs beside the body. The
+          template's NAME is filing, and it is already the card's heading a
+          few centimetres up. Everything else follows the composer, in the
+          order a person actually reaches for it. */}
       <div className="template-edit-grid">
-        <label htmlFor={nameId}>
-          Name
-          <input
-            id={nameId}
-            value={template.name || ''}
-            onChange={(event) => setTemplate({ ...template, name: event.target.value })}
-            placeholder="e.g. Welcome email"
-          />
-        </label>
         <label htmlFor={subjectId}>
           Subject
           <input
@@ -237,166 +253,7 @@ export function TemplateEditor({
             placeholder="e.g. A quick update for {{firstname}}"
           />
         </label>
-        {/* Preview / preheader text. Shown in inbox previews under the
-            subject line in Gmail/Outlook/Apple Mail. Injected at send time
-            as a hidden div near the top of the HTML; never visible in the
-            rendered email body. Merge tags like {{firstname}} render too. */}
-        <label htmlFor={previewId} className="template-field-full">
-          Preview text
-          <input
-            id={previewId}
-            value={template.previewText || ''}
-            onChange={(event) => setTemplate({ ...template, previewText: event.target.value })}
-            placeholder="Shown under the subject line in inbox previews"
-            maxLength={200}
-          />
-        </label>
-        {/* Reply-to (Brevo "advanced setting"). Optional override — when
-            set, recipients' replies go here instead of the From address.
-            Useful for routing replies to a shared inbox / helpdesk address
-            while keeping the From identity branded. */}
-        <fieldset className="template-replyto-fieldset">
-          <legend>Reply-to (optional)</legend>
-          <label htmlFor={replyEmailId}>
-            Email
-            <input
-              id={replyEmailId}
-              type="email"
-              value={template.replyTo?.email || ''}
-              onChange={(event) => setTemplate({
-                ...template,
-                replyTo: { ...(template.replyTo || {}), email: event.target.value },
-              })}
-              placeholder="replies@yourdomain.com"
-              autoComplete="off"
-            />
-          </label>
-          <label htmlFor={replyNameId}>
-            Display name
-            <input
-              id={replyNameId}
-              value={template.replyTo?.name || ''}
-              onChange={(event) => setTemplate({
-                ...template,
-                replyTo: { ...(template.replyTo || {}), name: event.target.value },
-              })}
-              placeholder="e.g. Support team"
-              autoComplete="off"
-            />
-          </label>
-        </fieldset>
-        {/* Category gate. When the admin has defined preference-center
-            categories AND tags this template with one, sends skip
-            recipients who opted out of that topic via the unsubscribe page.
-            Empty value = no gating (legacy behavior). */}
-        {Array.isArray(categories) && categories.length > 0 && (
-          <label>
-            Category
-            <select
-              value={template.category || ''}
-              onChange={(event) => setTemplate({ ...template, category: event.target.value })}
-            >
-              <option value="">No category (sends to everyone)</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
-          </label>
-        )}
       </div>
-
-      {(images.length > 0 || links.length > 0) && (
-        <div className="template-assets">
-          {images.length > 0 && (
-            <div className="template-asset-group">
-              <div className="template-asset-header">
-                <span className="template-asset-title">Images</span>
-                <span className="muted">{images.length}</span>
-              </div>
-              <ul className="template-asset-list">
-                {images.map((image) => (
-                  <li
-                    key={image.index}
-                    className="template-asset-row"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => openReplace(image.index)}
-                    onKeyDown={(event) => handleAssetRowKey(event, () => openReplace(image.index))}
-                    title="Click to replace image"
-                    aria-label={`Replace ${image.alt || `image ${image.index + 1}`}`}
-                  >
-                    <div className="template-asset-thumb" aria-hidden="true">
-                      {image.src
-                        ? <img src={image.src} alt="" />
-                        : <Image size={14} />}
-                    </div>
-                    <div className="template-asset-info">
-                      {/* Single line: name only. The full URL still lives in
-                          the `title` attribute on the row so a user can hover
-                          to see it, but we don't waste vertical space showing
-                          a truncated URL nobody reads. */}
-                      <strong title={image.src}>{image.alt || `Image ${image.index + 1}`}</strong>
-                    </div>
-                    <div className="template-asset-actions">
-                      <button
-                        type="button"
-                        className="row-action row-action-danger"
-                        onClick={(event) => { event.stopPropagation(); removeImage(image.index); }}
-                        title="Remove image"
-                        aria-label="Remove image"
-                      >
-                        <Trash2 size={13} aria-hidden="true" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {links.length > 0 && (
-            <div className="template-asset-group">
-              <div className="template-asset-header">
-                <span className="template-asset-title">Links</span>
-                <span className="muted">{links.length}</span>
-              </div>
-              <ul className="template-asset-list">
-                {links.map((link) => {
-                  const isPlaceholder = /\[[A-Z_]+\]/.test(link.href);
-                  const isMergeTag = /\{\{[^}]+\}\}/.test(link.href);
-                  return (
-                    <li
-                      key={link.index}
-                      className="template-asset-row"
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setEditingLink(link)}
-                      onKeyDown={(event) => handleAssetRowKey(event, () => setEditingLink(link))}
-                      title="Click to edit link"
-                      aria-label={`Edit link: ${link.text}`}
-                    >
-                      <div className="template-asset-thumb is-link" aria-hidden="true">
-                        <Link2 size={14} />
-                      </div>
-                      <div className="template-asset-info">
-                        {/* Single line: link text only. The full href is
-                            hover-revealed via title. Inline tags surface
-                            "placeholder" / "merge tag" when relevant so the
-                            user still knows when an href is unfinished. */}
-                        <strong title={link.href || '(no URL)'}>
-                          {link.text}
-                          {isPlaceholder && <span className="template-asset-tag is-warn"> placeholder</span>}
-                          {isMergeTag && <span className="template-asset-tag is-info"> merge</span>}
-                        </strong>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Body editor. Visual / HTML are tabs that share a fixed-height
           container, so switching between them doesn't bump the rest of the
@@ -507,6 +364,184 @@ export function TemplateEditor({
         </div>
       </div>
 
+      {/* The inspectors sit under the thing they inspect: both lists are
+          derived from template.html, so above it they were a readout
+          printed before its source. The links list is not merely a readout
+          though — the visual editor has no href handling, so this is the
+          only place a link can be edited, which is why it stays on the page
+          rather than moving behind a click. */}
+      {(images.length > 0 || links.length > 0) && (
+        <div className="template-assets">
+          {images.length > 0 && (
+            <div className="template-asset-group">
+              <div className="template-asset-header">
+                <span className="template-asset-title">Images</span>
+                <span className="muted">{images.length}</span>
+              </div>
+              <ul className="template-asset-list">
+                {images.map((image) => (
+                  <li
+                    key={image.index}
+                    className="template-asset-row"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openReplace(image.index)}
+                    onKeyDown={(event) => handleAssetRowKey(event, () => openReplace(image.index))}
+                    title="Click to replace image"
+                    aria-label={`Replace ${image.alt || `image ${image.index + 1}`}`}
+                  >
+                    <div className="template-asset-thumb" aria-hidden="true">
+                      {image.src
+                        ? <img src={image.src} alt="" />
+                        : <Image size={14} />}
+                    </div>
+                    <div className="template-asset-info">
+                      {/* Single line: name only. The full URL still lives in
+                          the `title` attribute on the row so a user can hover
+                          to see it, but we don't waste vertical space showing
+                          a truncated URL nobody reads. */}
+                      <strong title={image.src}>{image.alt || `Image ${image.index + 1}`}</strong>
+                    </div>
+                    <div className="template-asset-actions">
+                      <button
+                        type="button"
+                        className="row-action row-action-danger"
+                        onClick={(event) => { event.stopPropagation(); removeImage(image.index); }}
+                        title="Remove image"
+                        aria-label="Remove image"
+                      >
+                        <Trash2 size={13} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {links.length > 0 && (
+            <div className="template-asset-group">
+              <div className="template-asset-header">
+                <span className="template-asset-title">Links</span>
+                <span className="muted">{links.length}</span>
+              </div>
+              <ul className="template-asset-list">
+                {links.map((link) => {
+                  const isPlaceholder = /\[[A-Z_]+\]/.test(link.href);
+                  const isMergeTag = /\{\{[^}]+\}\}/.test(link.href);
+                  return (
+                    <li
+                      key={link.index}
+                      className="template-asset-row"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setEditingLink(link)}
+                      onKeyDown={(event) => handleAssetRowKey(event, () => setEditingLink(link))}
+                      title="Click to edit link"
+                      aria-label={`Edit link: ${link.text}`}
+                    >
+                      <div className="template-asset-thumb is-link" aria-hidden="true">
+                        <Link2 size={14} />
+                      </div>
+                      <div className="template-asset-info">
+                        {/* Single line: link text only. The full href is
+                            hover-revealed via title. Inline tags surface
+                            "placeholder" / "merge tag" when relevant so the
+                            user still knows when an href is unfinished. */}
+                        <strong title={link.href || '(no URL)'}>
+                          {link.text}
+                          {isPlaceholder && <span className="template-asset-tag is-warn"> placeholder</span>}
+                          {isMergeTag && <span className="template-asset-tag is-info"> merge</span>}
+                        </strong>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Set once, or set after the writing is done. */}
+      <div className="template-edit-grid">
+        <label htmlFor={nameId}>
+          Name
+          <input
+            id={nameId}
+            value={template.name || ''}
+            onChange={(event) => setTemplate({ ...template, name: event.target.value })}
+            placeholder="e.g. Welcome email"
+          />
+        </label>
+        {/* Preview / preheader text. Shown in inbox previews under the
+            subject line in Gmail/Outlook/Apple Mail. Injected at send time
+            as a hidden div near the top of the HTML; never visible in the
+            rendered email body. Merge tags like {{firstname}} render too. */}
+        <label htmlFor={previewId} className="template-field-full">
+          Preview text
+          <input
+            id={previewId}
+            value={template.previewText || ''}
+            onChange={(event) => setTemplate({ ...template, previewText: event.target.value })}
+            placeholder="Shown under the subject line in inbox previews"
+            maxLength={200}
+          />
+        </label>
+        {/* Reply-to (Brevo "advanced setting"). Optional override — when
+            set, recipients' replies go here instead of the From address.
+            Useful for routing replies to a shared inbox / helpdesk address
+            while keeping the From identity branded. */}
+        <fieldset className="template-replyto-fieldset">
+          <legend>Reply-to (optional)</legend>
+          <label htmlFor={replyEmailId}>
+            Email
+            <input
+              id={replyEmailId}
+              type="email"
+              value={template.replyTo?.email || ''}
+              onChange={(event) => setTemplate({
+                ...template,
+                replyTo: { ...(template.replyTo || {}), email: event.target.value },
+              })}
+              placeholder="replies@yourdomain.com"
+              autoComplete="off"
+            />
+          </label>
+          <label htmlFor={replyNameId}>
+            Display name
+            <input
+              id={replyNameId}
+              value={template.replyTo?.name || ''}
+              onChange={(event) => setTemplate({
+                ...template,
+                replyTo: { ...(template.replyTo || {}), name: event.target.value },
+              })}
+              placeholder="e.g. Support team"
+              autoComplete="off"
+            />
+          </label>
+        </fieldset>
+        {/* Category gate. When the admin has defined preference-center
+            categories AND tags this template with one, sends skip
+            recipients who opted out of that topic via the unsubscribe page.
+            Empty value = no gating (legacy behavior). */}
+        {Array.isArray(categories) && categories.length > 0 && (
+          <label>
+            Category
+            <select
+              value={template.category || ''}
+              onChange={(event) => setTemplate({ ...template, category: event.target.value })}
+            >
+              <option value="">No category (sends to everyone)</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+
       <details className="plain-text-details">
         <summary>
           Plain text <span className="muted">· optional, auto-generated from HTML</span>
@@ -591,3 +626,4 @@ function handleAssetRowKey(event, action) {
     action();
   }
 }
+

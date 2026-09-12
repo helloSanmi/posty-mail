@@ -272,6 +272,21 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
                   Preview
                 </button>
               </div>
+              {/* Save lives in the head, not only at the foot of the panel.
+                  With the composer first, the caret sits ~390px above the
+                  editor's own action row — so the button you reach for most
+                  was the one furthest from where you were typing. Here it is
+                  a fixed distance away, always on screen, and it is the same
+                  handler the foot of the panel calls. */}
+              {activeTab === 'edit' && (
+                <button
+                  type="button"
+                  className="em-btn em-btn-primary"
+                  onClick={handleSaveTemplate}
+                >
+                  Save
+                </button>
+              )}
             </div>
           </div>
           <div
