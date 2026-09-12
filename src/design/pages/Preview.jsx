@@ -22,6 +22,14 @@ const ROWS = [
   { name: 'Product update draft', sent: '—', open: '—', click: '—', state: 'Draft', tone: 'muted' },
 ];
 
+// Fourteen days of opens and clicks. Fixed sample, not generated — the
+// sandbox must render identically every reload so two screenshots can be
+// compared.
+const ACTIVITY = [
+  [38, 9], [52, 14], [44, 11], [61, 19], [58, 16], [72, 24], [49, 12],
+  [66, 21], [81, 29], [74, 23], [55, 15], [69, 22], [88, 31], [79, 26],
+];
+
 const DNS = [
   { name: 'SPF', value: 'v=spf1 include:spf.brevo.com ~all', state: 'Pass', tone: 'success' },
   { name: 'DKIM', value: 'Signing at selector brevo1', state: 'Pass', tone: 'success' },
@@ -39,6 +47,35 @@ export function PreviewContent() {
             <span className={`ds-delta is-${t.tone}`}>{t.delta}</span>
           </div>
         ))}
+      </section>
+
+      <section className="ds-card">
+        <div className="ds-card-head">
+          <h2>Engagement</h2>
+          <span className="ds-legend">
+            <span className="ds-legend-item is-accent">Opens</span>
+            <span className="ds-legend-item is-success">Clicks</span>
+          </span>
+        </div>
+        <div className="ds-chart" role="img" aria-label="Opens and clicks over the last 14 days">
+          {ACTIVITY.map(([opens, clicks], i) => (
+            // Clicks are a SUBSET of opens — you cannot click without
+            // opening — so they stack rather than sit side by side. Paired
+            // bars would read as two independent quantities and overstate
+            // the day's total.
+            <span className="ds-chart-col" key={`day-${i}`} style={{ height: `${opens}%` }}>
+              <span className="ds-chart-bar is-opens" />
+              <span
+                className="ds-chart-bar is-clicks"
+                style={{ height: `${Math.round((clicks / opens) * 100)}%` }}
+              />
+            </span>
+          ))}
+        </div>
+        <div className="ds-chart-axis">
+          <span>14 days ago</span>
+          <span>Today</span>
+        </div>
       </section>
 
       <section className="ds-card">

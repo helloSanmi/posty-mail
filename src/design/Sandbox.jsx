@@ -4,6 +4,7 @@ import {
   accentKeysFor, applyTheme, groundKeysFor, resolveTheme,
 } from './themes';
 import { DESIGN_PAGES } from './pages';
+import './foundation.css';
 import './sandbox.css';
 
 // The review harness. Picks a direction, a ground, an accent and a page,

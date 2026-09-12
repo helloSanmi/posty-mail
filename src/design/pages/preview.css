@@ -10,13 +10,15 @@
 .ds-btn {
   background: var(--surface-raised);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--r-md);
+  box-shadow: var(--e1);
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   font-weight: 500;
-  padding: 7px 13px;
+  padding: 7px var(--s3);
+  transition: background var(--t-fast), border-color var(--t-fast);
 }
 .ds-btn:hover { border-color: var(--text-subtle); }
 .ds-btn-primary {
@@ -27,22 +29,23 @@
 .ds-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .ds-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
-.ds-muted { color: var(--text-muted); font-size: 0.82rem; }
+.ds-muted { color: var(--text-muted); font-size: var(--text-sm); }
 
 /* ---- metric tiles ----------------------------------------------------- */
 .ds-tiles {
   display: grid;
-  gap: 12px;
+  gap: var(--s3);
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .ds-tile {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1);
   display: grid;
-  gap: 3px;
+  gap: 2px;
   overflow: hidden;
-  padding: 13px 15px;
+  padding: var(--s4) var(--s4) var(--s3);
   position: relative;
 }
 /* Each metric owns a fixed hue for the life of the product, so colour is
@@ -63,18 +66,18 @@
 
 .ds-tile-label {
   color: var(--text-muted);
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.07em;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 .ds-tile-value {
-  font-size: 1.5rem;
-  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xl);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
 }
-.ds-delta { font-size: 0.78rem; font-weight: 500; }
+.ds-delta { font-size: var(--text-sm); font-weight: 500; }
 .ds-delta.is-success, .ds-delta.is-accent { color: var(--success); }
 /* Polarity is inverted where up is bad — a rising bounce rate must not
    render as good news just because the arrow points the same way. */
@@ -85,8 +88,9 @@
 .ds-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 15px 17px 17px;
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1);
+  padding: var(--s4) var(--s5) var(--s5);
 }
 .ds-card-head {
   align-items: center;
@@ -94,24 +98,24 @@
   justify-content: space-between;
   padding-bottom: 10px;
 }
-.ds-card-head h2 { font-size: 0.95rem; font-weight: 600; margin: 0; }
+.ds-card-head h2 { font-size: var(--text-md); }
 
 /* ---- table ------------------------------------------------------------ */
 .ds-table { border-collapse: collapse; width: 100%; }
 .ds-table th {
   border-bottom: 1px solid var(--border);
   color: var(--text-subtle);
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  padding: 7px 8px;
+  letter-spacing: var(--tracking-label);
+  padding: var(--s2);
   text-align: left;
   text-transform: uppercase;
 }
 .ds-table td {
   border-bottom: 1px solid var(--border);
-  font-size: 0.87rem;
-  padding: 9px 8px;
+  font-size: var(--text-base);
+  padding: 10px var(--s2);
 }
 .ds-table tbody tr:last-child td { border-bottom: 0; }
 .ds-table tbody tr:hover td { background: var(--accent-soft); }
@@ -126,11 +130,12 @@
 
 /* ---- pills ------------------------------------------------------------ */
 .ds-pill {
-  border-radius: 999px;
+  border-radius: var(--r-full);
   display: inline-block;
-  font-size: 0.73rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
-  padding: 2px 9px;
+  letter-spacing: 0.01em;
+  padding: 3px 10px;
   white-space: nowrap;
 }
 .ds-pill.is-success { background: var(--success-soft); color: var(--success); }
@@ -177,14 +182,70 @@
 .ds-row.is-warn::before { background: var(--warn); }
 .ds-row.is-danger::before { background: var(--danger); }
 .ds-row-label { display: grid; gap: 2px; min-width: 0; }
-.ds-row-label strong { font-size: 0.88rem; font-weight: 500; }
+.ds-row-label strong { font-size: var(--text-base); font-weight: 500; }
 .ds-row-label .ds-muted {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ds-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 14px; }
+.ds-actions { display: flex; gap: var(--s2); justify-content: flex-end; padding-top: var(--s4); }
+
+/* ---- activity chart ---------------------------------------------------
+   The direction's thesis in one component: the chrome is silent, and the
+   two series carry the accent and success hues they carry everywhere else,
+   so a reader who has learned "green means clicked" on a status pill reads
+   this chart without a legend. The legend is there anyway, because a chart
+   without one is a puzzle. */
+.ds-legend { display: flex; gap: var(--s3); }
+.ds-legend-item {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: var(--text-xs);
+  gap: 5px;
+}
+.ds-legend-item::before {
+  border-radius: 2px;
+  content: '';
+  height: 9px;
+  width: 9px;
+}
+.ds-legend-item.is-accent::before { background: var(--accent); }
+.ds-legend-item.is-success::before { background: var(--success); }
+
+.ds-chart {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  height: 124px;
+  padding-top: var(--s2);
+}
+/* One column per day, its height the opens total. The clicks band sits
+   inside it at the base, so the eye reads "of this many opens, this many
+   clicked" without needing the two series compared across a gap. */
+.ds-chart-col {
+  border-radius: 3px 3px 0 0;
+  flex: 1;
+  min-height: 3px;
+  overflow: hidden;
+  position: relative;
+  transition: opacity var(--t-fast);
+}
+.ds-chart-bar { display: block; left: 0; position: absolute; right: 0; }
+.ds-chart-bar.is-opens { background: var(--accent); bottom: 0; top: 0; }
+.ds-chart-bar.is-clicks { background: var(--success); bottom: 0; }
+.ds-chart:hover .ds-chart-col { opacity: 0.5; }
+.ds-chart .ds-chart-col:hover { opacity: 1; }
+
+.ds-chart-axis {
+  color: var(--text-subtle);
+  display: flex;
+  font-size: var(--text-xs);
+  justify-content: space-between;
+  padding-top: 6px;
+}
 
 @media (max-width: 900px) {
   .ds-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
