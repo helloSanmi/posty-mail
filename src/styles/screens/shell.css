@@ -142,6 +142,20 @@
 /* Active is a LIFT, not a fill. Today's active item is a saturated tinted
    block — the heaviest element on screen, competing with the page it is
    pointing at. */
+/* Every nav item resolves its own area's colour, whether active or not —
+   the icon carries it quietly at rest and the whole item takes it when the
+   area is open. This is where "the app looks like one colour" gets its
+   first answer: seven places, seven hues, all meaning something. */
+.sh-nav-item[data-section='home']      { --item: var(--section-home); }
+.sh-nav-item[data-section='email']     { --item: var(--section-email); }
+.sh-nav-item[data-section='audience']  { --item: var(--section-audience); }
+.sh-nav-item[data-section='campaigns'] { --item: var(--section-campaigns); }
+.sh-nav-item[data-section='reports']   { --item: var(--section-reports); }
+.sh-nav-item[data-section='settings']  { --item: var(--section-settings); }
+.sh-nav-item[data-section='admin']     { --item: var(--section-admin); }
+.sh-nav-item svg { color: var(--item, var(--text-subtle)); }
+.sh-nav-item:hover { background: color-mix(in srgb, var(--item, var(--text)) 8%, transparent); }
+
 .sh-nav-item.is-active {
   background: var(--surface-raised);
   box-shadow: var(--e1);
@@ -149,7 +163,9 @@
   font-weight: 500;
 }
 .sh-nav-item.is-active::before {
-  background: var(--accent);
+  /* The rail takes the AREA's colour, not a generic accent — it is the
+     strongest signal of where you are. */
+  background: var(--item, var(--accent));
   border-radius: 0 2px 2px 0;
   content: '';
   height: 18px;
@@ -259,7 +275,10 @@
   line-height: 1.3;
   text-transform: uppercase;
 }
-.sh-top h1 { font-size: var(--text-lg); line-height: 1.2; }
+/* The page title is the other place the area's colour belongs: it is the
+   first thing read on every screen, and colouring it ties the heading to
+   the lit nav item across the frame. */
+.sh-top h1 { color: var(--section); font-size: var(--text-lg); line-height: 1.2; }
 
 .sh-search {
   align-items: center;
@@ -457,58 +476,7 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
 }
 /* The ring goes on the visible control: the input is visually-hidden, so a
    ring on it would land nowhere. */
-.ap-seg:focus-within,
-.ap-swatch:focus-within {
+.ap-seg:focus-within {
   outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
-}
-
-/* Three bare circles in a topbar do not say "pick an accent colour" — they
-   say nothing, and were read as decoration or as status lights. They now sit
-   in the same sunken tray as the theme icons beside them, which is the shape
-   this app uses everywhere else to mean "a set of options, one chosen", and
-   only the chosen one is a filled dot. */
-.ap-accents {
-  background: var(--surface-sunken);
-  min-height: var(--topbar-control);
-  border-radius: var(--r-md);
-  display: flex;
-  gap: 2px;
-  padding: 2px;
-}
-.ap-swatch {
-  align-items: center;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  display: inline-flex;
-  justify-content: center;
-  margin: 0;
-  min-height: 28px;
-  transition: background var(--t-fast);
-  width: 28px;
-}
-.ap-swatch:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
-.ap-swatch.is-active {
-  background: var(--surface-raised);
-  box-shadow: var(--e1);
-}
-.ap-dot {
-  /* --accent resolves from [data-accent-preview] in tokens.css, so each dot
-     is painted by the same declaration that paints the app. */
-  background: var(--accent);
-  border-radius: 50%;
-  height: 12px;
-  width: 12px;
-}
-/* Unchosen accents are outlines, not fills. Three filled dots read as three
-   indicators; one filled among two outlines reads as a choice. */
-.ap-swatch:not(.is-active) .ap-dot {
-  background: transparent;
-  box-shadow: inset 0 0 0 2px var(--accent);
-}
-
-/* Narrow topbars have to give something up, and the accent is the more
-   decorative of the two choices — light/dark is the one people need. */
-@media (max-width: 720px) {
-  .ap-accents { display: none; }
 }

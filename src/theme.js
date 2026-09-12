@@ -1,4 +1,4 @@
-// Theme state: a ground (light / dark / system) and an accent.
+// Theme state: the ground — light, dark, or follow the system.
 //
 // The values live as ATTRIBUTES on <html>, not as inline custom properties,
 // so tokens.css does the work and the theme survives with JavaScript
@@ -10,20 +10,16 @@
 // is worse on a dark theme than having no dark theme at all.
 
 export const GROUNDS = ['system', 'light', 'dark'];
-export const ACCENTS = [
-  { id: 'harbour', label: 'Harbour' },
-  { id: 'verdigris', label: 'Verdigris' },
-  { id: 'moss', label: 'Moss' },
-  { id: 'ember', label: 'Ember' },
-  { id: 'plum', label: 'Plum' },
-  { id: 'iris', label: 'Iris' },
-];
+// The app has ONE accent. There is no picker any more: a palette chooser
+// asks the reader to decide something the product should decide, and the
+// colours it offered were doing nothing. The other hues from that palette
+// are used in the app instead, where they carry meaning.
+export const ACCENT = 'harbour';
 
 export const DEFAULT_GROUND = 'system';
-export const DEFAULT_ACCENT = 'harbour';
+
 
 const STORAGE_GROUND = 'posty.theme';
-const STORAGE_ACCENT = 'posty.accent';
 
 function read(key, allowed, fallback) {
   try {
@@ -36,13 +32,10 @@ function read(key, allowed, fallback) {
 }
 
 export function readTheme() {
-  return {
-    ground: read(STORAGE_GROUND, GROUNDS, DEFAULT_GROUND),
-    accent: read(STORAGE_ACCENT, ACCENTS.map((a) => a.id), DEFAULT_ACCENT),
-  };
+  return { ground: read(STORAGE_GROUND, GROUNDS, DEFAULT_GROUND) };
 }
 
-export function applyTheme({ ground, accent }, root = document.documentElement) {
+export function applyTheme({ ground }, root = document.documentElement) {
   // Transitions are suppressed across the swap. Two reasons, one cosmetic
   // and one a genuine bug:
   //
@@ -63,7 +56,6 @@ export function applyTheme({ ground, accent }, root = document.documentElement) 
   // explicit choice writes the attribute and therefore beats the OS.
   if (ground === 'system') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', ground);
-  root.setAttribute('data-accent', accent);
 
   // Flush the suppressed state before releasing it, then release after the
   // paint so transitions are live again for ordinary hovers.
@@ -76,10 +68,9 @@ export function applyTheme({ ground, accent }, root = document.documentElement) 
   }
 }
 
-export function saveTheme({ ground, accent }) {
+export function saveTheme({ ground }) {
   try {
     window.localStorage.setItem(STORAGE_GROUND, ground);
-    window.localStorage.setItem(STORAGE_ACCENT, accent);
   } catch { /* nothing to do — the choice just will not persist */ }
 }
 

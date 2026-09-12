@@ -75,6 +75,16 @@ export function AppShell({ children }) {
     }
     return pageTitles['/'];
   })();
+  // The nav item whose path the current route sits under. Longest match
+  // wins, so /campaigns/abc is Campaigns rather than Home.
+  const activeSection = (() => {
+    const match = [...navItems]
+      .filter((item) => item.path !== '/' && location.pathname.startsWith(item.path))
+      .sort((a, b) => b.path.length - a.path.length)[0];
+    if (match) return match.section;
+    return location.pathname === '/' ? 'home' : 'home';
+  })();
+
   const visibleNav = navItems.filter((item) => {
     if (item.superAdminOnly) return Boolean(user?.isSuperAdmin);
     if (item.anyPermission) return canAny(item.anyPermission);
@@ -127,7 +137,13 @@ export function AppShell({ children }) {
   // live on the frame because the rail's width (desktop) and its transform
   // (mobile drawer) are both driven from the grid container.
   return (
-    <main className={`sh${collapsed ? ' is-collapsed' : ''}${drawerOpen ? ' is-drawer-open' : ''}`}>
+    <main
+      className={`sh${collapsed ? ' is-collapsed' : ''}${drawerOpen ? ' is-drawer-open' : ''}`}
+      /* Which area of the product is open. Everything that carries the
+         area's colour reads --section off this, so no page needs to know
+         its own colour. */
+      data-section={activeSection}
+    >
       <a className="skip-link" href="#main-content">Skip to main content</a>
       {/* Spans both grid columns (grid-column: 1 / -1) so it reads as a
           band above the whole frame, not a strip over the content. */}
@@ -181,6 +197,11 @@ export function AppShell({ children }) {
                 // Active is a LIFT (surface-raised + one accent rail), not
                 // a filled block. NavLink sets aria-current="page" itself.
                 className={({ isActive }) => (isActive ? 'sh-nav-item is-active' : 'sh-nav-item')}
+                /* Each item carries its own area's colour, so the sidebar
+                   reads as a set of places rather than a list of words —
+                   and the active one is that colour rather than a generic
+                   accent. */
+                data-section={item.section}
                 // title attribute surfaces the label as a native tooltip
                 // when the sidebar is collapsed and only the icon shows.
                 title={collapsed ? item.label : undefined}

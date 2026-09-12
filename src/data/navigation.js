@@ -14,28 +14,28 @@ import {
 // Items with neither are always visible (Home). superAdminOnly is the
 // install-level cross-workspace flag, checked separately.
 export const navItems = [
-  { id: 'dashboard', path: '/', label: 'Home', icon: LayoutDashboard },
+  { id: 'dashboard', path: '/', label: 'Home', section: 'home', icon: LayoutDashboard },
   {
-    id: 'templates', path: '/templates', label: 'Email', icon: MailCheck, permission: 'templates',
+    id: 'templates', path: '/templates', label: 'Email', section: 'email', icon: MailCheck, permission: 'templates',
   },
   {
-    id: 'contacts', path: '/contacts', label: 'Audience', icon: Users, permission: 'contacts',
+    id: 'contacts', path: '/contacts', label: 'Audience', section: 'audience', icon: Users, permission: 'contacts',
   },
   {
-    id: 'campaigns', path: '/campaigns', label: 'Campaigns', icon: Inbox, permission: 'campaigns',
+    id: 'campaigns', path: '/campaigns', label: 'Campaigns', section: 'campaigns', icon: Inbox, permission: 'campaigns',
   },
   {
-    id: 'analytics', path: '/analytics', label: 'Reports', icon: BarChart3, permission: 'analytics',
+    id: 'analytics', path: '/analytics', label: 'Reports', section: 'reports', icon: BarChart3, permission: 'analytics',
   },
   {
-    id: 'integrations', path: '/settings', label: 'Settings', icon: PlugZap, anyPermission: ['settings', 'connections'],
+    id: 'integrations', path: '/settings', label: 'Settings', section: 'settings', icon: PlugZap, anyPermission: ['settings', 'connections'],
   },
   {
-    id: 'admin', path: '/admin', label: 'Admin', icon: ShieldCheck, permission: 'admin',
+    id: 'admin', path: '/admin', label: 'Admin', section: 'admin', icon: ShieldCheck, permission: 'admin',
   },
   // Install-level super-admin only — cross-workspace management.
   {
-    id: 'workspaces', path: '/workspaces', label: 'Workspaces', icon: Building2, superAdminOnly: true,
+    id: 'workspaces', path: '/workspaces', label: 'Workspaces', section: 'admin', icon: Building2, superAdminOnly: true,
   },
 ];
 

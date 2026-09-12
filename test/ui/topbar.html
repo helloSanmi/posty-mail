@@ -4,6 +4,12 @@
     <meta charset="utf-8" />
     <title>Topbar probe</title>
     <link rel="stylesheet" href="/src/styles.css" />
+    <style>
+      .sh { height: auto !important; min-height: 0 !important; margin-bottom: 10px; border-radius: 10px; overflow: hidden; }
+      .sh-side { min-height: 150px; }
+      .sh-content { min-height: 0 !important; }
+      body { padding: 14px; background: var(--bg); }
+    </style>
   </head>
   <body style="margin:0">
     <div id="root"></div>
@@ -11,19 +17,30 @@
       import { createRoot } from 'react-dom/client';
       import { createElement as h } from 'react';
       import { AppearanceControls } from '/src/components/AppearanceControls.jsx';
-      createRoot(document.getElementById('root')).render(
-        h('main', { className: 'sh' },
-          h('aside', { className: 'sh-side' }, h('div', { className: 'sh-brand' }, 'Posty')),
+      const NAV=[['home','Home'],['email','Email'],['audience','Audience'],
+                 ['campaigns','Campaigns'],['reports','Reports'],
+                 ['settings','Settings'],['admin','Admin']];
+      function Frame({ section }) {
+        return h('main', { className: 'sh', 'data-section': section, style:{minHeight:'auto'} },
+          h('aside', { className: 'sh-side' },
+            h('div', { className: 'sh-brand' }, 'Posty'),
+            h('nav', { className: 'sh-nav' }, NAV.map(([k,label])=>
+              h('a', { key:k, href:'#', 'data-section':k,
+                className:'sh-nav-item'+(k===section?' is-active':'') },
+                h('span',{className:'sh-nav-label'},label))))),
           h('section', { className: 'sh-main' },
             h('header', { className: 'sh-top' },
-              h('div', { className: 'sh-title' }, h('h1', null, 'Campaigns')),
+              h('div', { className: 'sh-title' }, h('h1', null, NAV.find(n=>n[0]===section)[1])),
               h('button', { type: 'button', className: 'sh-search', id: 'search' },
                 h('span', { className: 'sh-search-label' }, 'Search'),
                 h('kbd', null, '⌘K')),
               h('div', { className: 'notif-bell' },
                 h('button', { type: 'button', className: 'notif-bell-button', id: 'bell' }, 'B')),
               h(AppearanceControls)),
-            h('div', { className: 'sh-content' }))));
+            h('div', { className: 'sh-content' })));
+      }
+      createRoot(document.getElementById('root')).render(
+        h('div', null, NAV.map(([k])=>h(Frame,{key:k,section:k}))));
     </script>
   </body>
 </html>

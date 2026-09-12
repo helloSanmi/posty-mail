@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
-import {
-  ACCENTS, applyTheme, readTheme, setTheme,
-} from '../theme';
+import { applyTheme, readTheme, setTheme } from '../theme';
 
 // Theme and accent, in the topbar, on the surface.
 //
@@ -12,14 +10,17 @@ import {
 // judge by LOOKING — you pick a theme by watching the page change, so it
 // has to sit on the page you are judging.
 //
-// It was then briefly behind an icon, which kept the second half of that
-// problem: a control you choose by eye should not require a click to see
-// its options when there is room to show all six. Six small controls fit
-// the topbar, so all six are on it.
+// It briefly carried an accent picker too — six colour swatches. They are
+// gone. A palette chooser is a preference widget: it asks the reader to
+// decide something the product should have decided, and it spent six
+// colours on saying nothing. The palette those swatches offered is now used
+// in the app itself, where a colour can mean something.
 //
-// Both groups are native radiogroups, so arrow-key movement, the roving tab
-// stop and the checked state come free and correct instead of being
-// reimplemented on buttons.
+// Light / dark / system stays, because that one is not a preference about
+// taste — it is about the room you are sitting in.
+//
+// Native radios, so arrow-key movement, the roving tab stop and the checked
+// state come free and correct instead of being reimplemented on buttons.
 
 const GROUNDS = [
   { value: 'system', label: 'System', icon: Monitor },
@@ -65,30 +66,6 @@ export function AppearanceControls() {
         })}
       </div>
 
-      <div className="ap-accents" role="radiogroup" aria-label="Accent colour">
-        {ACCENTS.map((accent) => {
-          const isActive = theme.accent === accent.id;
-          return (
-            <label
-              key={accent.id}
-              className={`ap-swatch${isActive ? ' is-active' : ''}`}
-              data-accent-preview={accent.id}
-              title={accent.label}
-            >
-              <input
-                type="radio"
-                name="posty-accent"
-                value={accent.id}
-                checked={isActive}
-                onChange={() => update({ accent: accent.id })}
-                className="visually-hidden"
-              />
-              <span className="ap-dot" aria-hidden="true" />
-              <span className="visually-hidden">{accent.label}</span>
-            </label>
-          );
-        })}
-      </div>
     </div>
   );
 }

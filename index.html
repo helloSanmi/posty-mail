@@ -17,12 +17,10 @@
       (function () {
         try {
           var g = localStorage.getItem('posty.theme');
-          var a = localStorage.getItem('posty.accent');
           if (g === 'light' || g === 'dark') {
             document.documentElement.setAttribute('data-theme', g);
           }
           if (a === 'harbour' || a === 'verdigris' || a === 'iris') {
-            document.documentElement.setAttribute('data-accent', a);
           }
         } catch (e) { /* default theme is a correct answer */ }
       })();

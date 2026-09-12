@@ -177,108 +177,95 @@ html[data-theme='dark'] {
   }
 }
 
-/* ---- accents -------------------------------------------------------------
-   Six, and each supplies ONE value. --accent-hover and --accent-soft are
-   derived from it below, which is why adding an accent is one line rather
-   than four, and why none of them can drift out of step with each other.
+/* ---- accent --------------------------------------------------------------
+   One accent. There was briefly a picker offering six; it is gone, because
+   a palette chooser asks the reader to decide something the product should
+   decide and those six colours were doing nothing but sitting in a toolbar.
+   The hues live on as SECTION colours below, where a colour means something.
 
-   Every value is solved, not picked, against the STRICTEST thing it has to
-   do: carry 4.55:1 as text on its own --accent-soft tint. That one implies
-   the others — a colour readable on a 14% tint of itself is comfortably
-   readable on the plain card and against white — whereas solving for white
-   alone does not imply it, and did not: every accent landed at 3.8:1 on its
-   own pill until this was corrected.
-
-   [data-accent-preview] rides along so the swatches in the topbar are
-   painted by the same declarations that paint the app. */
+   Solved, not picked, against the strictest thing it has to do: carry
+   4.55:1 as text on its own --accent-soft tint. That implies the rest — a
+   colour readable on a 14% tint of itself is comfortably readable on the
+   plain card and against white. Solving for white alone does not imply it,
+   and did not. */
 :root,
-html[data-accent='harbour'],
-[data-accent-preview='harbour'] {
+html[data-theme='light'] {
   --accent: #2a6d9d;
 }
-html[data-accent='verdigris'],
-[data-accent-preview='verdigris'] {
-  --accent: #1d727c;
-}
-html[data-accent='moss'],
-[data-accent-preview='moss'] {
-  --accent: #22774d;
-}
-html[data-accent='ember'],
-[data-accent-preview='ember'] {
-  --accent: #a15326;
-}
-html[data-accent='plum'],
-[data-accent-preview='plum'] {
-  --accent: #a93b93;
-}
-html[data-accent='iris'],
-[data-accent-preview='iris'] {
-  --accent: #6c54cd;
-}
-
-html[data-theme='dark'][data-accent='harbour'],
-html[data-theme='dark']:not([data-accent]),
-html[data-theme='dark'] [data-accent-preview='harbour'] {
+html[data-theme='dark'] {
   --accent: #6baad8;
 }
-html[data-theme='dark'][data-accent='verdigris'],
-html[data-theme='dark'] [data-accent-preview='verdigris'] {
-  --accent: #2fb7c6;
-}
-html[data-theme='dark'][data-accent='moss'],
-html[data-theme='dark'] [data-accent-preview='moss'] {
-  --accent: #37be7a;
-}
-html[data-theme='dark'][data-accent='ember'],
-html[data-theme='dark'] [data-accent-preview='ember'] {
-  --accent: #dc9369;
-}
-html[data-theme='dark'][data-accent='plum'],
-html[data-theme='dark'] [data-accent-preview='plum'] {
-  --accent: #d68bc7;
-}
-html[data-theme='dark'][data-accent='iris'],
-html[data-theme='dark'] [data-accent-preview='iris'] {
-  --accent: #a99be2;
-}
-
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']):not([data-accent]),
-  :root:not([data-theme='light'])[data-accent='harbour'],
-  :root:not([data-theme='light']) [data-accent-preview='harbour'] {
+  :root:not([data-theme='light']) {
     --accent: #6baad8;
   }
-  :root:not([data-theme='light'])[data-accent='verdigris'],
-  :root:not([data-theme='light']) [data-accent-preview='verdigris'] {
-    --accent: #2fb7c6;
-  }
-  :root:not([data-theme='light'])[data-accent='moss'],
-  :root:not([data-theme='light']) [data-accent-preview='moss'] {
-    --accent: #37be7a;
-  }
-  :root:not([data-theme='light'])[data-accent='ember'],
-  :root:not([data-theme='light']) [data-accent-preview='ember'] {
-    --accent: #dc9369;
-  }
-  :root:not([data-theme='light'])[data-accent='plum'],
-  :root:not([data-theme='light']) [data-accent-preview='plum'] {
-    --accent: #d68bc7;
-  }
-  :root:not([data-theme='light'])[data-accent='iris'],
-  :root:not([data-theme='light']) [data-accent-preview='iris'] {
-    --accent: #a99be2;
-  }
 }
 
-/* Derived from whichever accent is in play, so they follow it everywhere —
-   including onto the preview swatches. --text is dark in the light theme and
-   light in the dark one, so ONE definition of hover darkens in light and
-   lightens in dark, which is what hover should do in each. */
+/* Derived, so the accent is defined once and everything follows it. --text
+   is dark in the light theme and light in the dark one, so ONE definition
+   of hover darkens in light and lightens in dark — which is what hover
+   should do in each. */
 :root {
   --accent-hover: color-mix(in srgb, var(--accent) 86%, var(--text));
   --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface-raised));
   --focus-ring: var(--accent);
+}
+
+/* ---- section colours -----------------------------------------------------
+   The app's own colour, and the answer to "it looks like one colour".
+
+   Each area of the product has a hue: the sidebar carries it, the page
+   heading carries it, and the area's key surfaces tint with it. That is
+   colour doing a job — you can tell where you are without reading — rather
+   than decoration, and it is why the palette is no longer a preference for
+   the reader to set.
+
+   Every value clears 4.55:1 as text on its own soft tint, by the same solve
+   as the accent, so any of them is safe wherever the accent is safe. */
+:root,
+html[data-theme='light'] {
+  --section-home: #2a6d9d;
+  --section-email: #6c54cd;
+  --section-audience: #22774d;
+  --section-campaigns: #a15326;
+  --section-reports: #1d727c;
+  --section-settings: #5b5a56;
+  --section-admin: #a93b93;
+}
+html[data-theme='dark'] {
+  --section-home: #6baad8;
+  --section-email: #a99be2;
+  --section-audience: #37be7a;
+  --section-campaigns: #dc9369;
+  --section-reports: #2fb7c6;
+  --section-settings: #aeaca8;
+  --section-admin: #d68bc7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --section-home: #6baad8;
+    --section-email: #a99be2;
+    --section-audience: #37be7a;
+    --section-campaigns: #dc9369;
+    --section-reports: #2fb7c6;
+    --section-settings: #aeaca8;
+    --section-admin: #d68bc7;
+  }
+}
+
+/* The section in play, set from the route on the frame. Everything that
+   wants to carry the area's colour reads --section, so a page never has to
+   know which one it is. */
+:root { --section: var(--section-home); }
+.sh[data-section='home']      { --section: var(--section-home); }
+.sh[data-section='email']     { --section: var(--section-email); }
+.sh[data-section='audience']  { --section: var(--section-audience); }
+.sh[data-section='campaigns'] { --section: var(--section-campaigns); }
+.sh[data-section='reports']   { --section: var(--section-reports); }
+.sh[data-section='settings']  { --section: var(--section-settings); }
+.sh[data-section='admin']     { --section: var(--section-admin); }
+:root {
+  --section-soft: color-mix(in srgb, var(--section) 14%, var(--surface-raised));
 }
 
 /* ---- tinted borders, derived ---------------------------------------------
