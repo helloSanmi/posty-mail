@@ -81,6 +81,7 @@ export function DashboardPage({ contacts }) {
   }
 
   const firstName = (user?.name || '').trim().split(/\s+/)[0] || null;
+  const headline = heroHeadline(contacts.length, campaigns.length, inFlight.length);
 
   // The strip speaks for one campaign — the first one actually sending. The
   // count of everything in flight is already in the line above it.
@@ -119,8 +120,7 @@ export function DashboardPage({ contacts }) {
       <div className="section-heading">
         <p className="status-line">
           {greeting()}{firstName ? `, ${firstName}` : ''}
-          {' · '}
-          {heroHeadline(contacts.length, campaigns.length, inFlight.length)}
+          {headline && ` · ${headline}`}
         </p>
         <div className="actions-row">
           <button type="button" className="hm-btn hm-btn-primary" onClick={() => navigate('/builder')}>
@@ -323,7 +323,11 @@ function heroHeadline(contactsCount, campaignsCount, inFlightCount) {
   }
   if (contactsCount === 0) return 'Add your audience to start sending.';
   if (campaignsCount === 0) return 'Send your first campaign.';
-  return 'Ready when you are.';
+  // Nothing to report. The three branches above each tell you something you
+  // would otherwise have to go and look up; there is no fourth fact, and a
+  // sentence written to fill the gap is just noise on every visit after the
+  // first two. The greeting stands on its own.
+  return null;
 }
 
 // "This month" is the current calendar month — the window the tiles' second
