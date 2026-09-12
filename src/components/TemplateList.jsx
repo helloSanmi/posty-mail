@@ -10,10 +10,12 @@ import { LayoutTemplate, Plus, Search } from 'lucide-react';
 // the subject of the template you had already chosen, and nothing about the
 // ones you had not.
 //
-// The list shows name and subject per row, which is what makes it
-// scannable: two templates both called "Newsletter" are told apart by their
-// subject, not their name. Search earns its place once the list is long
-// enough to scroll, which is the same condition that made the dropdown bad.
+// The rows carry the template's name and nothing else. A subject line under
+// each one doubled the height of the list, which is the thing that has to
+// stay scannable — and the subject is on screen anyway the moment a
+// template is selected, in the field that owns it. Search earns its place
+// once the list is long enough to scroll, which is the same condition that
+// made the dropdown bad.
 
 export function TemplateList({
   templates,
@@ -79,9 +81,6 @@ export function TemplateList({
                 >
                   <span className="em-item-name">
                     {template.name || 'Untitled template'}
-                  </span>
-                  <span className="em-item-subject">
-                    {template.subject || 'No subject yet'}
                   </span>
                 </button>
               </li>

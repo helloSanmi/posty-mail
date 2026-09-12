@@ -78,6 +78,18 @@
 }
 .em-head-tools { align-items: center; display: flex; flex: none; gap: var(--s1); }
 
+/* The right end of the editor's head: save status, then the Edit/Preview
+   pair. The title takes the slack so this group is pinned to the right
+   edge rather than floating next to the heading — which is where two
+   controls that switch the whole panel belong. */
+.em-head-right {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: var(--s2);
+}
+.em-card-head h2 { flex: 1; }
+
 .em-icon-btn {
   align-items: center;
   background: transparent;
@@ -143,7 +155,12 @@
 /* ---- template list -----------------------------------------------------
    A list, not a dropdown. Each row carries its subject because that is
    what tells two templates apart; the name alone often does not. */
-.em-list { position: sticky; top: var(--s4); }
+/* top:0, not top:16px. .sh-content is the scroll container and already
+   supplies the page padding, so a 16px inset pushed this rail 16px BELOW
+   the column beside it even at rest — the two panels started at different
+   heights on every one of these pages. At 0 it lines up with its sibling
+   and still pins to the top of the pane when the page scrolls. */
+.em-list { position: sticky; top: 0; }
 .em-list-items {
   display: flex;
   flex-direction: column;

@@ -180,7 +180,7 @@
 .cp-page-status { color: var(--text-muted); font-size: var(--text-sm); }
 
 /* ---- drafts ------------------------------------------------------------ */
-.cp-drafts { position: sticky; top: var(--s4); }
+.cp-drafts { position: sticky; top: 0; }
 .cp-draft-list { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
 .cp-draft {
   align-items: center;
