@@ -15,7 +15,6 @@ import {
 } from '../services/brevoApi';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
 import { SkeletonCard } from '../components/Skeleton';
-import { useAuth } from '../auth/AuthContext';
 import { eventLabel, eventPill, isBotEvent } from '../utils/brevoEvents';
 
 // Home, on the redesigned `hm-` vocabulary.
@@ -41,7 +40,6 @@ import { eventLabel, eventPill, isBotEvent } from '../utils/brevoEvents';
 // lint stays happy; if main.jsx still passes them, they're harmless.
 export function DashboardPage({ contacts }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [events, setEvents] = useState([]);
   const [unsubscribes, setUnsubscribes] = useState([]);
@@ -79,8 +77,6 @@ export function DashboardPage({ contacts }) {
       </div>
     );
   }
-
-  const firstName = (user?.name || '').trim().split(/\s+/)[0] || null;
   const headline = heroHeadline(contacts.length, campaigns.length, inFlight.length);
 
   // The strip speaks for one campaign — the first one actually sending. The
@@ -115,13 +111,11 @@ export function DashboardPage({ contacts }) {
           via "Add audience" still see the "Configure sender" nudge. */}
       <OnboardingChecklist mode="banner" contacts={contacts} campaigns={campaigns} />
 
-      {/* What is left of the hero: the greeting, and the actions the design
-          hands to the topbar. One quiet line, not a heading stack. */}
+      {/* The greeting moved to the topbar, where it shows on every page.
+          What stays is the one line only this page can say — what is in
+          flight, or what to do first — and the actions. */}
       <div className="section-heading">
-        <p className="status-line">
-          {greeting()}{firstName ? `, ${firstName}` : ''}
-          {headline && ` · ${headline}`}
-        </p>
+        <p className="status-line">{headline}</p>
         <div className="actions-row">
           <button type="button" className="hm-btn hm-btn-primary" onClick={() => navigate('/builder')}>
             <Send size={14} aria-hidden="true" /> New campaign
@@ -309,13 +303,6 @@ function progressSummary(campaign) {
   return `${sent} sent`;
 }
 
-function greeting() {
-  const hour = new Date().getHours();
-  if (hour < 5) return 'Working late';
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
 
 function heroHeadline(contactsCount, campaignsCount, inFlightCount) {
   if (inFlightCount > 0) {

@@ -275,10 +275,21 @@
   line-height: 1.3;
   text-transform: uppercase;
 }
-/* The page title is the other place the area's colour belongs: it is the
-   first thing read on every screen, and colouring it ties the heading to
-   the lit nav item across the frame. */
-.sh-top h1 { color: var(--section); font-size: var(--text-lg); line-height: 1.2; }
+/* The greeting stands where the page name used to. It is deliberately NOT
+   in the area's colour: the sidebar carries that, and a greeting is about
+   the person rather than the place — colouring it would make the same word
+   change hue as you navigated, which says nothing. */
+.sh-greeting {
+  color: var(--text);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.2;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .sh-search {
   align-items: center;

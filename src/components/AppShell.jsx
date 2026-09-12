@@ -6,6 +6,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { navItems, pageTitles } from '../data/navigation';
 import { useAuth } from '../auth/AuthContext';
 import { PageSectionContext } from './PageSectionContext';
+import { greeting } from '../utils/greeting';
 import { DemoBanner } from './DemoBanner';
 import { GlobalSearch } from './GlobalSearch';
 import { AppearanceControls } from './AppearanceControls';
@@ -84,6 +85,8 @@ export function AppShell({ children }) {
     if (match) return match.section;
     return location.pathname === '/' ? 'home' : 'home';
   })();
+
+  const firstName = (user?.name || '').trim().split(/\s+/)[0] || null;
 
   const visibleNav = navItems.filter((item) => {
     if (item.superAdminOnly) return Boolean(user?.isSuperAdmin);
@@ -251,10 +254,18 @@ export function AppShell({ children }) {
             <PanelLeft size={17} aria-hidden="true" />
           </button>
           <div className="sh-title">
-            {/* Only rendered when there is a second level to name. It used
-                to show meta.label, which was identical to the heading. */}
+            {/* The page name is still the document's heading — a page with
+                no h1 is a page a screen reader cannot summarise — but it is
+                not DRAWN any more. The sidebar already has it, lit in the
+                area's own colour, so printing it again a few centimetres
+                away was the same word twice. The visible line is the
+                greeting, which nothing else on screen says. */}
+            <h1 className="visually-hidden">{meta.title}</h1>
             {section && <span className="sh-eyebrow">{section}</span>}
-            <h1>{meta.title}</h1>
+            <p className="sh-greeting">
+              {greeting()}
+              {firstName ? `, ${firstName}` : ''}
+            </p>
           </div>
           {/* Global search trigger. Renders the keyboard shortcut hint
               on wider screens; on mobile the label and the kbd are hidden
