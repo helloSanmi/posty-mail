@@ -1,0 +1,96 @@
+/* Design foundations — everything that is NOT colour.
+ *
+ * Colour lives in themes.js because it is the axis that swaps. Type,
+ * spacing, radius and elevation are fixed across themes, so they live here
+ * as plain custom properties.
+ *
+ * TYPE. IBM Plex Sans, with Plex Mono for the things that are literally
+ * machine text — DNS records, merge tags, API keys, keyboard shortcuts.
+ * Plex is chosen over the current "Avenir Next, Inter, Segoe UI" stack for
+ * three reasons: Avenir Next only exists on Apple devices, so Windows and
+ * Linux installs silently fall through to Segoe UI and get a different
+ * product; Inter is the default every generated interface reaches for; and
+ * Plex is OFL, so a SELF-HOSTED product can ship the files rather than
+ * calling a font CDN on every page load for every one of its users.
+ *
+ * The sandbox loads Plex from a CDN for review convenience. Production
+ * self-hosts it — see the note in design.html.
+ *
+ * SCALE. A 4px spacing grid and a type scale with real intervals. The live
+ * app has neither: it has 47 distinct font-size values and padding chosen
+ * per component, which is a large part of why it reads as assembled rather
+ * than designed. */
+
+:root {
+  /* -- type ----------------------------------------------------------- */
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* A real scale, not 47 ad-hoc values. */
+  --text-2xs: 0.6875rem;  /* 11px — micro labels, badges */
+  --text-xs: 0.75rem;     /* 12px — table heads, eyebrows */
+  --text-sm: 0.8125rem;   /* 13px — secondary text, meta */
+  --text-base: 0.875rem;  /* 14px — body, table cells */
+  --text-md: 0.9375rem;   /* 15px — card titles */
+  --text-lg: 1.0625rem;   /* 17px — page title */
+  --text-xl: 1.5rem;      /* 24px — metric values */
+  --text-2xl: 1.875rem;   /* 30px — hero figures */
+
+  --tracking-tight: -0.018em;
+  --tracking-label: 0.07em;
+
+  /* -- spacing: a 4px grid -------------------------------------------- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+
+  /* -- radius ---------------------------------------------------------- */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 999px;
+
+  /* -- elevation -------------------------------------------------------
+     Built from the theme's --shadow so depth reads correctly on both
+     grounds. A dark theme needs a heavier, tighter shadow than a light one
+     to register at all, which the token already accounts for. */
+  --e1: 0 1px 2px var(--shadow);
+  --e2: 0 1px 2px var(--shadow), 0 2px 6px -2px var(--shadow);
+  --e3: 0 2px 4px var(--shadow), 0 12px 24px -8px var(--shadow);
+
+  /* -- motion ---------------------------------------------------------- */
+  --t-fast: 0.12s ease;
+  --t-base: 0.18s ease;
+}
+
+html[data-theme] {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  /* Tabular figures everywhere by default. Every number in this product
+     sits in a column next to another number — counts, rates, dates — and
+     proportional digits make those columns ripple. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Headings carry their own rhythm rather than inheriting browser defaults. */
+h1, h2, h3, h4 {
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.25;
+  margin: 0;
+  text-wrap: balance;
+}
+
+code, kbd, pre, .mono { font-family: var(--font-mono); }
+
+/* Prose keeps proportional figures — tabular digits in a sentence look
+   spaced out and wrong. */
+p { font-variant-numeric: normal; }
