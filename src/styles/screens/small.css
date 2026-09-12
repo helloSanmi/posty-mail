@@ -398,3 +398,68 @@ td.sm-trunc, th.sm-trunc { display: table-cell; }
   gap: 2px;
   min-width: 0;
 }
+
+/* ---- roles matrix -------------------------------------------------------
+   A role x area grid. The columns are narrow and centred because each cell
+   holds one mark, and the answer people come for ("who can reach
+   Connections?") is read down a column. */
+.roles-matrix { table-layout: auto; }
+.roles-area-col,
+.roles-cell {
+  text-align: center;
+  width: 92px;
+}
+.roles-note {
+  color: var(--text-subtle);
+  display: block;
+  font-size: var(--text-xs);
+}
+.roles-mark {
+  align-items: center;
+  color: var(--text-subtle);
+  display: inline-flex;
+  justify-content: center;
+}
+/* Granted is the signal; denied is the ground. Colour carries it, and the
+   icon shape carries it again for anyone who cannot separate the two. */
+.roles-mark.is-on { color: var(--success); }
+.roles-actions {
+  display: flex;
+  gap: var(--s1);
+  justify-content: flex-end;
+}
+
+/* ---- audit table --------------------------------------------------------
+   Six columns, so the fixed layout has to be told what matters: When and IP
+   are predictable widths, Details takes whatever is left because it is the
+   column carrying the actual content. */
+.sm-audit { table-layout: fixed; }
+.sm-audit th:nth-child(1) { width: 128px; }
+.sm-audit th:nth-child(2) { width: 168px; }
+.sm-audit th:nth-child(3) { width: 132px; }
+.sm-audit th:nth-child(4) { width: 148px; }
+.sm-audit-ip { width: 116px; }
+.sm-audit-action {
+  background: var(--surface-sunken);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: 2px 6px;
+}
+.sm-audit-id {
+  color: var(--text-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  margin-left: 6px;
+}
+
+/* Below this the six columns stop being readable; the ones that identify
+   the event survive and the rest are available from the row's tooltips. */
+@media (max-width: 900px) {
+  .sm-audit th:nth-child(6),
+  .sm-audit td:nth-child(6) { display: none; }
+}
+@media (max-width: 720px) {
+  .sm-audit th:nth-child(4),
+  .sm-audit td:nth-child(4) { display: none; }
+}

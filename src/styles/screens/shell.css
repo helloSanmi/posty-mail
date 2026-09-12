@@ -405,36 +405,15 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
 .sh-action:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .sh-action:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
-/* ---- appearance menu ----------------------------------------------------
-   Topbar furniture, so it lives with the topbar. Small on purpose: the
-   trigger is one icon showing the current mode, and the panel is two rows.
-   Anything more and a per-device display preference starts to look like a
-   setting worth deliberating over. */
-.ap-menu { position: relative; }
-.ap-panel {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--e3);
-  display: grid;
-  gap: var(--s3);
-  padding: var(--s3);
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  width: 208px;
-  z-index: 40;
-}
-.ap-row {
+/* ---- appearance controls ------------------------------------------------
+   On the surface, not behind an icon. Six small controls fit the topbar,
+   and a choice you make by eye should not need a click to reveal its
+   options when there is room to show them all. */
+.ap-controls {
   align-items: center;
   display: flex;
+  flex: none;
   gap: var(--s2);
-  justify-content: space-between;
-}
-.ap-label {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  font-weight: 500;
 }
 
 .ap-segment {
@@ -450,13 +429,13 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
   color: var(--text-muted);
   cursor: pointer;
   display: inline-flex;
+  justify-content: center;
   /* base.css styles `label` as a grid with a bottom margin, which would
      stack these and push the row apart. */
   margin: 0;
-  justify-content: center;
   min-height: 24px;
   transition: background var(--t-fast), color var(--t-fast);
-  width: 28px;
+  width: 26px;
 }
 .ap-seg:hover { color: var(--text); }
 .ap-seg.is-active {
@@ -464,15 +443,15 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
   box-shadow: var(--e1);
   color: var(--text);
 }
-/* The ring goes on the visible control: the input itself is
-   visually-hidden, so a focus ring on it would land nowhere. */
+/* The ring goes on the visible control: the input is visually-hidden, so a
+   ring on it would land nowhere. */
 .ap-seg:focus-within,
 .ap-swatch:focus-within {
   outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
 
-.ap-accents { display: flex; gap: var(--s1); }
+.ap-accents { display: flex; gap: 2px; }
 .ap-swatch {
   border-radius: var(--r-full);
   cursor: pointer;
@@ -486,6 +465,12 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
      is painted by the same declaration that paints the app. */
   background: var(--accent);
   border-radius: 50%;
-  height: 14px;
-  width: 14px;
+  height: 13px;
+  width: 13px;
+}
+
+/* Narrow topbars have to give something up, and the accent is the more
+   decorative of the two choices — light/dark is the one people need. */
+@media (max-width: 720px) {
+  .ap-accents { display: none; }
 }

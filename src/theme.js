@@ -40,12 +40,37 @@ export function readTheme() {
 }
 
 export function applyTheme({ ground, accent }, root = document.documentElement) {
+  // Transitions are suppressed across the swap. Two reasons, one cosmetic
+  // and one a genuine bug:
+  //
+  //   - cosmetic: without it the entire interface cross-fades, every
+  //     surface and every label easing between two themes at once.
+  //   - the bug: an element that transitions a colour coming from a custom
+  //     property does not re-resolve that property when only the property
+  //     changes. It keeps painting its OLD colour indefinitely — measured
+  //     on the admin tab strip, which stayed at the light theme's
+  //     --text-muted (2.4:1 on a dark card) while a freshly created element
+  //     with the same class painted correctly. Suppressing the transition
+  //     for the frame of the swap makes the change a plain recalculation,
+  //     which resolves correctly.
+  root.setAttribute('data-theme-switching', '');
+
   // 'system' removes the attribute rather than writing a value, which is
   // what lets the prefers-color-scheme block in tokens.css take over. An
   // explicit choice writes the attribute and therefore beats the OS.
   if (ground === 'system') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', ground);
   root.setAttribute('data-accent', accent);
+
+  // Flush the suppressed state before releasing it, then release after the
+  // paint so transitions are live again for ordinary hovers.
+  void root.offsetHeight;
+  const release = () => root.removeAttribute('data-theme-switching');
+  if (typeof window !== 'undefined' && window.requestAnimationFrame) {
+    window.requestAnimationFrame(() => window.requestAnimationFrame(release));
+  } else {
+    release();
+  }
 }
 
 export function saveTheme({ ground, accent }) {
