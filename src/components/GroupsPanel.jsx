@@ -140,7 +140,7 @@ export function GroupsPanel({
   }
 
   return (
-    <aside className="surface groups-sidebar">
+    <aside className="au-card groups-sidebar">
       <div className="groups-sidebar-header">
         <strong>Groups</strong>
         <button

@@ -23,7 +23,14 @@
 html[data-theme='light'] {
   color-scheme: light;
 
-  --bg: #e9edf4;
+  /* The page behind the cards. Toned down from #e9edf4, which carried a
+     noticeable blue cast (11 points of channel spread) and sat heavily
+     behind every page. This halves the chroma to 6 and lifts it slightly.
+     It costs some separation from the cards — 1.11:1 down to 1.07:1 — which
+     is affordable only because a card is not just a lighter rectangle: it
+     also has a border and the --e1 shadow. Lighter than this and the page
+     does go flat. */
+  --bg: #eff1f5;
   --surface: #f7f9fc;
   --surface-raised: #ffffff;
   --surface-sunken: #dde4ee;
