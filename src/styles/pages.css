@@ -962,7 +962,11 @@
   gap: 8px;
   padding: 12px;
   position: sticky;
-  top: 88px;
+  /* top:0. This was 88px, an offset sized for the old fixed topbar back
+     when the DOCUMENT scrolled. .sh-content is the scroll container now and
+     supplies the page padding itself, so the old inset only pushed the
+     groups panel 88px below the contacts table beside it. */
+  top: 0;
 }
 .groups-sidebar-header {
   align-items: center;
@@ -2324,7 +2328,9 @@
 .send-summary {
   align-self: start;
   position: sticky;
-  top: 88px;
+  /* Was 88px — see .groups-sidebar. Same stale offset, same effect: the
+     review rail sat 88px below the form it reviews. */
+  top: 0;
 }
 
 /* Builder schedule */
@@ -3103,7 +3109,10 @@
   margin: -4px 0 4px;
   padding: 4px 0 0;
   position: sticky;
-  top: 64px;
+  /* Was 64px, for the old fixed topbar. CampaignTabs renders this strip at
+     the very top of the page, so any inset leaves a gap of stale page
+     showing above it as you scroll. */
+  top: 0;
   z-index: 2;
 }
 .page-tab {

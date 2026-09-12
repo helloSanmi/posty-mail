@@ -383,7 +383,7 @@ export function ContactsTable({
   const allOnPageSelected = data.rows.length > 0 && data.rows.every((row) => selected.has(row.email));
 
   return (
-    <section className="surface contacts-panel">
+    <section className="au-card contacts-panel">
       <div className="contacts-toolbar">
         <div>
           <h2>Contacts</h2>

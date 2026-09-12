@@ -140,17 +140,32 @@
   padding: 0 var(--s2);
 }
 .em-search input {
+  appearance: none;
   background: transparent;
   border: 0;
   color: var(--text);
   font: inherit;
   font-size: var(--text-sm);
+  /* base.css gives every input a 42px min-height, for inputs that stand on
+     their own. This one is a field inside a bordered wrapper, so the
+     wrapper owns the height — left alone it made a 44px search box sit
+     above 38px rows. appearance:none also drops WebKit's own search
+     decorations, which drew their own control inside ours. */
+  min-height: 0;
   min-width: 0;
-  padding: 6px 0;
+  padding: 5px 0;
   width: 100%;
 }
-.em-search input:focus { outline: none; }
-.em-search:focus-within { border-color: var(--accent); }
+/* The ring belongs on the wrapper, which is the thing that looks like the
+   field. Left on the input it is drawn inside the border, and the inner
+   element has no border of its own to align to. Matches the focus
+   treatment every other input in the app gets, rather than a hard accent
+   line unique to this one. */
+.em-search input:focus { box-shadow: none; outline: none; }
+.em-search:focus-within {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 22%, transparent);
+}
 
 /* ---- template list -----------------------------------------------------
    A list, not a dropdown. Each row carries its subject because that is
