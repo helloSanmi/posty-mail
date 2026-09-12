@@ -411,3 +411,149 @@ td.rp-trunc, th.rp-trunc { display: table-cell; }
   .rp-events td:nth-child(3), .rp-events th:nth-child(3) { display: none; }
   .rp-table th:nth-child(2), .rp-table td:nth-child(2) { display: none; }
 }
+
+/* ---- framed ledger ------------------------------------------------------
+   The campaign table is the only unbounded thing on this page. While it sat
+   in the document's flow, every panel after it was pushed down by however
+   many campaigns existed — measured at roughly 7,700px to the Activity
+   chart with 200 rows, about nine screens. Inside its own frame the page is
+   the same height for three campaigns and three hundred. */
+.rp-strip {
+  align-items: start;
+  display: grid;
+  gap: var(--s4);
+  /* The main-plus-rail proportion the Campaigns page already uses. */
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.rp-ledger-tools {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  padding-bottom: var(--s3);
+}
+.rp-scope {
+  background: var(--surface-sunken);
+  border-radius: var(--r-md);
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+}
+.rp-scope-btn {
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  min-height: 26px;
+  padding: 0 var(--s3);
+}
+.rp-scope-btn:hover { color: var(--text); }
+.rp-scope-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.rp-scope-btn.is-active {
+  background: var(--surface-raised);
+  box-shadow: var(--e1);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.rp-search {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text-subtle);
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  /* base.css styles `label` as a grid with a bottom margin. */
+  margin: 0;
+  max-width: 280px;
+  padding: 0 var(--s2);
+}
+.rp-search input {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+  /* base.css gives inputs a 42px min-height, for inputs that stand alone.
+     This one sits inside a wrapper that owns the height. */
+  min-height: 0;
+  min-width: 0;
+  padding: 5px 0;
+  width: 100%;
+}
+.rp-search input:focus { box-shadow: none; outline: none; }
+.rp-search:focus-within {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 22%, transparent);
+}
+
+/* The frame. overscroll-behavior stops a flick at the last row from
+   carrying on and scrolling the page out from under the table. */
+.rp-frame {
+  max-height: 560px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* The column labels have to survive row 180, which is exactly what a long
+   uncapped table loses first. border-collapse drops a sticky th's own
+   borders, so the separator is drawn as a shadow instead. */
+.rp-frame thead th {
+  background: var(--surface);
+  box-shadow: inset 0 -1px 0 var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.rp-sort {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 4px;
+  letter-spacing: inherit;
+  min-height: 0;
+  padding: 0;
+  text-transform: inherit;
+}
+.rp-num .rp-sort { flex-direction: row-reverse; }
+.rp-sort:hover { color: var(--text); }
+.rp-sort:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.rp-sort.is-active { color: var(--text); }
+/* The caret only means anything on the sorted column, so it is invisible
+   elsewhere rather than absent — the header keeps one width either way. */
+.rp-sort-caret { opacity: 0; transition: transform var(--t-fast); }
+.rp-sort.is-active .rp-sort-caret { opacity: 1; }
+.rp-sort-caret.is-asc { transform: rotate(180deg); }
+
+@media (max-width: 1100px) {
+  .rp-strip { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The drill-down's frame is shallower than the ledger's: it opens beneath
+   the band as a detail of it, and a 560px panel would push the strip off
+   the first screen — which is the thing this whole change exists to stop. */
+.rp-frame-drill { max-height: 320px; }
+
+/* The frames are focusable so they can be scrolled from the keyboard, which
+   means the focus has to be visible — an invisible focused scroll region is
+   a keyboard user with no idea where they are. */
+.rp-frame:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+/* The sticky header would otherwise cover the top of a row scrolled into
+   view from above, clipping its focus outline. */
+.rp-frame tbody tr,
+.rp-frame tbody td { scroll-margin-top: 36px; }

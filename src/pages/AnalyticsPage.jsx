@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, ExternalLink, RefreshCw, X } from 'lucide-react';
+import {
+  ArrowRight, ChevronDown, ExternalLink, RefreshCw, Search, X,
+} from 'lucide-react';
 import { getCampaigns, getEvents } from '../services/brevoApi';
 import { SkeletonCard } from '../components/Skeleton';
 import { ActivityChart } from '../components/analytics/ActivityChart';
@@ -213,6 +215,106 @@ export function AnalyticsPage() {
     [events, range.since, range.until],
   );
 
+  // One pass over the events, bucketed by campaign tag, instead of a full
+  // scan of every event for every row. The old per-row call was O(campaigns
+  // x events) and ran inside the render — fine at ten campaigns, not at two
+  // hundred, and sorting by a figure needs them all up front anyway.
+  const statsByCampaign = useMemo(() => {
+    const byCampaign = new Map();
+    realEvents.forEach((event) => {
+      const name = String(event.payload?.event || '').toLowerCase();
+      const kind = OPEN_NAMES.has(name) ? 'opens'
+        : CLICK_NAMES.has(name) ? 'clicks'
+          : BOUNCE_NAMES.has(name) ? 'bounces' : null;
+      if (!kind) return;
+      // Unique ids per event. The function this replaced scanned once per
+      // campaign and could only count an event once; iterating tags can see
+      // the same campaign twice on one event and would count it twice.
+      const ids = new Set();
+      (event.payload?.tags || []).forEach((tag) => {
+        if (typeof tag !== 'string' || !tag.startsWith('campaign:')) return;
+        ids.add(tag.slice('campaign:'.length));
+      });
+      ids.forEach((id) => {
+        const entry = byCampaign.get(id) || { opens: 0, clicks: 0, bounces: 0 };
+        entry[kind] += 1;
+        byCampaign.set(id, entry);
+      });
+    });
+    return byCampaign;
+  }, [realEvents]);
+
+  const statsFor = (id) => statsByCampaign.get(id) || { opens: 0, clicks: 0, bounces: 0 };
+
+  // The campaign table's own controls. They exist because the table is the
+  // one thing on this page whose length is unbounded, and 200 rows is not a
+  // report unless you can narrow and order it.
+  const [scope, setScope] = useState('sent');
+  const [query, setQuery] = useState('');
+  // Newest first, which is the order the page opened in before and the
+  // order the date on every row implies. Sorting is an answer to a
+  // question, not the resting state.
+  const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
+
+  // withinRange passes a campaign with no date at all, so drafts and
+  // scheduled sends land in the report as "Sent 0 / — / — / —". They are
+  // not wrong, they are just not results; on All time they are a real share
+  // of the noise. Hiding them is the cheapest row reduction available, and
+  // the chip makes it explicit and reversible rather than a silent filter.
+  const scopedCampaigns = useMemo(() => (
+    scope === 'sent'
+      // ATTEMPTED delivery, not successful delivery. progress.sent counts
+      // only what went out, so a campaign where every recipient errored has
+      // sent === 0 and looked exactly like a draft — the one row an
+      // engagement report must never hide.
+      ? rangedCampaigns.filter((c) => ((c.progress?.sent || 0) + (c.progress?.failed || 0)) > 0)
+      : rangedCampaigns
+  ), [rangedCampaigns, scope]);
+
+  const tableRows = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    const matched = term
+      ? scopedCampaigns.filter((c) => String(c.name || '').toLowerCase().includes(term))
+      : scopedCampaigns;
+    const figure = (campaign) => {
+      const stats = statsFor(campaign.id);
+      if (sort.key === 'name') return String(campaign.name || '').toLowerCase();
+      if (sort.key === 'date') return new Date(campaign.scheduledAt || campaign.createdAt || 0).getTime();
+      if (sort.key === 'sent') return campaign.progress?.sent || 0;
+      // Sort by what the cell SHOWS. RateCell leads with the rate and prints
+      // the count underneath, so ordering by the raw count made a descending
+      // percentage column read ascending: 5 bounces of 10,000 (0.1%) sorted
+      // above 3 of 10 (30%). -1 sinks the rows that display "—" to one end
+      // rather than tying them all at zero.
+      const sent = campaign.progress?.sent || 0;
+      return sent ? (stats[sort.key] || 0) / sent : -1;
+    };
+    return [...matched].sort((a, b) => {
+      const av = figure(a);
+      const bv = figure(b);
+      if (av === bv) return 0;
+      const order = av > bv ? 1 : -1;
+      return sort.dir === 'asc' ? order : -order;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedCampaigns, query, sort, statsByCampaign]);
+
+  // The subtotal for what is actually on screen, so a narrowed table never
+  // silently disagrees with the band above it.
+  const visibleSent = useMemo(
+    () => tableRows.reduce((total, c) => total + (c.progress?.sent || 0), 0),
+    [tableRows],
+  );
+
+  function toggleSort(key) {
+    setSort((current) => (
+      current.key === key
+        ? { key, dir: current.dir === 'desc' ? 'asc' : 'desc' }
+        : { key, dir: key === 'name' ? 'asc' : 'desc' }
+    ));
+  }
+
+
   // Webhook liveness for the control row. Reads the raw (pre bot-filter)
   // feed: the question this line answers is "is anything arriving at all",
   // and a scanner's click still proves the webhook fired.
@@ -408,12 +510,86 @@ export function AnalyticsPage() {
         />
       )}
 
-      <section className="rp-card">
+      {/* Activity and Top links sit ABOVE the table, side by side, at a
+          fixed offset. They are bounded — one chart of the window, six
+          links — so they belong on the first screen whatever the campaign
+          count is. The main-plus-rail proportion is the one the Campaigns
+          page already uses. */}
+      <div className="rp-strip">
+        <section className="rp-card">
+          <div className="rp-card-head">
+            <h2>Activity</h2>
+            <span className="rp-count">
+              {realEvents.length === 0 ? 'No events yet' : `${realEvents.length} events`}
+            </span>
+          </div>
+          {loading ? (
+            <SkeletonCard />
+          ) : (
+            <ActivityChart
+              events={realEvents}
+              since={range.since}
+              until={range.until}
+            />
+          )}
+        </section>
+
+        <section className="rp-card">
+          <div className="rp-card-head">
+            <h2>Top clicked links</h2>
+          </div>
+          {loading ? <SkeletonCard /> : <TopLinks events={realEvents} limit={6} />}
+        </section>
+      </div>
+
+      {/* Campaign performance is LAST and it is FRAMED. It is the only
+          unbounded thing on the page, and while it sat second every panel
+          below it was pushed down by however many campaigns existed — at
+          200 rows the Activity chart began roughly 7,700px down, about nine
+          screens. Inside its own scroll frame the page is the same height
+          for three campaigns and for three hundred, and everything else
+          stays on the first screen. */}
+      <section className="rp-card rp-ledger">
         <div className="rp-card-head">
           <h2>Campaign performance</h2>
-          <span className="rp-count">
-            {rangedCampaigns.length === 1 ? '1 campaign' : `${rangedCampaigns.length} campaigns`}
+          {/* The only feedback that filtering did anything. Without a live
+              region a screen-reader user types into the filter and is told
+              nothing — including when nothing matched. */}
+          <span className="rp-count" role="status">
+            {tableRows.length === rangedCampaigns.length
+              ? `${rangedCampaigns.length} ${rangedCampaigns.length === 1 ? 'campaign' : 'campaigns'}`
+              : `${tableRows.length} of ${rangedCampaigns.length} campaigns`}
+            {tableRows.length > 0 && ` · ${visibleSent.toLocaleString()} sent`}
           </span>
+        </div>
+
+        <div className="rp-ledger-tools">
+          {/* Sent vs All is an explicit, reversible statement about which
+              rows are results. Drafts and scheduled sends pass the date
+              filter and render as Sent 0 / — / — / —. */}
+          <div className="rp-scope" role="group" aria-label="Which campaigns">
+            {[{ key: 'sent', label: 'Sent' }, { key: 'all', label: 'All' }].map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                className={`rp-scope-btn${scope === option.key ? ' is-active' : ''}`}
+                aria-pressed={scope === option.key}
+                onClick={() => setScope(option.key)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <label className="rp-search">
+            <Search size={14} aria-hidden="true" />
+            <span className="visually-hidden">Filter campaigns by name</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filter campaigns"
+            />
+          </label>
         </div>
         {loadError ? (
           <p className="empty-state error" role="alert">
@@ -421,26 +597,66 @@ export function AnalyticsPage() {
           </p>
         ) : loading ? (
           <SkeletonCard />
-        ) : rangedCampaigns.length === 0 ? (
+        ) : tableRows.length === 0 ? (
           <p className="empty-state">
             {campaigns.length === 0
               ? 'No campaigns yet. Send one to see metrics here.'
-              : `No campaigns in this window. Try a wider range like "All time".`}
+              : query.trim()
+                ? `No campaign matches “${query.trim()}”.`
+                : scope === 'sent' && rangedCampaigns.length > 0
+                  ? 'No campaign in this window has sent yet. Switch to All to include drafts and scheduled sends.'
+                  : 'No campaigns in this window. Try a wider range like "All time".'}
           </p>
         ) : (
-          <table className="rp-table">
-            <thead>
-              <tr>
-                <th>Campaign</th>
-                <th className="rp-num">Sent</th>
-                <th className="rp-num">Opened</th>
-                <th className="rp-num">Clicked</th>
-                <th className="rp-num">Bounced</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rangedCampaigns.map((campaign) => {
-                const stats = perCampaignStats(realEvents, campaign.id);
+          // A scroll container has to be focusable to be scrollable from the
+          // keyboard. The ledger's rows happen to be focusable so it is
+          // reachable either way, but it is labelled and focusable for the
+          // same reason the drill-down must be.
+          <div
+            className="rp-frame"
+            tabIndex={0}
+            role="region"
+            aria-label="Campaign performance, scrollable"
+          >
+            <table className="rp-table">
+              <thead>
+                <tr>
+                  {[
+                    { key: 'date', label: 'Campaign', num: false },
+                    { key: 'sent', label: 'Sent', num: true },
+                    { key: 'opens', label: 'Opened', num: true },
+                    { key: 'clicks', label: 'Clicked', num: true },
+                    { key: 'bounces', label: 'Bounced', num: true },
+                  ].map((column) => (
+                    <th
+                      key={column.key}
+                      className={column.num ? 'rp-num' : undefined}
+                      aria-sort={sort.key === column.key
+                        ? (sort.dir === 'asc' ? 'ascending' : 'descending')
+                        : 'none'}
+                    >
+                      {/* Sorting is what makes a long report answerable:
+                          worst bounce rate, biggest send, best open rate
+                          are all one click rather than a read of 200 rows. */}
+                      <button
+                        type="button"
+                        className={`rp-sort${sort.key === column.key ? ' is-active' : ''}`}
+                        onClick={() => toggleSort(column.key)}
+                      >
+                        {column.label}
+                        <ChevronDown
+                          size={12}
+                          aria-hidden="true"
+                          className={`rp-sort-caret${sort.key === column.key && sort.dir === 'asc' ? ' is-asc' : ''}`}
+                        />
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tableRows.map((campaign) => {
+                  const stats = statsFor(campaign.id);
                 const sent = campaign.progress?.sent || 0;
                 const state = stateFor(campaign.status);
                 const open = () => navigate(`/campaigns/${campaign.id}`);
@@ -479,38 +695,11 @@ export function AnalyticsPage() {
                     <RateCell count={stats.bounces} sent={sent} tone="danger" />
                   </tr>
                 );
-              })}
-            </tbody>
-          </table>
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-      </section>
-
-      {/* Activity over time — daily opens + clicks across the selected
-          window. Hidden behind a skeleton while loading so users don't see
-          a flicker of empty chart while the request lands. */}
-      <section className="rp-card">
-        <div className="rp-card-head">
-          <h2>Activity</h2>
-          <span className="rp-count">
-            {realEvents.length === 0 ? 'No events yet' : `${realEvents.length} events`}
-          </span>
-        </div>
-        {loading ? (
-          <SkeletonCard />
-        ) : (
-          <ActivityChart
-            events={realEvents}
-            since={range.since}
-            until={range.until}
-          />
-        )}
-      </section>
-
-      <section className="rp-card">
-        <div className="rp-card-head">
-          <h2>Top clicked links</h2>
-        </div>
-        {loading ? <SkeletonCard /> : <TopLinks events={realEvents} />}
       </section>
     </div>
   );
@@ -614,6 +803,20 @@ function DrillDown({ metric, events, campaignsById, loading, onClose, onCampaign
         <p className="empty-state compact">{def.empty}</p>
       ) : (
         <>
+          {/* The other unbounded list. Opening "All events" used to push
+              everything below it down by up to 100 rows; the same frame
+              keeps the drill-down adjacent to the band that opened it,
+              which is the whole point of the interaction. */}
+          {/* This one genuinely needs it: when no event row resolves to a
+              campaign there is no focusable descendant at all, so without a
+              tabindex everything past the first screenful of up to 100 rows
+              is unreachable without a mouse. */}
+          <div
+            className="rp-frame rp-frame-drill"
+            tabIndex={0}
+            role="region"
+            aria-label={`${def.label} events, scrollable`}
+          >
           <table className="rp-table rp-events">
             <thead>
               <tr>
@@ -673,6 +876,7 @@ function DrillDown({ metric, events, campaignsById, loading, onClose, onCampaign
               })}
             </tbody>
           </table>
+          </div>
           {events.length > visible.length && (
             <small className="rp-dim">Showing {visible.length} of {events.length}.</small>
           )}
@@ -714,21 +918,6 @@ function summariseLink(url) {
   }
 }
 
-function perCampaignStats(events, campaignId) {
-  const tag = `campaign:${campaignId}`;
-  let opens = 0;
-  let clicks = 0;
-  let bounces = 0;
-  events.forEach((event) => {
-    const tags = event.payload?.tags || [];
-    if (!tags.includes(tag)) return;
-    const name = String(event.payload?.event || '').toLowerCase();
-    if (OPEN_NAMES.has(name)) opens += 1;
-    if (CLICK_NAMES.has(name)) clicks += 1;
-    if (BOUNCE_NAMES.has(name)) bounces += 1;
-  });
-  return { opens, clicks, bounces };
-}
 
 function labelFor(status) {
   if (status === 'completed_with_errors') return 'errors';

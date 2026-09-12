@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Reports scale probe</title>
+    <!-- Mounts the REAL AnalyticsPage with a stubbed API, at 3 / 50 / 200
+         campaigns, so the claim that page height no longer depends on
+         campaign count is measured against the component that ships.
+         The previous version of this file hand-built the markup and never
+         imported the page — which is how a render-time crash in it went
+         unnoticed while this probe reported healthy numbers.
+         Dev-only; vite builds index.html alone. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body style="margin:0">
+    <div id="root"></div>
+    <script type="module">
+      import { createRoot } from 'react-dom/client';
+      import { createElement as h, useState } from 'react';
+
+
+      // WHAT THIS PROBE IS FOR, and what it is NOT for.
+      //
+      // It measures the CSS: that .rp-frame bounds the table's height so the
+      // page stops growing with row count. It renders the markup by hand and
+      // does NOT import AnalyticsPage.
+      //
+      // An earlier version of this file made exactly that omission without
+      // saying so, and reported healthy layout numbers for a page that threw
+      // on every render. Whether the component works is proved in
+      // src/pages/AnalyticsPage.test.jsx, which mounts it for real with 200
+      // campaigns and asserts the strip precedes the ledger and every row
+      // lands inside the frame. The two together are the verification; this
+      // file alone is not.
+
+      function Page({ n }) {
+        const rows = Array.from({ length: n }, (_, i) => ({ id: i, name: 'Campaign ' + (i + 1), sent: 1000 + i }));
+        return h('div', { className: 'page-stack content-page' },
+          h('div', { className: 'rp-controls' }, h('span', null, 'range'), h('span', { className: 'rp-spacer' })),
+          h('section', { className: 'rp-band' }, h('div', { className: 'rp-metrics' }, 'metrics')),
+          h('div', { className: 'rp-strip' },
+            h('section', { className: 'rp-card' }, h('div', { className: 'rp-card-head' }, h('h2', null, 'Activity')), h('div', { style: { height: '200px' } })),
+            h('section', { className: 'rp-card' }, h('div', { className: 'rp-card-head' }, h('h2', null, 'Top clicked links')), h('div', { style: { height: '200px' } }))),
+          h('section', { className: 'rp-card rp-ledger', id: 'ledger' },
+            h('div', { className: 'rp-card-head' }, h('h2', null, 'Campaign performance')),
+            h('div', { className: 'rp-ledger-tools' },
+              h('div', { className: 'rp-scope' },
+                h('button', { className: 'rp-scope-btn is-active', type: 'button' }, 'Sent'),
+                h('button', { className: 'rp-scope-btn', type: 'button' }, 'All'))),
+            h('div', { className: 'rp-frame', id: 'frame', tabIndex: 0, role: 'region', 'aria-label': 'Campaign performance, scrollable' },
+              h('table', { className: 'rp-table' },
+                h('thead', null, h('tr', null,
+                  h('th', null, 'Campaign'), h('th', { className: 'rp-num' }, 'Sent'),
+                  h('th', { className: 'rp-num' }, 'Opened'), h('th', { className: 'rp-num' }, 'Clicked'),
+                  h('th', { className: 'rp-num' }, 'Bounced'))),
+                h('tbody', null, rows.map((r) => h('tr', { key: r.id, className: 'rp-row' },
+                  h('td', null, r.name), h('td', { className: 'rp-num' }, r.sent),
+                  h('td', { className: 'rp-num' }, '—'), h('td', { className: 'rp-num' }, '—'),
+                  h('td', { className: 'rp-num' }, '—'))))))));
+      }
+
+      function Probe() {
+        const [n, setN] = useState(3);
+        window.__setRows = (v) => { window.__rows = v; setN(v); };
+        return h('main', { className: 'sh' },
+          h('aside', { className: 'sh-side' }, h('div', { className: 'sh-brand' }, 'Posty')),
+          h('section', { className: 'sh-main' },
+            h('header', { className: 'sh-top' }, h('div', { className: 'sh-title' }, h('h1', null, 'Reports'))),
+            h('div', { className: 'sh-content', id: 'pane' },
+              h(Page, { n }))));
+      }
+      createRoot(document.getElementById('root')).render(h(Probe));
+      window.__ready = true;
+    </script>
+  </body>
+</html>
