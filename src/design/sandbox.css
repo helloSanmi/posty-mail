@@ -1,0 +1,179 @@
+/* Chrome for the design sandbox only.
+ *
+ * Deliberately plain: this is the frame around the work, not the work. It
+ * must not compete with the page being reviewed, and none of it ships — it
+ * is loaded solely by design.html, which the production build never sees.
+ *
+ * It reads the same semantic tokens the redesigned pages use, so switching
+ * theme also re-skins the sandbox and any token that has been forgotten
+ * shows up here first. */
+
+/* Paint the ground on the document itself, not only on .sb-root. A
+   transparent body shows the browser's own white behind overscroll and
+   anywhere the root does not reach — which reads as a flash of the wrong
+   theme on a dark ground. */
+html[data-theme],
+html[data-theme] body {
+  background: var(--bg);
+  margin: 0;
+}
+
+.sb-root {
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.sb-bar {
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 10px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.sb-brand {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-right: 4px;
+}
+.sb-brand span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sb-group { align-items: center; display: flex; gap: 6px; }
+.sb-label {
+  color: var(--text-subtle);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sb-seg {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+}
+.sb-seg button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 4px 10px;
+}
+.sb-seg button:hover { color: var(--text); }
+.sb-seg button[aria-pressed='true'] {
+  background: var(--surface);
+  box-shadow: 0 1px 2px var(--shadow);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.sb-swatches { display: flex; gap: 6px; }
+.sb-swatch {
+  background: var(--swatch);
+  border: 2px solid transparent;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--shadow);
+  cursor: pointer;
+  height: 22px;
+  padding: 0;
+  width: 22px;
+}
+.sb-swatch[aria-pressed='true'] { border-color: var(--text); }
+.sb-swatch:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.sb-spacer { flex: 1; }
+
+.sb-note {
+  color: var(--text-subtle);
+  font-size: 0.76rem;
+}
+
+.sb-stage { flex: 1; min-height: 0; }
+
+.sb-empty {
+  align-items: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  margin: 48px auto;
+  max-width: 560px;
+  padding: 48px 32px;
+  text-align: center;
+}
+.sb-empty strong { color: var(--text); font-weight: 600; }
+.sb-empty code {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.86em;
+  padding: 1px 5px;
+}
+
+/* Token inspector — every role rendered as a chip, so a missing or
+   wrong-on-dark value is visible immediately rather than being discovered
+   three pages later. */
+.sb-tokens {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  margin: 0 auto;
+  max-width: 1100px;
+  padding: 24px 16px 64px;
+}
+.sb-token {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+}
+.sb-token-chip {
+  background: var(--chip);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  flex: none;
+  height: 26px;
+  width: 26px;
+}
+.sb-token-text { display: grid; min-width: 0; }
+.sb-token-name {
+  font-size: 0.78rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-token-value {
+  color: var(--text-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+}
