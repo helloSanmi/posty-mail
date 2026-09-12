@@ -1,0 +1,399 @@
+/* Home.
+ *
+ * The page opens on information, not on a greeting. Colour follows the same
+ * rule as everywhere else: each metric owns a hue, state is carried by the
+ * pill and the row's left edge, and the chrome stays out of it. */
+
+/* Sandbox-only control for flipping between the in-use and first-run
+   states. Not part of the design. */
+.hm-statebar {
+  align-items: center;
+  border-bottom: 1px dashed var(--border-strong);
+  display: flex;
+  gap: var(--s2);
+  margin: calc(var(--s5) * -1) calc(var(--s5) * -1) 0;
+  padding: var(--s2) var(--s5);
+}
+.hm-statebar-label {
+  color: var(--text-subtle);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.hm-statebar-seg { display: flex; gap: 2px; }
+.hm-statebar-seg button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-xs);
+  padding: 3px var(--s2);
+}
+.hm-statebar-seg button[aria-pressed='true'] {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* ---- live strip --------------------------------------------------------
+   The only thing that earned a place above the numbers, and only while it
+   is true. */
+.hm-live {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1);
+  display: flex;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+}
+.hm-live-dot {
+  background: var(--accent);
+  border-radius: 50%;
+  flex: none;
+  height: 8px;
+  width: 8px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hm-live-dot { animation: hm-pulse 2s ease-in-out infinite; }
+}
+@keyframes hm-pulse { 50% { opacity: 0.35; } }
+
+.hm-live-text { display: flex; flex-wrap: wrap; gap: 2px var(--s2); min-width: 0; }
+.hm-live-text strong { font-size: var(--text-base); font-weight: 600; }
+.hm-live-meta { color: var(--text-muted); font-size: var(--text-sm); }
+.hm-live-track {
+  background: var(--surface-sunken);
+  border-radius: var(--r-full);
+  flex: 1;
+  height: 6px;
+  max-width: 280px;
+  min-width: 90px;
+  overflow: hidden;
+}
+.hm-live-fill { background: var(--accent); display: block; height: 100%; }
+.hm-live-pct {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  min-width: 34px;
+  text-align: right;
+}
+
+.hm-link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--accent);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: 4px;
+  padding: 3px 5px;
+}
+.hm-link:hover { background: var(--accent-soft); }
+.hm-link:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+.hm-btn {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 6px var(--s3);
+  white-space: nowrap;
+}
+.hm-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+.hm-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+/* ---- metric tiles ------------------------------------------------------
+   The hero's subtitle facts live here now. Each metric keeps its hue for
+   the life of the product, and the second line carries the context the
+   subtitle used to spend a sentence on. */
+.hm-tiles {
+  display: grid;
+  gap: var(--s3);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.hm-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1);
+  display: grid;
+  gap: 3px;
+  overflow: hidden;
+  padding: var(--s4);
+  position: relative;
+  text-align: left;
+}
+.hm-tile::before {
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+.hm-tile.is-accent::before { background: var(--accent); }
+.hm-tile.is-success::before { background: var(--success); }
+.hm-tile.is-warn::before { background: var(--warn); }
+.hm-tile.is-danger::before { background: var(--danger); }
+
+.hm-tile.is-link { cursor: pointer; transition: border-color var(--t-fast), box-shadow var(--t-fast); }
+.hm-tile.is-link:hover { border-color: var(--border-strong); box-shadow: var(--e2); }
+.hm-tile.is-link:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.hm-tile-head { align-items: center; display: flex; gap: 6px; }
+.hm-tile-icon { align-items: center; display: inline-flex; }
+.hm-tile.is-accent .hm-tile-icon { color: var(--accent); }
+.hm-tile.is-success .hm-tile-icon { color: var(--success); }
+.hm-tile.is-warn .hm-tile-icon { color: var(--warn); }
+.hm-tile.is-danger .hm-tile-icon { color: var(--danger); }
+.hm-tile-label {
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.hm-tile-value {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
+}
+.hm-tile-meta { color: var(--text-subtle); font-size: var(--text-sm); }
+
+/* ---- two columns ------------------------------------------------------ */
+.hm-grid {
+  display: grid;
+  gap: var(--s4);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+}
+.hm-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1);
+  display: flex;
+  flex-direction: column;
+  padding: var(--s4) var(--s5) var(--s4);
+}
+.hm-card-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: var(--s2);
+}
+.hm-card-head h2 { font-size: var(--text-md); }
+
+.hm-list { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.hm-row {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--s3);
+  justify-content: space-between;
+  padding: 11px 0 11px var(--s3);
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+.hm-list li:first-child .hm-row { border-top: 0; }
+.hm-row:hover { background: var(--accent-soft); }
+.hm-row:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+/* Same scarcity rule as everywhere else: the rule marks a row that needs
+   attention, never every row. */
+.hm-row.is-warn::before,
+.hm-row.is-danger::before {
+  border-radius: 2px;
+  bottom: 9px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 9px;
+  width: 3px;
+}
+.hm-row.is-warn::before { background: var(--warn); }
+.hm-row.is-danger::before { background: var(--danger); }
+
+.hm-row-main { display: grid; gap: 3px; min-width: 0; }
+.hm-row-name {
+  font-size: var(--text-base);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hm-row-meta { color: var(--text-muted); font-size: var(--text-sm); }
+.hm-row-track {
+  background: var(--surface-sunken);
+  border-radius: var(--r-full);
+  display: block;
+  height: 6px;
+  margin-top: 3px;
+  max-width: 220px;
+  overflow: hidden;
+}
+.hm-row-fill { background: var(--accent); display: block; height: 100%; }
+
+.hm-pill {
+  align-self: center;
+  border-radius: var(--r-full);
+  flex: none;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  padding: 3px 10px;
+}
+.hm-pill.is-success { background: var(--success-soft); color: var(--success); }
+.hm-pill.is-accent { background: var(--accent); color: var(--accent-contrast); }
+.hm-pill.is-pending { background: var(--accent-soft); color: var(--accent); }
+.hm-pill.is-warn { background: var(--warn-soft); color: var(--warn); }
+.hm-pill.is-muted { background: var(--surface-sunken); color: var(--text-muted); }
+
+/* ---- activity ----------------------------------------------------------
+   A dot rather than a pill per row. Six pills stacked in a narrow column
+   read as six buttons; the dot carries the same hue at a fraction of the
+   weight, and the verb is already there in words. */
+.hm-events { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.hm-event {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: var(--s2);
+  padding: 9px 0;
+}
+.hm-events li:first-child { border-top: 0; }
+.hm-dot { border-radius: 50%; flex: none; height: 7px; width: 7px; }
+.hm-dot.is-accent { background: var(--accent); }
+.hm-dot.is-success { background: var(--success); }
+.hm-dot.is-warn { background: var(--warn); }
+.hm-dot.is-danger { background: var(--danger); }
+.hm-event-kind {
+  flex: none;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  min-width: 82px;
+}
+.hm-event-who {
+  color: var(--text-muted);
+  flex: 1;
+  font-size: var(--text-sm);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hm-event-when { color: var(--text-subtle); flex: none; font-size: var(--text-xs); }
+
+.hm-foot {
+  border-top: 1px solid var(--border);
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
+  margin: 0;
+  padding-top: var(--s2);
+}
+
+/* ---- first run ---------------------------------------------------------
+   Done in success, the current step on an accent rail, what is ahead in
+   text-subtle. The whole state palette in one component, which is what
+   makes it teach the vocabulary before it is needed. */
+.hm-setup {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1);
+  margin: 0 auto;
+  max-width: 620px;
+  padding: var(--s5) var(--s6) var(--s6);
+  width: 100%;
+}
+.hm-setup-head { display: grid; gap: var(--s3); padding-bottom: var(--s4); }
+.hm-setup-head h2 { font-size: var(--text-lg); }
+.hm-setup-count { color: var(--text-muted); font-size: var(--text-sm); }
+.hm-setup-track {
+  background: var(--surface-sunken);
+  border-radius: var(--r-full);
+  display: block;
+  height: 6px;
+  overflow: hidden;
+}
+.hm-setup-fill {
+  background: var(--success);
+  display: block;
+  height: 100%;
+  transition: width var(--t-base);
+}
+
+.hm-steps { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.hm-step {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: var(--s3);
+  padding: var(--s3) 0 var(--s3) var(--s3);
+  position: relative;
+}
+.hm-steps li:first-child { border-top: 0; }
+.hm-step.is-current::before {
+  background: var(--accent);
+  border-radius: 2px;
+  bottom: 10px;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 10px;
+  width: 3px;
+}
+.hm-step-mark {
+  align-items: center;
+  background: var(--surface-sunken);
+  border-radius: 50%;
+  color: var(--text-subtle);
+  display: inline-flex;
+  flex: none;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+.hm-step.is-done .hm-step-mark { background: var(--success-soft); color: var(--success); }
+.hm-step.is-current .hm-step-mark { background: var(--accent-soft); color: var(--accent); }
+.hm-step-text { display: grid; gap: 2px; min-width: 0; }
+.hm-step-label { font-size: var(--text-base); font-weight: 500; }
+.hm-step.is-done .hm-step-label { color: var(--text-muted); }
+.hm-step-meta { color: var(--text-subtle); font-size: var(--text-sm); }
+.hm-step .hm-btn { margin-left: auto; }
+
+@media (max-width: 1080px) {
+  .hm-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .hm-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .hm-tiles { grid-template-columns: 1fr; }
+  .hm-live { flex-wrap: wrap; }
+  .hm-live-track { max-width: none; order: 3; width: 100%; }
+}

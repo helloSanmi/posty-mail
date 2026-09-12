@@ -5,6 +5,20 @@
 @import "./styles/layout.css";
 @import "./styles/pages.css";
 @import "./styles/templates.css";
+/* Per-screen stylesheets for the redesign. Namespaced by prefix (sh-, hm-,
+   cp-, au-, rp-, em-, bd-, sm-) so they cannot collide with each other or
+   with the legacy rules in pages.css, which are retired page by page as
+   each screen is ported. Token-only: they were authored in the design
+   sandbox against the same roles this app now uses, which is why they
+   arrive already theme-aware. */
+@import "./styles/screens/shell.css";
+@import "./styles/screens/home.css";
+@import "./styles/screens/campaigns.css";
+@import "./styles/screens/audience.css";
+@import "./styles/screens/reports.css";
+@import "./styles/screens/email.css";
+@import "./styles/screens/builder.css";
+@import "./styles/screens/small.css";
 /* App-wide motion system. Subtle entrance + hover animations across
    surfaces, cards, modals, toasts, buttons. Honors prefers-reduced-motion
    so the whole layer collapses to instant for users who opt out. */

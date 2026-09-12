@@ -29,10 +29,22 @@ function css(name) {
   );
 }
 
+// The redesigned per-screen sheets. They were authored in the sandbox
+// against these same roles, so they arrive swept — the point of listing
+// them is that they STAY that way as the pages are ported and edited.
+const SCREENS = [
+  'screens/shell.css', 'screens/home.css', 'screens/campaigns.css',
+  'screens/audience.css', 'screens/reports.css', 'screens/email.css',
+  'screens/builder.css', 'screens/small.css',
+];
+
 // Stylesheets whose literals have been replaced. Add a file here in the
 // same commit that sweeps it — that is what makes the sweep's progress a
 // fact rather than a claim.
-const SWEPT = ['base.css', 'templates.css', 'layout.css', 'pages.css', 'animations.css'];
+const SWEPT = [
+  'base.css', 'templates.css', 'layout.css', 'pages.css', 'animations.css',
+  ...SCREENS,
+];
 
 // Literals that must NOT be tokenised, as exact strings. Kept exact rather
 // than as a pattern so adding any other literal still fails: an allowlist
@@ -87,7 +99,8 @@ test('the legacy colour-named aliases are gone for good', () => {
   // They existed only as a migration bridge and are now deleted; this
   // asserts nothing reintroduces one, in any stylesheet.
   const legacy = /var\(\s*--(line|muted|blue|green|amber)\s*\)/g;
-  ['tokens.css', 'base.css', 'layout.css', 'pages.css', 'templates.css', 'animations.css']
+  ['tokens.css', 'base.css', 'layout.css', 'pages.css', 'templates.css', 'animations.css',
+    ...SCREENS]
     .forEach((name) => {
       const found = stripComments(css(name)).match(legacy) || [];
       assert.deepEqual(found, [], `${name} reintroduced ${found.join(', ')}`);
@@ -99,7 +112,7 @@ test('accent-contrast is never used as a background or border', () => {
   // of a LABEL sitting on an accent fill — in dark it is near-black ink.
   // Painting a surface with it produces a black card under light text.
   const bad = /(background(-color)?|border(-[a-z]+)?-?color?)\s*:[^;]*var\(\s*--accent-contrast\s*\)/g;
-  ['base.css', 'layout.css', 'pages.css', 'templates.css'].forEach((name) => {
+  ['base.css', 'layout.css', 'pages.css', 'templates.css', ...SCREENS].forEach((name) => {
     const found = stripComments(css(name)).match(bad) || [];
     assert.deepEqual(found, [], `${name}: ${found.join(' | ')}`);
   });
@@ -109,7 +122,7 @@ test('surface roles are never used as a text colour', () => {
   // The same error in the other direction: a surface token on `color`
   // gives white-on-white in light and dark-on-dark in dark.
   const bad = /(^|[;{\s])color\s*:\s*var\(\s*--(surface|surface-raised|surface-sunken|bg)\s*\)/gm;
-  ['base.css', 'layout.css', 'pages.css', 'templates.css'].forEach((name) => {
+  ['base.css', 'layout.css', 'pages.css', 'templates.css', ...SCREENS].forEach((name) => {
     const found = stripComments(css(name)).match(bad) || [];
     assert.deepEqual(found, [], `${name}: ${found.join(' | ')}`);
   });
