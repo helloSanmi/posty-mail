@@ -1,3 +1,19 @@
+/* IBM Plex, SELF-HOSTED. --font-sans has named Plex since the token layer
+   landed, but nothing shipped the files, so every install silently fell
+   through to system-ui and nobody saw the typography the design was drawn
+   in. Self-hosted rather than pulled from a font CDN: this is a product
+   people run on their own box, and a CDN link would phone a third party on
+   every page load for every one of their users — a dependency and a
+   privacy leak they never asked for. Plex is OFL, so shipping the files is
+   allowed. Only the weights the app actually uses (400/500/600/700 sans,
+   400/500 mono); each import is one woff2. */
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-sans/700.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
 /* Tokens first: every other sheet reads from them, and base.css's
    primitives inherit them. */
 @import "./styles/tokens.css";
