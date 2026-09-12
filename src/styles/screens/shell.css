@@ -455,22 +455,47 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
   outline-offset: 1px;
 }
 
-.ap-accents { display: flex; gap: 2px; }
+/* Three bare circles in a topbar do not say "pick an accent colour" — they
+   say nothing, and were read as decoration or as status lights. They now sit
+   in the same sunken tray as the theme icons beside them, which is the shape
+   this app uses everywhere else to mean "a set of options, one chosen", and
+   only the chosen one is a filled dot. */
+.ap-accents {
+  background: var(--surface-sunken);
+  border-radius: var(--r-md);
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+}
 .ap-swatch {
-  border-radius: var(--r-full);
+  align-items: center;
+  border-radius: var(--r-sm);
   cursor: pointer;
   display: inline-flex;
+  justify-content: center;
   margin: 0;
-  padding: 3px;
+  min-height: 24px;
+  transition: background var(--t-fast);
+  width: 24px;
 }
-.ap-swatch.is-active { box-shadow: inset 0 0 0 2px var(--accent); }
+.ap-swatch:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.ap-swatch.is-active {
+  background: var(--surface-raised);
+  box-shadow: var(--e1);
+}
 .ap-dot {
   /* --accent resolves from [data-accent-preview] in tokens.css, so each dot
      is painted by the same declaration that paints the app. */
   background: var(--accent);
   border-radius: 50%;
-  height: 13px;
-  width: 13px;
+  height: 12px;
+  width: 12px;
+}
+/* Unchosen accents are outlines, not fills. Three filled dots read as three
+   indicators; one filled among two outlines reads as a choice. */
+.ap-swatch:not(.is-active) .ap-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 /* Narrow topbars have to give something up, and the accent is the more

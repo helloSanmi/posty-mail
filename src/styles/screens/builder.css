@@ -55,21 +55,32 @@
   min-width: 0;
 }
 .bd-field-wide { grid-column: 1 / -1; }
-.bd-field input, .bd-field select {
+/* The three controls in this form — text input, template select, recipients
+   picker — sat at three different sizes with three different focus
+   treatments: 7px/8px padding with an INSET outline on the fields, 9px/12px
+   with an outset one on the picker. Side by side in one step, that reads as
+   three unrelated widgets. One set of metrics now, and the focus treatment
+   every other input in the app uses (a ring, not an outline). */
+.bd-field input,
+.bd-field select,
+.bd-picker {
   background: var(--surface-raised);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-md);
   color: var(--text);
   font: inherit;
   font-size: var(--text-base);
+  min-height: 40px;
   min-width: 0;
-  padding: 7px var(--s2);
+  padding: 8px var(--s3);
   width: 100%;
 }
-.bd-field input:focus, .bd-field select:focus {
-  border-color: var(--accent);
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -1px;
+.bd-field input:focus,
+.bd-field select:focus,
+.bd-picker:focus-visible {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 22%, transparent);
+  outline: none;
 }
 
 .bd-check {
@@ -95,12 +106,10 @@
   font: inherit;
   gap: var(--s2);
   grid-column: 1 / -1;
-  padding: 9px var(--s3);
   text-align: left;
   width: 100%;
 }
 .bd-picker:hover { border-color: var(--accent); }
-.bd-picker:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .bd-picker svg { color: var(--text-subtle); flex: none; }
 .bd-picker-text { display: grid; flex: 1; gap: 1px; min-width: 0; }
 .bd-picker-text > span:first-child {

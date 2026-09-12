@@ -84,6 +84,16 @@ describe('AppearanceControls', () => {
     expect(radios.filter((r) => r.checked)).toHaveLength(2);
   });
 
+  test('exactly one accent reads as chosen', () => {
+    // Three filled dots read as three indicators. One filled among two
+    // outlines reads as a choice — which is the complaint that prompted it:
+    // "the colour dot at the top right, don't know what's doing at all".
+    render(<AppearanceControls />);
+    const active = document.querySelectorAll('.ap-swatch.is-active');
+    expect(active).toHaveLength(1);
+    expect(document.querySelectorAll('.ap-swatch')).toHaveLength(3);
+  });
+
   test('each swatch carries the preview attribute its colour comes from', () => {
     // The dot is painted by tokens.css via [data-accent-preview]. Lose the
     // attribute and every swatch silently shows the CURRENT accent, so all
