@@ -153,8 +153,17 @@
 .template-card:hover,
 .segment-card:hover,
 .kpi-card.is-link:hover {
-  border-color: #d8e0ea;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  /* The literal here was #dfe5ec -> #d8e0ea, a step of 0.06:1 against the
+     card. It cannot be kept: on a dark card a near-white border is a
+     glaring outline, so this rule has to become themed whatever we do.
+     --border-strong is the wrong target though; it would make the step
+     2.74:1, a 45x amplification of a hover that was always carried by the
+     lift and the shadow, not the outline. 20% of the way keeps the outline
+     secondary (+0.29 light, +0.25 dark) while staying visible in both.
+     --e3, not --e2: this card is LIFTING. e2 is the resting tier, and its
+     6px blur reads as the shadow shrinking on hover. */
+  border-color: color-mix(in srgb, var(--border-strong) 20%, var(--border));
+  box-shadow: var(--e3);
   transform: translateY(-1px);
 }
 

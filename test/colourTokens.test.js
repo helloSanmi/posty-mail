@@ -32,7 +32,7 @@ function css(name) {
 // Stylesheets whose literals have been replaced. Add a file here in the
 // same commit that sweeps it — that is what makes the sweep's progress a
 // fact rather than a claim.
-const SWEPT = ['base.css', 'templates.css', 'layout.css'];
+const SWEPT = ['base.css', 'templates.css', 'layout.css', 'pages.css', 'animations.css'];
 
 // Literals that must NOT be tokenised, as exact strings. Kept exact rather
 // than as a pattern so adding any other literal still fails: an allowlist
@@ -42,6 +42,18 @@ const ALLOWED = {
     // .logo-delete — a control floating over an uploaded logo, which is
     // customer content on a canvas that never themes. A themed token would
     // go dark over a light logo and vanish.
+    'rgba(',
+  ],
+  'pages.css': [
+    // One Dark syntax highlighting: per-token meaning, not UI semantics.
+    '#1e1f24', '#2c2e36', '#d6dae3', '#5b6172', '#e06c75', '#d19a66',
+    '#98c379', '#5c6370', '#61afef',
+    // Chart data-series identities. A --chart-1..n scale is the right fix.
+    '#2563eb', '#15803d', '#93c5fd', '#86efac', '#cbd5e1',
+    // The dark-mode preview toggle depicts darkness rather than carrying a
+    // role; themed, it would invert and stop meaning "dark mode is on".
+    '#15151a', '#fff',
+    // Editor selection, and a control floating over customer email HTML.
     'rgba(',
   ],
 };
