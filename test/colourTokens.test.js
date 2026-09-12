@@ -60,8 +60,6 @@ const ALLOWED = {
     // One Dark syntax highlighting: per-token meaning, not UI semantics.
     '#1e1f24', '#2c2e36', '#d6dae3', '#5b6172', '#e06c75', '#d19a66',
     '#98c379', '#5c6370', '#61afef',
-    // Chart data-series identities. A --chart-1..n scale is the right fix.
-    '#2563eb', '#15803d', '#93c5fd', '#86efac', '#cbd5e1',
     // The dark-mode preview toggle depicts darkness rather than carrying a
     // role; themed, it would invert and stop meaning "dark mode is on".
     '#15151a', '#fff',
@@ -178,6 +176,8 @@ test('tinted borders are derived from their own family, at one percentage', () =
 test('tokens.css defines every role the sweep maps onto', () => {
   const source = css('tokens.css');
   const required = [
+    'chart-1', 'chart-2', 'chart-3', 'chart-4',
+    'chart-5', 'chart-6', 'chart-7', 'chart-8',
     'bg', 'surface', 'surface-raised', 'surface-sunken', 'surface-hover',
     'text', 'text-muted', 'text-subtle',
     'border', 'border-strong',

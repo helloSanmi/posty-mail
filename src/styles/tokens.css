@@ -30,17 +30,17 @@ html[data-theme='light'] {
      is affordable only because a card is not just a lighter rectangle: it
      also has a border and the --e1 shadow. Lighter than this and the page
      does go flat. */
-  --bg: #eff1f5;
-  --surface: #f7f9fc;
+  --bg: #f1f1f0;
+  --surface: #f9f9f9;
   --surface-raised: #ffffff;
-  --surface-sunken: #dde4ee;
+  --surface-sunken: #e4e3e2;
 
-  --text: #14202f;
-  --text-muted: #4c5b6e;
-  --text-subtle: #58657a;
+  --text: #201f1e;
+  --text-muted: #5b5a56;
+  --text-subtle: #666460;
 
-  --border: #d3dbe6;
-  --border-strong: #6f7e93;
+  --border: #dbdad9;
+  --border-strong: #7f7d78;
 
   --accent-contrast: #ffffff;
 
@@ -57,7 +57,7 @@ html[data-theme='light'] {
      directly above the rows it highlights, and the affordance silently
      disappears. Contrast maths still passes, which is why nothing
      automated would have caught it. */
-  --surface-hover: #eef3fa;
+  --surface-hover: #f3f2f2;
 
   /* Inverted chips: tooltips and the toast. Their backgrounds currently map
      to `text`, which is correct in light and catastrophic in dark — the
@@ -96,22 +96,22 @@ html[data-theme='light'] {
 html[data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #0e1620;
-  --surface: #16202c;
-  --surface-raised: #1e2a38;
-  --surface-sunken: #090f17;
+  --bg: #161514;
+  --surface: #201f1e;
+  --surface-raised: #2a2927;
+  --surface-sunken: #0f0f0e;
 
-  --text: #e6edf5;
-  --text-muted: #9faec0;
-  --text-subtle: #8796ab;
+  --text: #edeceb;
+  --text-muted: #aeaca8;
+  --text-subtle: #97948f;
 
-  --border: #263344;
-  --border-strong: #617790;
+  --border: #333230;
+  --border-strong: #77756f;
 
   /* Ink, not white. White on these accents measures 1.8-2.3:1 — unreadable
      button labels. The ground owns this value precisely so an accent can
      never get it wrong. */
-  --accent-contrast: #071320;
+  --accent-contrast: #141312;
 
   --success: #45c489;
   --success-soft: #10301f;
@@ -120,7 +120,7 @@ html[data-theme='dark'] {
   --danger: #f27a6b;
   --danger-soft: #3a1613;
 
-  --surface-hover: #1c2836;
+  --surface-hover: #282725;
 
   /* Inverted in dark: the chip becomes light with dark text, which is what
      an inverted chip means on a dark ground. */
@@ -142,19 +142,19 @@ html[data-theme='dark'] {
   :root:not([data-theme='light']) {
     color-scheme: dark;
 
-    --bg: #0e1620;
-    --surface: #16202c;
-    --surface-raised: #1e2a38;
-    --surface-sunken: #090f17;
+    --bg: #161514;
+    --surface: #201f1e;
+    --surface-raised: #2a2927;
+    --surface-sunken: #0f0f0e;
 
-    --text: #e6edf5;
-    --text-muted: #9faec0;
-    --text-subtle: #8796ab;
+    --text: #edeceb;
+    --text-muted: #aeaca8;
+    --text-subtle: #97948f;
 
-    --border: #263344;
-    --border-strong: #617790;
+    --border: #333230;
+    --border-strong: #77756f;
 
-    --accent-contrast: #071320;
+    --accent-contrast: #141312;
 
     --success: #45c489;
     --success-soft: #10301f;
@@ -163,7 +163,7 @@ html[data-theme='dark'] {
     --danger: #f27a6b;
     --danger-soft: #3a1613;
 
-    --surface-hover: #1c2836;
+    --surface-hover: #282725;
 
     --inverse-surface: #e6edf5;
     --inverse-text: #0e1620;
@@ -178,83 +178,107 @@ html[data-theme='dark'] {
 }
 
 /* ---- accents -------------------------------------------------------------
-   An accent supplies four values and never accent-contrast. Light is the
-   default so a missing data-accent still resolves.
+   Six, and each supplies ONE value. --accent-hover and --accent-soft are
+   derived from it below, which is why adding an accent is one line rather
+   than four, and why none of them can drift out of step with each other.
 
-   [data-accent-preview] rides along on every rule so the swatches in the
-   appearance picker are painted by the same declarations that paint the
-   app. A preview that copied these values would show the wrong colour the
-   first time an accent is retuned, and it would be wrong in exactly the
-   place a reader is looking in order to choose. */
+   Every value is solved, not picked, against the STRICTEST thing it has to
+   do: carry 4.55:1 as text on its own --accent-soft tint. That one implies
+   the others — a colour readable on a 14% tint of itself is comfortably
+   readable on the plain card and against white — whereas solving for white
+   alone does not imply it, and did not: every accent landed at 3.8:1 on its
+   own pill until this was corrected.
+
+   [data-accent-preview] rides along so the swatches in the topbar are
+   painted by the same declarations that paint the app. */
 :root,
 html[data-accent='harbour'],
 [data-accent-preview='harbour'] {
-  --accent: #15608f;
-  --accent-hover: #114f76;
-  --accent-soft: #e1edf6;
-  --focus-ring: #1e7cb8;
+  --accent: #2a6d9d;
 }
 html[data-accent='verdigris'],
 [data-accent-preview='verdigris'] {
-  --accent: #0f6675;
-  --accent-hover: #0b525e;
-  --accent-soft: #dceef1;
-  --focus-ring: #0f6675;
+  --accent: #1d727c;
+}
+html[data-accent='moss'],
+[data-accent-preview='moss'] {
+  --accent: #22774d;
+}
+html[data-accent='ember'],
+[data-accent-preview='ember'] {
+  --accent: #a15326;
+}
+html[data-accent='plum'],
+[data-accent-preview='plum'] {
+  --accent: #a93b93;
 }
 html[data-accent='iris'],
 [data-accent-preview='iris'] {
-  --accent: #4a50ae;
-  --accent-hover: #3c4193;
-  --accent-soft: #e7e8f8;
-  --focus-ring: #4a50ae;
+  --accent: #6c54cd;
 }
 
 html[data-theme='dark'][data-accent='harbour'],
 html[data-theme='dark']:not([data-accent]),
 html[data-theme='dark'] [data-accent-preview='harbour'] {
-  --accent: #6fb4e6;
-  --accent-hover: #93c9ef;
-  --accent-soft: #123048;
-  --focus-ring: #93c9ef;
+  --accent: #6baad8;
 }
 html[data-theme='dark'][data-accent='verdigris'],
 html[data-theme='dark'] [data-accent-preview='verdigris'] {
-  --accent: #45bfd1;
-  --accent-hover: #74d2e0;
-  --accent-soft: #0c3138;
-  --focus-ring: #74d2e0;
+  --accent: #2fb7c6;
+}
+html[data-theme='dark'][data-accent='moss'],
+html[data-theme='dark'] [data-accent-preview='moss'] {
+  --accent: #37be7a;
+}
+html[data-theme='dark'][data-accent='ember'],
+html[data-theme='dark'] [data-accent-preview='ember'] {
+  --accent: #dc9369;
+}
+html[data-theme='dark'][data-accent='plum'],
+html[data-theme='dark'] [data-accent-preview='plum'] {
+  --accent: #d68bc7;
 }
 html[data-theme='dark'][data-accent='iris'],
 html[data-theme='dark'] [data-accent-preview='iris'] {
-  --accent: #9ba4f2;
-  --accent-hover: #b6bcf7;
-  --accent-soft: #1e2350;
-  --focus-ring: #b6bcf7;
+  --accent: #a99be2;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']):not([data-accent]),
   :root:not([data-theme='light'])[data-accent='harbour'],
   :root:not([data-theme='light']) [data-accent-preview='harbour'] {
-    --accent: #6fb4e6;
-    --accent-hover: #93c9ef;
-    --accent-soft: #123048;
-    --focus-ring: #93c9ef;
+    --accent: #6baad8;
   }
   :root:not([data-theme='light'])[data-accent='verdigris'],
   :root:not([data-theme='light']) [data-accent-preview='verdigris'] {
-    --accent: #45bfd1;
-    --accent-hover: #74d2e0;
-    --accent-soft: #0c3138;
-    --focus-ring: #74d2e0;
+    --accent: #2fb7c6;
+  }
+  :root:not([data-theme='light'])[data-accent='moss'],
+  :root:not([data-theme='light']) [data-accent-preview='moss'] {
+    --accent: #37be7a;
+  }
+  :root:not([data-theme='light'])[data-accent='ember'],
+  :root:not([data-theme='light']) [data-accent-preview='ember'] {
+    --accent: #dc9369;
+  }
+  :root:not([data-theme='light'])[data-accent='plum'],
+  :root:not([data-theme='light']) [data-accent-preview='plum'] {
+    --accent: #d68bc7;
   }
   :root:not([data-theme='light'])[data-accent='iris'],
   :root:not([data-theme='light']) [data-accent-preview='iris'] {
-    --accent: #9ba4f2;
-    --accent-hover: #b6bcf7;
-    --accent-soft: #1e2350;
-    --focus-ring: #b6bcf7;
+    --accent: #a99be2;
   }
+}
+
+/* Derived from whichever accent is in play, so they follow it everywhere —
+   including onto the preview swatches. --text is dark in the light theme and
+   light in the dark one, so ONE definition of hover darkens in light and
+   lightens in dark, which is what hover should do in each. */
+:root {
+  --accent-hover: color-mix(in srgb, var(--accent) 86%, var(--text));
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface-raised));
+  --focus-ring: var(--accent);
 }
 
 /* ---- tinted borders, derived ---------------------------------------------
@@ -297,6 +321,54 @@ html[data-theme-switching] *,
 html[data-theme-switching] *::before,
 html[data-theme-switching] *::after {
   transition: none !important;
+}
+
+/* ---- data series ---------------------------------------------------------
+   Eight colours for charts, which until now were five literals hardcoded in
+   pages.css that ignored the theme entirely — a light-mode palette sitting
+   on a dark card.
+
+   Categorical, not sequential: these identify series, they do not rank them.
+   The hues are spread round the wheel avoiding the yellow-green band where
+   neighbours are hardest to separate, and the LIGHTNESS alternates as well.
+   That second part is the one that matters: eight hues at one lightness are
+   distinguishable only to someone with full colour vision, and collapse into
+   one grey in a printout. Alternating puts 1.4-2.0:1 between consecutive
+   series, so the chart still reads without colour at all. */
+:root,
+html[data-theme='light'] {
+  --chart-1: #4192cc;
+  --chart-2: #1f6d76;
+  --chart-3: #299961;
+  --chart-4: #48661b;
+  --chart-5: #a17e2b;
+  --chart-6: #a6552c;
+  --chart-7: #d5638d;
+  --chart-8: #7633c1;
+}
+
+html[data-theme='dark'] {
+  --chart-1: #327cb1;
+  --chart-2: #36b1bf;
+  --chart-3: #278c5a;
+  --chart-4: #85ba35;
+  --chart-5: #9c7a2c;
+  --chart-6: #d2855e;
+  --chart-7: #cc4a79;
+  --chart-8: #c2a3e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --chart-1: #327cb1;
+    --chart-2: #36b1bf;
+    --chart-3: #278c5a;
+    --chart-4: #85ba35;
+    --chart-5: #9c7a2c;
+    --chart-6: #d2855e;
+    --chart-7: #cc4a79;
+    --chart-8: #c2a3e5;
+  }
 }
 
 /* ---- non-colour foundations ---------------------------------------------

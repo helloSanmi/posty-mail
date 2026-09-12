@@ -13,6 +13,9 @@ export const GROUNDS = ['system', 'light', 'dark'];
 export const ACCENTS = [
   { id: 'harbour', label: 'Harbour' },
   { id: 'verdigris', label: 'Verdigris' },
+  { id: 'moss', label: 'Moss' },
+  { id: 'ember', label: 'Ember' },
+  { id: 'plum', label: 'Plum' },
   { id: 'iris', label: 'Iris' },
 ];
 

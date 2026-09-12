@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { AppearanceControls } from './AppearanceControls';
+import { ACCENTS } from '../theme';
 
 // All six controls are on the surface — there is no panel to open — so each
 // test acts on them directly.
@@ -79,8 +80,9 @@ describe('AppearanceControls', () => {
   test('two radiogroups, each with exactly one selection', () => {
     render(<AppearanceControls />);
     expect(screen.getAllByRole('radiogroup')).toHaveLength(2);
+    // three grounds + every accent, one chosen in each group
     const radios = screen.getAllByRole('radio');
-    expect(radios).toHaveLength(6);
+    expect(radios).toHaveLength(3 + ACCENTS.length);
     expect(radios.filter((r) => r.checked)).toHaveLength(2);
   });
 
@@ -91,7 +93,7 @@ describe('AppearanceControls', () => {
     render(<AppearanceControls />);
     const active = document.querySelectorAll('.ap-swatch.is-active');
     expect(active).toHaveLength(1);
-    expect(document.querySelectorAll('.ap-swatch')).toHaveLength(3);
+    expect(document.querySelectorAll('.ap-swatch')).toHaveLength(ACCENTS.length);
   });
 
   test('each swatch carries the preview attribute its colour comes from', () => {
@@ -99,7 +101,7 @@ describe('AppearanceControls', () => {
     // attribute and every swatch silently shows the CURRENT accent, so all
     // three look identical and the picker stops communicating anything.
     render(<AppearanceControls />);
-    ['harbour', 'verdigris', 'iris'].forEach((id) => {
+    ACCENTS.map((a) => a.id).forEach((id) => {
       const swatch = document.querySelector(`[data-accent-preview="${id}"]`);
       expect(swatch).not.toBeNull();
       expect(swatch.querySelector('.ap-dot')).not.toBeNull();

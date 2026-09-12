@@ -3070,8 +3070,11 @@
    tracks are already surface-sunken, so routing the fills through the
    *-soft roles would also put a near-invisible bar on a near-identical
    track. A --chart-1..n scale is the right fix, as its own exercise. */
-.activity-chart-swatch.is-opens { background: #2563eb; }
-.activity-chart-swatch.is-clicks { background: #15803d; }
+/* Opens and clicks are two series, so they take the first two data
+   colours rather than a blue and a green chosen by hand — and they now
+   follow the theme instead of staying light-mode on a dark card. */
+.activity-chart-swatch.is-opens { background: var(--chart-1); }
+.activity-chart-swatch.is-clicks { background: var(--chart-3); }
 
 /* The chart "frame" stacks gridlines + bars in the same box so the
    gridlines sit behind the bars at exactly the same y-positions. */
@@ -3138,10 +3141,10 @@
   width: 100%;
 }
 .activity-chart-bar-segment.is-opens {
-  background: #2563eb;
+  background: var(--chart-1);
 }
 .activity-chart-bar-segment.is-clicks {
-  background: #15803d;
+  background: var(--chart-3);
 }
 .activity-chart-bar:first-child .activity-chart-bar-segment,
 .activity-chart-bar:last-child .activity-chart-bar-segment {
@@ -3241,9 +3244,9 @@
   height: 100%;
   transition: width 0.4s ease-out;
 }
-.funnel-bar-neutral .funnel-bar-fill { background: #cbd5e1; }
-.funnel-bar-good .funnel-bar-fill    { background: #93c5fd; }
-.funnel-bar-great .funnel-bar-fill   { background: #86efac; }
+.funnel-bar-neutral .funnel-bar-fill { background: var(--border-strong); }
+.funnel-bar-good .funnel-bar-fill    { background: var(--chart-1); }
+.funnel-bar-great .funnel-bar-fill   { background: var(--chart-3); }
 .funnel-bar-percent {
   color: var(--text);
   font-size: 0.78rem;
@@ -3303,7 +3306,7 @@
   width: 100%;
 }
 .top-links-bar-fill {
-  background: linear-gradient(90deg, #93c5fd 0%, #2563eb 100%);
+  background: linear-gradient(90deg, var(--chart-2) 0%, var(--chart-1) 100%);
   height: 100%;
   transition: width 0.4s ease-out;
 }

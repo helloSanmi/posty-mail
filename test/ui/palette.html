@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Palette</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <style>
+      body { padding: 22px; display: grid; gap: 18px; }
+      .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .chip { width: 74px; height: 46px; border-radius: 8px; border: 1px solid var(--border); }
+      .lbl { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--text-subtle); width: 100%; }
+      .sw { width: 46px; height: 46px; border-radius: 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="surface">
+      <div class="row"><span class="lbl">neutrals</span>
+        <span class="chip" style="background:var(--bg)"></span>
+        <span class="chip" style="background:var(--surface)"></span>
+        <span class="chip" style="background:var(--surface-raised)"></span>
+        <span class="chip" style="background:var(--surface-sunken)"></span>
+        <span class="chip" style="background:var(--border)"></span>
+        <span class="chip" style="background:var(--border-strong)"></span>
+        <span class="chip" style="background:var(--text-muted)"></span>
+        <span class="chip" style="background:var(--text)"></span>
+      </div>
+    </div>
+    <div class="surface">
+      <div class="row"><span class="lbl">accents (each shown in its own hue)</span>
+        <span class="sw" data-accent-preview="harbour" style="background:var(--accent)"></span>
+        <span class="sw" data-accent-preview="verdigris" style="background:var(--accent)"></span>
+        <span class="sw" data-accent-preview="moss" style="background:var(--accent)"></span>
+        <span class="sw" data-accent-preview="ember" style="background:var(--accent)"></span>
+        <span class="sw" data-accent-preview="plum" style="background:var(--accent)"></span>
+        <span class="sw" data-accent-preview="iris" style="background:var(--accent)"></span>
+      </div>
+    </div>
+    <div class="surface">
+      <div class="row"><span class="lbl">data series</span>
+        <span class="sw" style="background:var(--chart-1)"></span>
+        <span class="sw" style="background:var(--chart-2)"></span>
+        <span class="sw" style="background:var(--chart-3)"></span>
+        <span class="sw" style="background:var(--chart-4)"></span>
+        <span class="sw" style="background:var(--chart-5)"></span>
+        <span class="sw" style="background:var(--chart-6)"></span>
+        <span class="sw" style="background:var(--chart-7)"></span>
+        <span class="sw" style="background:var(--chart-8)"></span>
+      </div>
+      <div class="row" style="margin-top:10px"><span class="lbl">the same, in greyscale — series must still separate</span>
+        <span class="sw" style="background:var(--chart-1);filter:grayscale(1)"></span>
+        <span class="sw" style="background:var(--chart-2);filter:grayscale(1)"></span>
+        <span class="sw" style="background:var(--chart-3);filter:grayscale(1)"></span>
+        <span class="sw" style="background:var(--chart-4);filter:grayscale(1)"></span>
+        <span class="sw" style="background:var(--chart-5);filter:grayscale(1)"></span>
+        <span class="sw" style="background:var(--chart-6);filter:grayscale(1)"></span>
+        <span class="sw" style="background:var(--chart-7);filter:grayscale(1)"></span>
+        <span class="sw" style="background:var(--chart-8);filter:grayscale(1)"></span>
+      </div>
+    </div>
+    <div class="surface">
+      <div class="row"><span class="lbl">in use</span>
+        <button class="primary" type="button">Primary action</button>
+        <button type="button">Secondary</button>
+        <span class="pill blue">Accent</span>
+        <span class="pill green">Success</span>
+        <span class="pill amber">Warn</span>
+        <p style="width:100%;margin:8px 0 0">Body text on a card, with <a href="#">a link</a> in it.</p>
+      </div>
+    </div>
+  </body>
+</html>
