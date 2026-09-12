@@ -243,7 +243,24 @@ export function TemplateEditor({
           template's NAME is filing, and it is already the card's heading a
           few centimetres up. Everything else follows the composer, in the
           order a person actually reaches for it. */}
-      <div className="template-edit-grid">
+      {/* THE HEADER OF THE MESSAGE, in one row, above the canvas.
+          These three are what you set while writing — what it is called,
+          what it says in the inbox, and what shows under that. They were a
+          stacked column of full-width fields that pushed the composer most
+          of a screen down; as one compact row they cost about 60px and
+          nothing has to be scrolled to.
+          Reply-to and Category are set once per template, often never, so
+          they sit behind a disclosure rather than taking permanent space. */}
+      <div className="template-header-fields">
+        <label htmlFor={nameId}>
+          Name
+          <input
+            id={nameId}
+            value={template.name || ''}
+            onChange={(event) => setTemplate({ ...template, name: event.target.value })}
+            placeholder="e.g. Welcome email"
+          />
+        </label>
         <label htmlFor={subjectId}>
           Subject
           <input
@@ -253,7 +270,67 @@ export function TemplateEditor({
             placeholder="e.g. A quick update for {{firstname}}"
           />
         </label>
+        <label htmlFor={previewId} className="template-field-full">
+          Preview text
+          <input
+            id={previewId}
+            value={template.previewText || ''}
+            onChange={(event) => setTemplate({ ...template, previewText: event.target.value })}
+            placeholder="Shown under the subject line in inbox previews"
+            maxLength={200}
+          />
+        </label>
       </div>
+
+      <details className="template-more">
+        <summary>More settings<span>reply-to, category</span></summary>
+        <div className="template-more-body">
+        <fieldset className="template-replyto-fieldset">
+          <legend>Reply-to (optional)</legend>
+          <label htmlFor={replyEmailId}>
+            Email
+            <input
+              id={replyEmailId}
+              type="email"
+              value={template.replyTo?.email || ''}
+              onChange={(event) => setTemplate({
+                ...template,
+                replyTo: { ...(template.replyTo || {}), email: event.target.value },
+              })}
+              placeholder="replies@yourdomain.com"
+              autoComplete="off"
+            />
+          </label>
+          <label htmlFor={replyNameId}>
+            Display name
+            <input
+              id={replyNameId}
+              value={template.replyTo?.name || ''}
+              onChange={(event) => setTemplate({
+                ...template,
+                replyTo: { ...(template.replyTo || {}), name: event.target.value },
+              })}
+              placeholder="e.g. Support team"
+              autoComplete="off"
+            />
+          </label>
+        </fieldset>
+        {Array.isArray(categories) && categories.length > 0 && (
+          <label>
+            Category
+            <select
+              value={template.category || ''}
+              onChange={(event) => setTemplate({ ...template, category: event.target.value })}
+            >
+              <option value="">No category (sends to everyone)</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        </div>
+      </details>
 
       {/* Body editor. Visual / HTML are tabs that share a fixed-height
           container, so switching between them doesn't bump the rest of the
@@ -463,84 +540,6 @@ export function TemplateEditor({
         </div>
       )}
 
-      {/* Set once, or set after the writing is done. */}
-      <div className="template-edit-grid">
-        <label htmlFor={nameId}>
-          Name
-          <input
-            id={nameId}
-            value={template.name || ''}
-            onChange={(event) => setTemplate({ ...template, name: event.target.value })}
-            placeholder="e.g. Welcome email"
-          />
-        </label>
-        {/* Preview / preheader text. Shown in inbox previews under the
-            subject line in Gmail/Outlook/Apple Mail. Injected at send time
-            as a hidden div near the top of the HTML; never visible in the
-            rendered email body. Merge tags like {{firstname}} render too. */}
-        <label htmlFor={previewId} className="template-field-full">
-          Preview text
-          <input
-            id={previewId}
-            value={template.previewText || ''}
-            onChange={(event) => setTemplate({ ...template, previewText: event.target.value })}
-            placeholder="Shown under the subject line in inbox previews"
-            maxLength={200}
-          />
-        </label>
-        {/* Reply-to (Brevo "advanced setting"). Optional override — when
-            set, recipients' replies go here instead of the From address.
-            Useful for routing replies to a shared inbox / helpdesk address
-            while keeping the From identity branded. */}
-        <fieldset className="template-replyto-fieldset">
-          <legend>Reply-to (optional)</legend>
-          <label htmlFor={replyEmailId}>
-            Email
-            <input
-              id={replyEmailId}
-              type="email"
-              value={template.replyTo?.email || ''}
-              onChange={(event) => setTemplate({
-                ...template,
-                replyTo: { ...(template.replyTo || {}), email: event.target.value },
-              })}
-              placeholder="replies@yourdomain.com"
-              autoComplete="off"
-            />
-          </label>
-          <label htmlFor={replyNameId}>
-            Display name
-            <input
-              id={replyNameId}
-              value={template.replyTo?.name || ''}
-              onChange={(event) => setTemplate({
-                ...template,
-                replyTo: { ...(template.replyTo || {}), name: event.target.value },
-              })}
-              placeholder="e.g. Support team"
-              autoComplete="off"
-            />
-          </label>
-        </fieldset>
-        {/* Category gate. When the admin has defined preference-center
-            categories AND tags this template with one, sends skip
-            recipients who opted out of that topic via the unsubscribe page.
-            Empty value = no gating (legacy behavior). */}
-        {Array.isArray(categories) && categories.length > 0 && (
-          <label>
-            Category
-            <select
-              value={template.category || ''}
-              onChange={(event) => setTemplate({ ...template, category: event.target.value })}
-            >
-              <option value="">No category (sends to everyone)</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
-          </label>
-        )}
-      </div>
 
       <details className="plain-text-details">
         <summary>
@@ -566,6 +565,11 @@ export function TemplateEditor({
         />
       </details>
 
+      {/* Save is NOT here. It sits in the card head, which is permanently
+          on screen — having it in both places meant the same action twice,
+          and the copy down here was the one you could not see while
+          typing. What is left are the two actions you take deliberately,
+          rarely, and after the writing is finished. */}
       <div className="template-actions">
         {saveStatus && <span className="muted">{saveStatus}</span>}
         {onDuplicate && (
@@ -578,7 +582,6 @@ export function TemplateEditor({
             Delete template
           </button>
         )}
-        <button type="button" className="primary" onClick={onSave}>Save email</button>
       </div>
 
       {picker && (

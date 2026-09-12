@@ -42,39 +42,53 @@ const order = (a, b) => {
 describe('TemplateEditor order', () => {
   afterEach(cleanup);
 
-  test('the composer comes before every settings field', () => {
+  test('the message header is one compact row above the composer', () => {
+    // Name, subject and preview text are what you set WHILE writing, so
+    // they stay in reach — but as a stacked column they cost ~190px and
+    // pushed the canvas most of a screen down. One row costs ~60px.
     mount();
-    // Two grids now: the subject alone, then everything set once.
-    const grids = document.querySelectorAll('.template-edit-grid');
-    expect(grids).toHaveLength(2);
-    // nth-of-type counts element types, not class matches, so take the
-    // second grid off the NodeList rather than from a selector.
-    const composer = document.querySelector('.body-editor');
-    expect(composer.compareDocumentPosition(grids[1]) & Node.DOCUMENT_POSITION_FOLLOWING)
-      .toBeTruthy();
+    const header = document.querySelector('.template-header-fields');
+    expect(header).not.toBeNull();
+    expect(header.querySelectorAll('label')).toHaveLength(3);
+    expect(order('.template-header-fields', '.body-editor')).toBe(true);
   });
 
-  test('only the subject sits above the composer', () => {
+  test('reply-to and category are one click away, not in the way', () => {
     mount();
-    const first = document.querySelector('.template-edit-grid');
-    expect(first.querySelectorAll('label')).toHaveLength(1);
-    expect(first.textContent).toMatch(/subject/i);
-    expect(order('.template-edit-grid', '.body-editor')).toBe(true);
+    const more = document.querySelector('.template-more');
+    expect(more).not.toBeNull();
+    expect(more.open).toBe(false);
+    expect(more.textContent).toMatch(/reply-to/i);
+    // Still rendered — a disclosure hides, it does not remove.
+    expect(more.querySelector('.template-replyto-fieldset')).not.toBeNull();
   });
 
   test('the asset inspectors sit under the thing they inspect', () => {
-    // They are derived from template.html; above it they were a readout
-    // printed before its source — and they are the reason the composer was
-    // pushed furthest down.
+    // Both lists are derived from template.html; above it they were a
+    // readout printed before its source.
     mount();
     expect(order('.body-editor', '.template-assets')).toBe(true);
   });
 
-  test('the name field is below, since the card head already shows it', () => {
+  test('Save is not duplicated in the footer', () => {
+    // It lives in the card head, which is permanently on screen. Having it
+    // in both places meant the same action twice, and the copy down here
+    // was the one you could not see while typing.
     mount();
-    expect(order('.body-editor', '.plain-text-details')).toBe(true);
-    const second = document.querySelectorAll('.template-edit-grid')[1];
-    expect(second.textContent).toMatch(/name/i);
+    const footer = [...document.querySelectorAll('.template-actions button')]
+      .map((b) => b.textContent.trim().toLowerCase());
+    expect(footer.some((t) => t.includes('save'))).toBe(false);
+    expect(footer.some((t) => t.includes('delete'))).toBe(true);
+    expect(footer.some((t) => t.includes('duplicate'))).toBe(true);
+  });
+
+  test('every field is still rendered — moved, not removed', () => {
+    mount();
+    expect(document.querySelector('[placeholder="e.g. Welcome email"]')).not.toBeNull();
+    expect(document.querySelector('[placeholder*="quick update"]')).not.toBeNull();
+    expect(document.querySelector('[placeholder*="inbox previews"]')).not.toBeNull();
+    expect(document.querySelector('.template-replyto-fieldset')).not.toBeNull();
+    expect(document.querySelector('.plain-text-details')).not.toBeNull();
   });
 
   test('Cmd+S and Ctrl+S save, and stop the browser doing its own thing', () => {

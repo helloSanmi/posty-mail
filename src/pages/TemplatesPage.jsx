@@ -281,7 +281,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
               {activeTab === 'edit' && (
                 <button
                   type="button"
-                  className="em-btn em-btn-primary"
+                  className="em-btn em-btn-primary em-btn-tabsize"
                   onClick={handleSaveTemplate}
                 >
                   Save

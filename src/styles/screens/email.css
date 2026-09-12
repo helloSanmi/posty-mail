@@ -469,3 +469,81 @@
   .em-fields { grid-template-columns: minmax(0, 1fr); }
   .em-card-head { flex-wrap: wrap; }
 }
+
+/* ---- the message header, above the canvas -------------------------------
+   Name, subject and preview text in one row. As a stacked column of
+   full-width fields these three cost ~190px and pushed the composer most of
+   a screen down; side by side they cost about 60px, so nothing needed to be
+   moved out of reach to get the canvas up. */
+.template-header-fields {
+  display: grid;
+  gap: var(--s2) var(--s3);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr);
+}
+.template-header-fields > label {
+  color: var(--text-muted);
+  display: grid;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+}
+.template-header-fields input {
+  font-size: var(--text-base);
+  min-height: 36px;
+  padding: 6px var(--s2);
+}
+
+/* Reply-to and category: set once per template, often never. A disclosure
+   keeps them one click away rather than either permanently in the way or
+   hidden somewhere else entirely. */
+.template-more { margin-top: calc(var(--s2) * -1); }
+.template-more > summary {
+  align-items: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: var(--s2);
+  list-style: none;
+  padding: var(--s2) 0;
+}
+.template-more > summary::-webkit-details-marker { display: none; }
+/* A caret drawn in text, so the row needs no icon import and no asset. */
+.template-more > summary::before {
+  content: '›';
+  display: inline-block;
+  font-size: 1.1em;
+  transition: transform var(--t-fast);
+}
+.template-more[open] > summary::before { transform: rotate(90deg); }
+.template-more > summary span {
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+.template-more > summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.template-more-body {
+  display: grid;
+  gap: var(--s3);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding-bottom: var(--s2);
+}
+
+/* Save sits in the card head beside the Edit / Preview tabs, so it is sized
+   to them rather than to a form button — a taller control next to a tab
+   strip makes the strip look misaligned even when it is not. */
+.em-btn-tabsize {
+  min-height: 28px;
+  padding: 0 var(--s3);
+}
+
+@media (max-width: 900px) {
+  .template-header-fields,
+  .template-more-body { grid-template-columns: minmax(0, 1fr); }
+}
