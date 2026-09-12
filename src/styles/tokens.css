@@ -68,10 +68,21 @@ html[data-theme='light'] {
   --inverse-surface: #14202f;
   --inverse-text: #f7f9fc;
 
-  /* The canvas behind CUSTOMER-AUTHORED email HTML. It never follows the
-     theme: those emails are written by people who have no idea this app
-     has themes, and they assume a white page. Darkening it damages their
-     product, not ours. Identical in both grounds, deliberately. */
+  /* CUSTOMER CONTENT. Two roles, not one — reading the real rules showed
+     they are different jobs that both happen to be light today.
+
+     --email-page is the page an email renders ON. Emails are authored by
+     people who have no idea this app has themes and who assume white;
+     darkening it damages their product, not ours.
+
+     --email-canvas is the mat AROUND that content, and the letterbox
+     behind uploaded transparent-PNG logos. It must stay light for a
+     different reason: a dark mat is fine behind a white email, but a dark
+     letterbox makes a dark logo disappear entirely, and the whole point of
+     the letterbox is that the logo is visible against it.
+
+     Both are identical in light and dark, deliberately. */
+  --email-page: #ffffff;
   --email-canvas: #f5f7f9;
 
   --shadow: rgba(14, 27, 45, 0.12);
@@ -121,6 +132,7 @@ html[data-theme='dark'] {
   --inverse-surface: #e6edf5;
   --inverse-text: #0e1620;
 
+  --email-page: #ffffff;
   --email-canvas: #f5f7f9;
 
   --shadow: rgba(0, 6, 13, 0.55);
@@ -166,6 +178,7 @@ html[data-theme='dark'] {
     --inverse-surface: #e6edf5;
     --inverse-text: #0e1620;
 
+    --email-page: #ffffff;
     --email-canvas: #f5f7f9;
 
     --shadow: rgba(0, 6, 13, 0.55);

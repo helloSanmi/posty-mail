@@ -38,8 +38,8 @@
   z-index: 2;
 }
 .template-tabs {
-  background: #eef2f6;
-  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
   border-radius: 12px;
   display: inline-flex;
   gap: 4px;
@@ -52,8 +52,8 @@
 }
 
 .template-tabs button.active {
-  background: #fff;
-  color: var(--blue);
+  background: var(--surface-raised);
+  color: var(--accent);
 }
 
 .template-list-header {
@@ -63,7 +63,7 @@
 }
 
 .template-list-header span {
-  color: var(--muted);
+  color: var(--text-muted);
   display: block;
   font-size: .82rem;
   margin-top: 2px;
@@ -74,7 +74,7 @@
 }
 
 .template-select-summary {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: .86rem;
   line-height: 1.4;
   margin-top: 10px;
@@ -112,11 +112,11 @@
 }
 
 .template-field { display: grid; gap: 7px; }
-.template-field-label { color: #4b5563; font-weight: 500; }
+.template-field-label { color: var(--text-muted); font-weight: 500; }
 
 .template-actions {
   align-items: center;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
   display: flex;
   gap: 12px;
   justify-content: flex-end;
@@ -128,7 +128,7 @@
 }
 
 .logo-uploader {
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
   display: inline-flex;
@@ -136,7 +136,7 @@
 }
 .logo-uploader input { display: none; }
 .logo-thumb {
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 8px;
   height: 34px;
   object-fit: contain;
@@ -158,7 +158,7 @@
   margin-top: -2px;
 }
 .html-field-hint code {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--surface-sunken);
   border-radius: 4px;
   font-size: 0.95em;
   padding: 1px 4px;
@@ -174,7 +174,7 @@
    stacked-vertically screens (≤900px) the two lists are top/bottom so we
    relax the cap there to let each column show its full 240px. */
 .template-assets {
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 10px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -190,20 +190,20 @@
   grid-template-columns: minmax(0, 1fr);
 }
 .template-asset-group + .template-asset-group {
-  border-left: 1px solid var(--line);
+  border-left: 1px solid var(--border);
 }
 @media (max-width: 900px) {
   .template-assets { grid-template-columns: minmax(0, 1fr); }
   .template-asset-group + .template-asset-group {
     border-left: 0;
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--border);
   }
 }
 .template-asset-header {
   align-items: center;
-  background: #fbfcfd;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
   display: flex;
   font-size: 0.72rem;
   gap: 6px;
@@ -211,7 +211,7 @@
   padding: 5px 10px;
   text-transform: uppercase;
 }
-.template-asset-title { color: #4b5563; font-weight: 500; }
+.template-asset-title { color: var(--text-muted); font-weight: 500; }
 
 /* Tighter list: single column inside each side, smaller rows, smaller font.
    The inner list NO LONGER auto-fits horizontally — each list is already
@@ -235,13 +235,13 @@
   min-height: 0;
   padding: 3px 6px;
 }
-.template-asset-list li:hover { background: #f1f5fb; }
+.template-asset-list li:hover { background: var(--surface-hover); }
 .template-asset-thumb {
   align-items: center;
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--muted);
+  color: var(--text-muted);
   display: flex;
   flex-shrink: 0;
   height: 20px;
@@ -250,9 +250,9 @@
   width: 20px;
 }
 .template-asset-thumb.is-link {
-  background: #eef4ff;
-  border-color: #cfe0fb;
-  color: var(--blue);
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 .template-asset-thumb img {
   max-height: 100%;
@@ -285,8 +285,8 @@
   text-transform: uppercase;
   vertical-align: middle;
 }
-.template-asset-tag.is-warn { background: #fff1d5; color: #8a5a06; }
-.template-asset-tag.is-info { background: #e8eef9; color: #2a4a82; }
+.template-asset-tag.is-warn { background: var(--warn-soft); color: var(--warn); }
+.template-asset-tag.is-info { background: var(--accent-soft); color: var(--accent); }
 .template-asset-actions {
   align-items: center;
   display: flex;
@@ -306,8 +306,8 @@
   transition: background 0.12s;
 }
 .template-asset-row:focus-visible {
-  background: #eef4ff;
-  outline: 2px solid var(--blue);
+  background: var(--accent-soft);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 /* Edit link modal */
@@ -322,7 +322,7 @@
 .edit-link-presets .text-button { font-size: 0.82rem; }
 .edit-link-test {
   align-items: center;
-  color: var(--blue);
+  color: var(--accent);
   display: inline-flex;
   font-size: 0.84rem;
   gap: 4px;
@@ -374,10 +374,10 @@
 .logo-picker-size-control { width: max-content; }
 .upload-button {
   align-items: center;
-  background: var(--blue);
-  border: 1px solid var(--blue);
+  background: var(--accent);
+  border: 1px solid var(--accent);
   border-radius: 8px;
-  color: #fff;
+  color: var(--accent-contrast);
   cursor: pointer;
   display: inline-flex;
   font-weight: 500;
@@ -399,8 +399,8 @@
   position: relative;
 }
 .logo-tile {
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
   display: grid;
@@ -411,11 +411,11 @@
   width: 100%;
 }
 .logo-tile:hover {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 2px rgba(36, 89, 154, 0.12);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 .logo-tile img {
-  background: #f5f7f9;
+  background: var(--email-canvas);
   border-radius: 8px;
   height: 90px;
   object-fit: contain;
@@ -425,10 +425,14 @@
 .logo-name { font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .logo-delete {
   align-items: center;
+  /* DELIBERATELY LITERAL. This button floats over an uploaded logo, which
+     is customer content on a canvas that never themes. A translucent white
+     scrim is what keeps it legible over an unknown image; a themed token
+     would go dark over a light logo and disappear. */
   background: rgba(255, 255, 255, 0.92);
   border: 0;
   border-radius: 6px;
-  color: var(--muted);
+  color: var(--text-muted);
   display: inline-flex;
   height: 26px;
   justify-content: center;
@@ -443,8 +447,8 @@
 }
 .logo-delete:hover,
 .logo-delete:focus-visible {
-  background: #fef2f2;
-  color: #9f1d1d;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 .logo-grid li:hover .logo-delete,
 .logo-grid li:focus-within .logo-delete { opacity: 1; }
@@ -460,7 +464,7 @@
 }
 
 .plain-text-details {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
   padding-top: 12px;
 }
 .plain-text-details > summary {
@@ -498,8 +502,8 @@
    placeholder copy so it reads as a hint, not a real subject line. */
 .preview-subject {
   align-items: baseline;
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 8px;
   display: flex;
   font-weight: 500;
@@ -522,19 +526,19 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.preview-subject.is-empty { background: #fbfcfd; font-weight: 400; }
+.preview-subject.is-empty { background: var(--surface); font-weight: 400; }
 .preview-subject.is-empty .preview-subject-text { font-weight: 400; }
 .segmented-control {
-  background: #f3f6fa;
-  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
   border-radius: 10px;
   display: flex;
   padding: 3px;
 }
 .segmented-control button { background: transparent; border: 0; min-height: 30px; }
-.segmented-control button.active { background: #fff; color: var(--blue); }
+.segmented-control button.active { background: var(--surface-raised); color: var(--accent); }
 .email-device {
-  background: #eef2f6;
+  background: var(--surface-sunken);
   border-radius: 12px;
   display: grid;
   height: 520px;
@@ -544,7 +548,7 @@
   place-items: start center;
 }
 .message-frame {
-  background: #fff;
+  background: var(--email-page);
   border: 0;
   border-radius: 10px;
   height: 100%;
@@ -569,8 +573,8 @@
    template panel so it reads as a clear alternative to the "New" button. */
 .template-gallery-btn {
   align-items: center;
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
   cursor: pointer;
@@ -584,12 +588,12 @@
   transition: background 0.12s, border-color 0.12s;
   width: 100%;
 }
-.template-gallery-btn:hover { background: #f6f8fc; border-color: #cfd9e7; }
+.template-gallery-btn:hover { background: var(--surface-hover); border-color: var(--border); }
 
 /* Empty state when there are no templates to choose from. */
 .template-empty {
   align-items: center;
-  color: var(--muted);
+  color: var(--text-muted);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -597,7 +601,7 @@
   padding: 22px 10px;
   text-align: center;
 }
-.template-empty svg { color: #b7c2d4; margin-bottom: 2px; }
+.template-empty svg { color: var(--text-subtle); margin-bottom: 2px; }
 .template-empty strong { color: var(--text); font-size: 0.95rem; }
 .template-empty p { font-size: 0.84rem; line-height: 1.45; margin: 0; }
 
@@ -625,17 +629,17 @@
   gap: 6px;
 }
 .gallery-chip {
-  background: #f3f6fa;
-  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 500;
   padding: 5px 12px;
 }
 .gallery-chip:hover { color: var(--text); }
-.gallery-chip.is-active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.gallery-chip.is-active { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
 
 .gallery-grid {
   display: grid;
@@ -645,20 +649,20 @@
   padding: 2px;
 }
 .gallery-card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.gallery-card:hover { border-color: #cfe0fb; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08); }
+.gallery-card:hover { border-color: var(--accent-border); box-shadow: var(--e2); }
 /* Scaled, non-interactive live preview of the real email HTML. The iframe
    renders at the email's true 600px width and is scaled down to fit the
    card, so the thumbnail is a faithful miniature. */
 .gallery-card-preview {
-  background: #f5f7f9;
-  border-bottom: 1px solid var(--line);
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border);
   height: 220px;
   overflow: hidden;
   position: relative;
@@ -688,7 +692,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.gallery-card-cat { color: var(--muted); font-size: 0.74rem; }
+.gallery-card-cat { color: var(--text-muted); font-size: 0.74rem; }
 .gallery-card-use {
   flex-shrink: 0;
   font-size: 0.82rem;
