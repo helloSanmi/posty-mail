@@ -4,11 +4,51 @@
  * like. The middle column is the only one that changes shape at narrow
  * widths, because the other two are the context that makes it make sense. */
 
+/* Two columns: the list, and the template you are working on. Edit and
+   Preview are tabs of that second column rather than a third column beside
+   it — a preview squeezed into 360px is not what the email looks like, so
+   it cost real editing width to show something that had to be checked
+   properly elsewhere anyway. */
 .em-grid {
   display: grid;
   gap: var(--s3);
-  grid-template-columns: 260px minmax(0, 1fr) 360px;
+  grid-template-columns: 260px minmax(0, 1fr);
   align-items: start;
+}
+
+/* ---- edit / preview tabs ------------------------------------------------
+   The sheet was drawn without these; the design assumed the preview always
+   sat beside the editor. They live in the editor's card head, so they read
+   as two views of that panel rather than as page navigation — the page's
+   own tabs are in the sidebar. */
+.em-tabs {
+  background: var(--surface-sunken);
+  border-radius: var(--r-md);
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 2px;
+}
+.em-tab {
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  min-height: 28px;
+  padding: 0 var(--s3);
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.em-tab:hover { color: var(--text); }
+.em-tab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.em-tab.is-active {
+  background: var(--surface-raised);
+  box-shadow: var(--e1);
+  color: var(--text);
+  font-weight: 600;
 }
 
 .em-card {
@@ -311,7 +351,9 @@
 }
 
 /* ---- preview ------------------------------------------------------------ */
-.em-preview { position: sticky; top: var(--s4); }
+/* No longer a column of its own — the preview is a tab of the editor panel
+   now, so there is nothing beside it to stay level with. Kept only because
+   the rule below it styles the panel's contents. */
 .em-devices {
   background: var(--surface-sunken);
   border-radius: var(--r-md);
@@ -384,7 +426,6 @@
    being a preview and becomes a thumbnail. */
 @media (max-width: 1280px) {
   .em-grid { grid-template-columns: 240px minmax(0, 1fr); }
-  .em-preview { grid-column: 1 / -1; position: static; }
   .em-frame.is-desktop .em-mail { max-width: 560px; }
 }
 @media (max-width: 900px) {
