@@ -3,7 +3,10 @@ import {
   DEFAULT_DIRECTION, DEFAULT_GROUND, DIRECTIONS, ROLES,
   accentKeysFor, applyTheme, groundKeysFor, resolveTheme,
 } from './themes';
-import { DESIGN_PAGES } from './pages';
+// registry.jsx, NOT pages.jsx: `./pages` is ambiguous next to the pages/
+// directory and resolves to the folder, which has no index — a silent 404
+// and a blank screen.
+import { DESIGN_PAGES } from './registry';
 import './foundation.css';
 import './sandbox.css';
 

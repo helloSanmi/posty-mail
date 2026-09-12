@@ -301,3 +301,34 @@ html[data-theme='dark'] .sh-badge { color: #0E1620; }
 @media (prefers-reduced-motion: reduce) {
   .sh, .sh-side { transition: none; }
 }
+
+/* Placeholder for a nav destination whose design has not landed yet. The
+   shell is navigable so it can be exercised; the other pages are honest
+   about not existing rather than showing a half-built stand-in. */
+.sh-stub {
+  color: var(--text-subtle);
+  font-size: var(--text-sm);
+  margin: 0;
+  padding: var(--s8) 0;
+  text-align: center;
+}
+
+/* The page's primary action, in the topbar. */
+.sh-action {
+  align-items: center;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  color: var(--accent-contrast);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: 6px;
+  padding: 6px var(--s3);
+  transition: background var(--t-fast);
+}
+.sh-action:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.sh-action:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }

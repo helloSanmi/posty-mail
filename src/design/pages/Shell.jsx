@@ -3,7 +3,6 @@ import {
   BarChart3, Bell, Building2, Inbox, LayoutDashboard, LogOut, MailCheck,
   PanelLeft, PanelLeftClose, PanelLeftOpen, PlugZap, Search, Users, X,
 } from 'lucide-react';
-import { PreviewContent } from './Preview';
 import './shell.css';
 
 // The application frame, redesigned. Everything the live AppShell does is
@@ -35,10 +34,14 @@ const NAV = [
   { icon: Building2, label: 'Workspaces' },
 ];
 
-export function Shell() {
+export function Shell({
+  active = 'Campaigns', title, eyebrow, action, children,
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [current, setCurrent] = useState('Campaigns');
+  // Clicking a nav item swaps the frame's own title so the shell can be
+  // exercised, without pretending the other pages are designed yet.
+  const [current, setCurrent] = useState(active);
 
   // Escape closes the drawer, matching the live shell.
   useEffect(() => {
@@ -131,9 +134,13 @@ export function Shell() {
           <div className="sh-title">
             {/* Only rendered when there is a second level to name. It used to
                 repeat the heading verbatim. */}
-            {current === 'Campaigns' && <span className="sh-eyebrow">All campaigns</span>}
-            <h1>{current}</h1>
+            {current === active && eyebrow && <span className="sh-eyebrow">{eyebrow}</span>}
+            <h1>{current === active ? (title || active) : current}</h1>
           </div>
+
+          {/* The page's primary action belongs to the page, not to a banner
+              inside it. Home's "New campaign" used to sit in a hero. */}
+          {current === active && action}
 
           <button type="button" className="sh-search">
             <Search size={14} aria-hidden="true" />
@@ -148,7 +155,9 @@ export function Shell() {
         </header>
 
         <div className="sh-content">
-          <PreviewContent />
+          {current === active ? children : (
+            <p className="sh-stub">{current} is not designed yet.</p>
+          )}
         </div>
       </div>
     </div>
