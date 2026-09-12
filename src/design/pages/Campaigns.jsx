@@ -19,10 +19,11 @@ import './campaigns.css';
 // aligned facts — that is a table. It also lets the status colour and the
 // left-edge state rule do the work a pill-per-card was doing.
 //
-// ROW ACTIONS REVEAL. Edit, Clone and Delete on every row is thirty icon
-// buttons on a page whose job is to let you read a list. They appear on
-// hover and on keyboard focus, and stay permanently visible on touch, where
-// there is no hover to reveal them with.
+// ROW ACTIONS ARE ALWAYS VISIBLE, QUIET AT REST. Edit, Clone and Delete on
+// every row is thirty icon buttons on a page whose job is to let you read a
+// list — but hiding them until hover made them undiscoverable, which is the
+// worse failure. They sit at text-subtle until the row is engaged, which
+// reads as available rather than as a row of live controls.
 
 const CAMPAIGNS = [
   {

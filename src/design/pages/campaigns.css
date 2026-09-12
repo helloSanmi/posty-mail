@@ -132,27 +132,25 @@
 .cp-pill.is-muted { background: var(--surface-sunken); color: var(--text-muted); }
 
 /* ---- row actions -------------------------------------------------------
-   Hidden until the row is hovered or something inside it takes keyboard
-   focus. Thirty always-on icon buttons turn a list you are trying to read
-   into a control panel.
+   ALWAYS VISIBLE, quiet at rest. An earlier version revealed these on
+   hover, which kept the list clean but made the controls undiscoverable —
+   you had to already know they were there to find them.
 
-   focus-within is what keeps this keyboard-reachable: tabbing into the row
-   reveals the same controls the mouse gets. On a touch device there is no
-   hover to reveal anything, so they stay visible — the pointer:coarse
-   query below. */
+   The answer to "thirty icon buttons turn a list into a control panel" is
+   not to hide them, it is to lower their contrast until the row is
+   engaged. At rest they sit at text-subtle, which reads as available
+   rather than as a row of live controls; the row's hover lifts them to
+   text-muted and each button's own hover takes it to full strength. */
 .cp-actions {
   display: flex;
   gap: 2px;
   justify-content: flex-end;
-  opacity: 0;
-  transition: opacity var(--t-fast);
 }
-.cp-row:hover .cp-actions,
-.cp-row:focus-within .cp-actions { opacity: 1; }
-
-@media (hover: none), (pointer: coarse) {
-  .cp-actions { opacity: 1; }
-}
+.cp-actions .cp-icon-btn { color: var(--text-subtle); }
+.cp-row:hover .cp-actions .cp-icon-btn,
+.cp-row:focus-within .cp-actions .cp-icon-btn { color: var(--text-muted); }
+.cp-actions .cp-icon-btn:hover { color: var(--text); }
+.cp-actions .cp-icon-btn.is-danger:hover { color: var(--danger); }
 
 /* ---- pagination -------------------------------------------------------- */
 .cp-pagination {
@@ -220,12 +218,10 @@
 .cp-draft-chevron { color: var(--text-subtle); flex: none; }
 .cp-draft-resume:hover .cp-draft-chevron { color: var(--accent); }
 
-.cp-draft-delete { opacity: 0; transition: opacity var(--t-fast); }
+.cp-draft-delete { color: var(--text-subtle); }
 .cp-draft:hover .cp-draft-delete,
-.cp-draft:focus-within .cp-draft-delete { opacity: 1; }
-@media (hover: none), (pointer: coarse) {
-  .cp-draft-delete { opacity: 1; }
-}
+.cp-draft:focus-within .cp-draft-delete { color: var(--text-muted); }
+.cp-draft-delete:hover { color: var(--danger); }
 
 /* ---- narrow ------------------------------------------------------------ */
 @media (max-width: 1100px) {

@@ -22,8 +22,8 @@ import './audience.css';
 // them, and a way out. Nothing is added; one thing is exchanged for
 // another.
 //
-// The per-row Edit and Delete follow Campaigns — revealed on hover and on
-// focus-within, permanently visible on touch.
+// The per-row Edit and Delete follow Campaigns — always visible, sitting at
+// text-subtle until the row is engaged.
 
 const GROUPS = [
   { name: 'All contacts', count: 2847, all: true },

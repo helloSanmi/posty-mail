@@ -263,18 +263,19 @@
 .au-pill.is-success { background: var(--success-soft); color: var(--success); }
 .au-pill.is-muted { background: var(--surface-sunken); color: var(--text-muted); }
 
+/* Always visible, quiet at rest — see the note in campaigns.css. Hiding
+   these on hover made them undiscoverable; lowering their contrast keeps
+   the list readable without keeping the controls secret. */
 .au-actions {
   display: flex;
   gap: 2px;
   justify-content: flex-end;
-  opacity: 0;
-  transition: opacity var(--t-fast);
 }
-.au-row:hover .au-actions,
-.au-row:focus-within .au-actions { opacity: 1; }
-@media (hover: none), (pointer: coarse) {
-  .au-actions { opacity: 1; }
-}
+.au-actions .au-icon-btn { color: var(--text-subtle); }
+.au-row:hover .au-actions .au-icon-btn,
+.au-row:focus-within .au-actions .au-icon-btn { color: var(--text-muted); }
+.au-actions .au-icon-btn:hover { color: var(--text); }
+.au-actions .au-icon-btn.is-danger:hover { color: var(--danger); }
 
 /* ---- pagination --------------------------------------------------------- */
 .au-pagination {
