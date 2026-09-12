@@ -22,6 +22,10 @@ import { textFromHtml } from '../utils/textFromHtml';
 const SELECTED_TEMPLATE_KEY = 'campaign-templates:selectedId';
 
 export function TemplatesPage({ template, setTemplate, contacts, notify }) {
+  // Which pane of the editor column is showing. Both stay mounted and are
+  // toggled with `hidden`, so switching does not remount the editor or
+  // reload the preview iframe.
+  const [activeTab, setActiveTab] = useState('edit');
   const [previewDevice, setPreviewDevice] = useState('desktop');
   const [previewClient, setPreviewClient] = useState('gmail');
   const [previewDark, setPreviewDark] = useState(false);
@@ -210,13 +214,14 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
 
   return (
     <div className="page-stack template-page">
-      {/* Three columns: what you have, what you are editing, what it will
-          look like. Edit and Preview are no longer tabs — you are making
-          something visual, and not being able to see it while you make it
-          was this page's real cost. The Edit/Preview pill and its activeTab
-          state are gone: email.css stacks the preview under the editor below
-          1280px and drops to a single column below 900px, so the narrow
-          layout is handled by the sheet rather than by hiding a pane. */}
+      {/* Two columns: the templates you have, and the one you are working
+          on. Edit and Preview are tabs of that second column rather than a
+          third column beside it — a preview squeezed into 360px is not
+          what the email looks like, so it was costing real editing width to
+          show something that still had to be checked properly elsewhere.
+          Both panels stay mounted and are toggled with `hidden`, so
+          switching to Preview and back does not remount the editor or
+          reload the preview iframe. */}
       <div className="em-grid">
         <TemplateList
           templates={templateOptions}
@@ -234,6 +239,30 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
               own action row sits far below the fold on a long template. */}
           <div className="em-card-head">
             <h2>{template.name || 'Untitled template'}</h2>
+            <div className="em-tabs" role="tablist" aria-label="Template view">
+              <button
+                type="button"
+                role="tab"
+                id="em-tab-edit"
+                aria-selected={activeTab === 'edit'}
+                aria-controls="em-panel-edit"
+                className={`em-tab${activeTab === 'edit' ? ' is-active' : ''}`}
+                onClick={() => setActiveTab('edit')}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                role="tab"
+                id="em-tab-preview"
+                aria-selected={activeTab === 'preview'}
+                aria-controls="em-panel-preview"
+                className={`em-tab${activeTab === 'preview' ? ' is-active' : ''}`}
+                onClick={() => setActiveTab('preview')}
+              >
+                Preview
+              </button>
+            </div>
             <div className="em-head-tools">
               {isUnsavedDraft && <span className="pill amber">Unsaved draft</span>}
               {saveStatus && (
@@ -241,35 +270,43 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
               )}
             </div>
           </div>
-          <TemplateEditor
-            template={template}
-            setTemplate={setTemplate}
-            onSave={handleSaveTemplate}
-            saveStatus={saveStatus}
-            notify={notify}
-            canDelete={Boolean(selectedTemplateId)}
-            onDelete={requestDeleteTemplate}
-            onDuplicate={duplicateTemplate}
-            categories={categories}
-          />
+          <div
+            role="tabpanel"
+            id="em-panel-edit"
+            aria-labelledby="em-tab-edit"
+            hidden={activeTab !== 'edit'}
+          >
+            <TemplateEditor
+              template={template}
+              setTemplate={setTemplate}
+              onSave={handleSaveTemplate}
+              saveStatus={saveStatus}
+              notify={notify}
+              canDelete={Boolean(selectedTemplateId)}
+              onDelete={requestDeleteTemplate}
+              onDuplicate={duplicateTemplate}
+              categories={categories}
+            />
+          </div>
+          <div
+            role="tabpanel"
+            id="em-panel-preview"
+            aria-labelledby="em-tab-preview"
+            hidden={activeTab !== 'preview'}
+          >
+            <EmailPreview
+              subject={subject}
+              previewClient={previewClient}
+              setPreviewClient={setPreviewClient}
+              previewDevice={previewDevice}
+              setPreviewDevice={setPreviewDevice}
+              previewHtml={previewHtml}
+              previewDark={previewDark}
+              setPreviewDark={setPreviewDark}
+            />
+          </div>
         </section>
 
-        {/* Side by side, not a tab away. `.em-preview` is what keeps the
-            preview beside the editor on wide screens and moves it to a
-            full-width row below 1280px instead of squeezing it into the
-            list column. */}
-        <aside className="em-preview" aria-label="Email preview">
-          <EmailPreview
-            subject={subject}
-            previewClient={previewClient}
-            setPreviewClient={setPreviewClient}
-            previewDevice={previewDevice}
-            setPreviewDevice={setPreviewDevice}
-            previewHtml={previewHtml}
-            previewDark={previewDark}
-            setPreviewDark={setPreviewDark}
-          />
-        </aside>
       </div>
       {deleteTarget && (
         <ConfirmDialog

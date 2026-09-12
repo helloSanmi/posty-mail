@@ -20,6 +20,7 @@
         const [client, setClient] = useState('gmail');
         const [device, setDevice] = useState('computer');
         const [dark, setDark] = useState(false);
+        const [tab, setTab] = useState('edit');
         return h('main', { className: 'sh' },
           h('aside', { className: 'sh-side' }, h('div', { className: 'sh-brand' }, 'Posty')),
           h('section', { className: 'sh-main' },
@@ -28,17 +29,33 @@
                 h('div', { className: 'em-grid' },
                   h('section', { className: 'em-card' }, 'Templates'),
                   h('section', { className: 'em-editor' },
-                    h('div', { className: 'em-fields' },
-                      h('label', null, 'Name', h('input', { readOnly: true, value: '' })),
-                      h('label', null, 'Subject', h('input', { readOnly: true, value: '' })))),
-                  h('aside', { className: 'em-preview' },
-                    h(EmailPreview, {
-                      subject: '',
-                      previewClient: client, setPreviewClient: setClient,
-                      previewDevice: device, setPreviewDevice: setDevice,
-                      previewHtml: '<p>hi</p>',
-                      previewDark: dark, setPreviewDark: setDark,
-                    }))))))); 
+                    h('div', { className: 'em-card-head' },
+                      h('h2', null, 'Untitled template'),
+                      h('div', { className: 'em-tabs', role: 'tablist' },
+                        h('button', {
+                          type: 'button', role: 'tab', id: 'em-tab-edit',
+                          'aria-selected': tab === 'edit',
+                          className: 'em-tab' + (tab === 'edit' ? ' is-active' : ''),
+                          onClick: () => setTab('edit'),
+                        }, 'Edit'),
+                        h('button', {
+                          type: 'button', role: 'tab', id: 'em-tab-preview',
+                          'aria-selected': tab === 'preview',
+                          className: 'em-tab' + (tab === 'preview' ? ' is-active' : ''),
+                          onClick: () => setTab('preview'),
+                        }, 'Preview'))),
+                    h('div', { role: 'tabpanel', id: 'em-panel-edit', hidden: tab !== 'edit' },
+                      h('div', { className: 'em-fields' },
+                        h('label', null, 'Name', h('input', { readOnly: true, value: '' })),
+                        h('label', null, 'Subject', h('input', { readOnly: true, value: '' })))),
+                    h('div', { role: 'tabpanel', id: 'em-panel-preview', hidden: tab !== 'preview' },
+                      h(EmailPreview, {
+                        subject: '',
+                        previewClient: client, setPreviewClient: setClient,
+                        previewDevice: device, setPreviewDevice: setDevice,
+                        previewHtml: '<p>hi</p>',
+                        previewDark: dark, setPreviewDark: setDark,
+                      })))))))); 
       }
       createRoot(document.getElementById('root')).render(h(Probe));
     </script>
