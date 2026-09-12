@@ -13,9 +13,9 @@
 }
 
 .skip-link {
-  background: var(--blue);
+  background: var(--accent);
   border-radius: 0 0 8px 0;
-  color: #fff;
+  color: var(--accent-contrast);
   font-weight: 600;
   left: 0;
   padding: 10px 14px;
@@ -28,8 +28,8 @@
 .skip-link:focus { top: 0; }
 
 .sidebar {
-  background: #fbfcfe;
-  border-right: 1px solid var(--line);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -46,7 +46,7 @@
   gap: 12px;
 }
 .audience-form-footer {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
   justify-content: space-between;
   margin-top: 14px;
   padding-top: 14px;
@@ -56,9 +56,9 @@
    no centering grid, just a fixed-size image. `.contact-avatar` and
    `.integration-icon` keep the tile look because they wrap small icons. */
 .contact-avatar, .integration-icon {
-  background: #edf4ff;
+  background: var(--accent-soft);
   border-radius: 10px;
-  color: var(--blue);
+  color: var(--accent);
   display: grid;
   flex-shrink: 0;
   height: 38px;
@@ -76,7 +76,7 @@
 }
 
 .brand strong, .brand span { display: block; }
-.brand span, .eyebrow, .muted, small { color: var(--muted); }
+.brand span, .eyebrow, .muted, small { color: var(--text-muted); }
 /* Workspace name under the Posty wordmark. Truncates so a long
    "Someone's workspace" name never wraps or overflows the sidebar. */
 .brand-workspace {
@@ -94,7 +94,7 @@ nav button, nav .nav-link {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
-  color: #374151;
+  color: var(--text-muted);
   display: inline-flex;
   font-weight: 500;
   gap: 12px;
@@ -104,13 +104,13 @@ nav button, nav .nav-link {
   text-decoration: none;
 }
 nav button.active, nav .nav-link.active {
-  background: #eef4ff;
-  border-color: #d8e5fa;
-  color: var(--blue);
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 .sidebar-user {
   align-items: center;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
   display: flex;
   gap: 8px;
   justify-content: space-between;
@@ -118,7 +118,7 @@ nav button.active, nav .nav-link.active {
   padding-top: 14px;
 }
 .sidebar-user strong { display: block; font-size: 0.92rem; }
-.sidebar-user span { color: var(--muted); font-size: 0.78rem; text-transform: capitalize; }
+.sidebar-user span { color: var(--text-muted); font-size: 0.78rem; text-transform: capitalize; }
 
 /* Sidebar collapse toggle. Sits at the right edge of the brand row on
    desktop, hidden on mobile (where the sidebar IS the drawer and the
@@ -129,7 +129,7 @@ nav button.active, nav .nav-link.active {
   background: transparent;
   border: 0;
   border-radius: 6px;
-  color: var(--muted);
+  color: var(--text-muted);
   cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
@@ -140,7 +140,7 @@ nav button.active, nav .nav-link.active {
   transition: background 0.12s, color 0.12s;
   width: 28px;
 }
-.sidebar-toggle:hover { background: #eef4ff; color: var(--blue); }
+.sidebar-toggle:hover { background: var(--accent-soft); color: var(--accent); }
 @media (max-width: 720px) {
   .sidebar-toggle { display: none; }
 }
@@ -186,10 +186,10 @@ nav button.active, nav .nav-link.active {
    mobile collapses to an icon-only button so the topbar doesn't crowd. */
 .topbar-search {
   align-items: center;
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: var(--muted);
+  color: var(--text-muted);
   cursor: pointer;
   display: inline-flex;
   font-size: 0.84rem;
@@ -200,16 +200,16 @@ nav button.active, nav .nav-link.active {
   transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 .topbar-search:hover {
-  background: #f8fafc;
-  border-color: #cfd9e7;
+  background: var(--surface-hover);
+  border-color: var(--border);
   color: var(--text);
 }
 .topbar-search-label { min-width: 80px; text-align: left; }
 .topbar-search-kbd {
-  background: #f1f5f9;
-  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--muted);
+  color: var(--text-muted);
   font-family: inherit;
   font-size: 0.72rem;
   font-weight: 600;
@@ -226,7 +226,7 @@ nav button.active, nav .nav-link.active {
 .global-search-backdrop {
   align-items: flex-start;
   animation: posty-fade-in 0.15s ease-out both;
-  background: rgba(15, 23, 42, 0.32);
+  background: var(--scrim-soft);
   backdrop-filter: blur(2px);
   display: flex;
   inset: 0;
@@ -237,10 +237,10 @@ nav button.active, nav .nav-link.active {
 }
 .global-search-modal {
   animation: posty-scale-in 0.16s ease-out both;
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.20);
+  box-shadow: var(--e3);
   display: flex;
   flex-direction: column;
   max-height: min(560px, calc(100vh - 120px));
@@ -249,12 +249,12 @@ nav button.active, nav .nav-link.active {
 }
 .global-search-input-row {
   align-items: center;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border);
   display: flex;
   gap: 10px;
   padding: 12px 14px;
 }
-.global-search-icon { color: var(--muted); flex-shrink: 0; }
+.global-search-icon { color: var(--text-muted); flex-shrink: 0; }
 .global-search-input-row input {
   background: transparent;
   border: 0;
@@ -263,13 +263,13 @@ nav button.active, nav .nav-link.active {
   outline: none;
   padding: 0;
 }
-.global-search-input-row input::placeholder { color: #94a3b8; }
+.global-search-input-row input::placeholder { color: var(--text-subtle); }
 .global-search-close {
   align-items: center;
   background: transparent;
   border: 0;
   border-radius: 6px;
-  color: var(--muted);
+  color: var(--text-muted);
   cursor: pointer;
   display: inline-flex;
   height: 26px;
@@ -277,7 +277,7 @@ nav button.active, nav .nav-link.active {
   padding: 0;
   width: 26px;
 }
-.global-search-close:hover { background: #f1f5f9; color: var(--text); }
+.global-search-close:hover { background: var(--surface-hover); color: var(--text); }
 
 .global-search-results {
   flex: 1 1 auto;
@@ -292,10 +292,10 @@ nav button.active, nav .nav-link.active {
   text-align: center;
 }
 .global-search-group { padding: 6px 0; }
-.global-search-group + .global-search-group { border-top: 1px solid #f1f5f9; }
+.global-search-group + .global-search-group { border-top: 1px solid var(--border); }
 .global-search-group-head {
   align-items: center;
-  color: var(--muted);
+  color: var(--text-muted);
   display: flex;
   font-size: 0.7rem;
   font-weight: 600;
@@ -321,7 +321,7 @@ nav button.active, nav .nav-link.active {
   width: 100%;
 }
 .global-search-result.is-active,
-.global-search-result:hover { background: #eef4ff; }
+.global-search-result:hover { background: var(--accent-soft); }
 .global-search-result-label {
   color: var(--text);
   font-weight: 500;
@@ -330,7 +330,7 @@ nav button.active, nav .nav-link.active {
   white-space: nowrap;
 }
 .global-search-result-subtitle {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.8rem;
   margin-left: 12px;
   overflow: hidden;
@@ -340,9 +340,9 @@ nav button.active, nav .nav-link.active {
 
 .global-search-footer {
   align-items: center;
-  background: #fbfcfd;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
   display: flex;
   flex-wrap: wrap;
   font-size: 0.74rem;
@@ -350,8 +350,8 @@ nav button.active, nav .nav-link.active {
   padding: 8px 14px;
 }
 .global-search-footer kbd {
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 4px;
   font-family: inherit;
   font-size: 0.72rem;
@@ -361,8 +361,8 @@ nav button.active, nav .nav-link.active {
 
 .topbar {
   align-items: center;
-  background: #fff;
-  border-bottom: 1px solid var(--line);
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
   display: flex;
   gap: 14px;
   min-height: 64px;
@@ -377,7 +377,7 @@ nav button.active, nav .nav-link.active {
 .mobile-menu {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   display: none;
   height: 40px;
   justify-content: center;
@@ -401,22 +401,22 @@ nav button.active, nav .nav-link.active {
 .notif-bell-button {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  color: #4b5563;
+  color: var(--text-muted);
   display: inline-flex;
   height: 38px;
   justify-content: center;
   position: relative;
   width: 38px;
 }
-.notif-bell-button:hover { background: #f1f5fb; color: var(--blue); }
+.notif-bell-button:hover { background: var(--accent-soft); color: var(--accent); }
 .notif-bell-badge {
   align-items: center;
-  background: #dc2626;
-  border: 2px solid #fff;
+  background: var(--danger);
+  border: 2px solid var(--surface-raised);
   border-radius: 999px;
-  color: #fff;
+  color: var(--accent-contrast);
   display: inline-flex;
   font-size: 0.62rem;
   font-weight: 600;
@@ -429,10 +429,10 @@ nav button.active, nav .nav-link.active {
   top: -4px;
 }
 .notif-panel {
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 18px 44px rgba(15, 23, 42, .14);
+  box-shadow: var(--e3);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   margin-top: 8px;
@@ -445,7 +445,7 @@ nav button.active, nav .nav-link.active {
 }
 .notif-panel-header {
   align-items: center;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   padding: 12px 14px;
@@ -469,9 +469,9 @@ nav button.active, nav .nav-link.active {
   padding: 8px 10px;
   position: relative;
 }
-.notif-item.is-unread { background: #eef4ff; }
+.notif-item.is-unread { background: var(--accent-soft); }
 .notif-item.is-unread::before {
-  background: var(--blue);
+  background: var(--accent);
   border-radius: 999px;
   content: '';
   height: 6px;
@@ -490,10 +490,10 @@ nav button.active, nav .nav-link.active {
 .notif-item-body .muted { font-size: 0.78rem; }
 
 .toast {
-  background: #1f2937;
+  background: var(--inverse-surface);
   border-radius: 12px;
-  box-shadow: 0 18px 44px rgba(15, 23, 42, .22);
-  color: #fff;
+  box-shadow: var(--e3);
+  color: var(--inverse-text);
   font-weight: 500;
   left: 50%;
   max-width: min(420px, calc(100vw - 32px));
@@ -505,12 +505,12 @@ nav button.active, nav .nav-link.active {
   z-index: 60;
 }
 
-.toast.error { background: #8a1f1f; }
+.toast.error { background: var(--danger); color: var(--accent-contrast); }
 
 /* Fallback shown while a lazily-loaded route chunk downloads. Kept minimal
    so route changes don't flash a heavy spinner. */
 .route-loading {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.9rem;
   padding: 48px 24px;
   text-align: center;
@@ -520,15 +520,15 @@ nav button.active, nav .nav-link.active {
   /* Soft brand-tinted gradient so the auth screen doesn't read as a
      bare white page. Subtle — the card still carries the focus. */
   background:
-    radial-gradient(1200px 600px at 50% -10%, #eaf1fc 0%, transparent 60%),
-    #f5f7f9;
+    radial-gradient(1200px 600px at 50% -10%, var(--accent-soft) 0%, transparent 60%),
+    var(--bg);
   display: flex;
   min-height: 100vh;
   padding: 40px 24px;
 }
 .auth-card {
   border-radius: 16px;
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.10);
+  box-shadow: var(--e3);
   display: grid;
   gap: 22px;
   /* margin:auto centers the card on BOTH axes when it fits, and — unlike
@@ -558,7 +558,7 @@ nav button.active, nav .nav-link.active {
   margin: 0;
 }
 .auth-subheading {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.9rem;
   line-height: 1.4;
   margin: 0;
@@ -582,24 +582,24 @@ nav button.active, nav .nav-link.active {
   min-height: 44px;
 }
 .auth-error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-border);
   border-radius: 8px;
-  color: #991b1b;
+  color: var(--danger);
   margin: 4px 0;
   padding: 10px 12px;
 }
 .auth-info {
-  background: #eef4ff;
-  border: 1px solid #cfe0fb;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
   border-radius: 8px;
-  color: #1e3a64;
+  color: var(--accent);
   margin: 4px 0;
   padding: 10px 12px;
 }
 .auth-form-links {
   align-items: center;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -608,18 +608,18 @@ nav button.active, nav .nav-link.active {
 }
 .auth-form-links:empty { border-top: 0; margin-top: 0; padding-top: 0; }
 .auth-hint {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.82rem;
   margin: -4px 0 4px;
 }
 .field-error {
-  color: #991b1b;
+  color: var(--danger);
   font-size: 0.82rem;
   margin-top: -10px;
 }
 
 .loading-bar {
-  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
   height: 3px;
   left: 0;
   position: fixed;
@@ -636,7 +636,7 @@ nav button.active, nav .nav-link.active {
 /* Skeletons */
 .skeleton {
   animation: skeleton-pulse 1.4s ease-in-out infinite;
-  background: linear-gradient(90deg, #eceff3 0%, #f5f7f9 50%, #eceff3 100%);
+  background: linear-gradient(90deg, var(--surface-sunken) 0%, var(--surface) 50%, var(--surface-sunken) 100%);
   background-size: 200% 100%;
   border-radius: 8px;
   display: block;
@@ -658,17 +658,17 @@ nav button.active, nav .nav-link.active {
 
 /* Focus visibility */
 :focus-visible {
-  outline: 2px solid #5b8def;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 button:focus-visible, .nav-link:focus-visible, a:focus-visible {
-  box-shadow: 0 0 0 3px rgba(91, 141, 239, .25);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 30%, transparent);
   outline: none;
 }
 
 /* Drawer */
 .drawer-backdrop {
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--scrim);
   border: 0;
   cursor: pointer;
   display: none;
@@ -685,8 +685,8 @@ button:focus-visible, .nav-link:focus-visible, a:focus-visible {
     grid-template-columns: 1fr;
   }
   .sidebar {
-    background: #fbfcfe;
-    box-shadow: 4px 0 24px rgba(15, 23, 42, .12);
+    background: var(--surface);
+    box-shadow: var(--e3);
     height: 100vh;
     left: 0;
     position: fixed;
@@ -703,7 +703,7 @@ button:focus-visible, .nav-link:focus-visible, a:focus-visible {
   .eyebrow { display: block; }
   .topbar { position: static; }
   .page-stack { padding: 18px; }
-  .home-setup { border-left: 0; border-top: 1px solid var(--line); }
+  .home-setup { border-left: 0; border-top: 1px solid var(--border); }
   .template-control-panel { max-height: none; position: static; }
   .skeleton-row { grid-template-columns: 38px 1fr 60px; }
 }
