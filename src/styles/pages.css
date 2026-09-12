@@ -753,8 +753,8 @@
 }
 
 /* Generic status pills, used outside Settings too (contacts table). */
-.pill.amber { background: #fff1d5; color: #8a5a06; }
-.pill.red { background: #fdecec; color: #9f1d1d; }
+.pill.amber { background: var(--warn-soft); color: var(--warn); }
+.pill.red { background: var(--danger-soft); color: var(--danger); }
 
 /* ---- Settings: grouped rows ----------------------------------------
    A section of Settings is ONE surface with one heading and a list of
@@ -2751,7 +2751,7 @@
   padding: 4px 10px;
   white-space: nowrap;
 }
-.pill.muted { background: #eef2f6; color: var(--muted); }
+.pill.muted { background: var(--surface-sunken); color: var(--text-muted); }
 /* Drafts list. Each row is split into two flush buttons:
    - .draft-resume fills the row, click anywhere to open the builder
    - .draft-delete is a small icon button on the right
