@@ -10,13 +10,13 @@
  * so the base theme works before any JavaScript runs and a reader with JS
  * disabled still gets a coherent page.
  *
- * MIGRATION. The legacy names are kept at the bottom as aliases onto the
- * new roles. That is what makes this change safe to land in one commit:
- * every existing `var(--line)` in 5,700 lines of stylesheet becomes
- * theme-aware without being edited, and the literal sweep can then proceed
- * file by file behind a working theme rather than as a prerequisite for
- * one. The aliases are deprecated on arrival — nothing new should use
- * them — and they go when the last literal does.
+ * MIGRATION, COMPLETE. This file briefly carried aliases mapping the old
+ * --line / --muted / --blue / --green / --amber onto these roles, so that
+ * 5,700 lines of stylesheet became theme-aware without being edited and
+ * the literal sweep could proceed file by file behind a working theme
+ * rather than as a prerequisite for one. Every reference is gone, so the
+ * aliases are too — which test/colourTokens.test.js made provable rather
+ * than hopeful, by asserting each swept file stops using them.
  */
 
 :root,
@@ -44,15 +44,6 @@ html[data-theme='light'] {
   --danger: #b02418;
   --danger-soft: #fbe2de;
 
-  /* Tinted borders. Fifteen-plus rules paint a *-soft fill alongside a
-     tinted border — preflight panels, the blocker and demo banners, the
-     auth callouts, the active nav item, selected chips. Sending both to
-     the same *-soft token erases the outline entirely, which is the single
-     largest regression the sweep could introduce. */
-  --accent-border: #cfe0fb;
-  --success-border: #c7e9d4;
-  --warn-border: #f3d9a5;
-  --danger-border: #f3c1c1;
 
   /* The universal row and icon-button hover wash — 24 sites. Without its
      own role it collapses into the same tier as the sticky table headers
@@ -86,11 +77,13 @@ html[data-theme='light'] {
   --email-canvas: #f5f7f9;
 
   --shadow: rgba(14, 27, 45, 0.12);
-  /* Two tiers. Today's backdrops are 0.45 (modal, drawer) and 0.32 (search
-     palette); collapsing both onto one scrim flattens a real depth
-     ordering. */
-  --scrim: rgba(11, 23, 38, 0.62);
-  --scrim-soft: rgba(11, 23, 38, 0.38);
+  /* Two tiers, at the alphas the app shipped: 0.45 for the modal and drawer
+     backdrops, 0.32 for the search palette. Collapsing both onto one scrim
+     would flatten a real depth ordering. Dark uses stronger alphas because
+     these literals were authored against a light page — 0.45 of near-black
+     over an already dark ground barely separates the dialog from it. */
+  --scrim: rgba(15, 23, 42, 0.45);
+  --scrim-soft: rgba(15, 23, 42, 0.32);
 }
 
 html[data-theme='dark'] {
@@ -119,11 +112,6 @@ html[data-theme='dark'] {
   --warn-soft: #332409;
   --danger: #f27a6b;
   --danger-soft: #3a1613;
-
-  --accent-border: #1d3f5c;
-  --success-border: #1a4a34;
-  --warn-border: #4a3812;
-  --danger-border: #5a2620;
 
   --surface-hover: #1c2836;
 
@@ -167,11 +155,6 @@ html[data-theme='dark'] {
     --warn-soft: #332409;
     --danger: #f27a6b;
     --danger-soft: #3a1613;
-
-    --accent-border: #1d3f5c;
-    --success-border: #1a4a34;
-    --warn-border: #4a3812;
-    --danger-border: #5a2620;
 
     --surface-hover: #1c2836;
 
@@ -252,6 +235,37 @@ html[data-theme='dark'][data-accent='iris'] {
   }
 }
 
+/* ---- tinted borders, derived ---------------------------------------------
+   Fifteen-plus rules paint a *-soft fill alongside a tinted border:
+   preflight panels, the blocker and demo banners, the auth callouts, the
+   active nav item, selected chips. Sending both to the same *-soft token
+   erases the outline entirely, which is the single largest regression the
+   sweep could introduce.
+
+   Derived rather than hand-picked, for two reasons the measurements made
+   plain. Eight literals (four families x two grounds) drifted from the
+   values they replaced: the *-soft fills are more saturated than the old
+   panel backgrounds, because soft also backs the pills, where the family
+   colour must clear 4.5:1 as TEXT. That squeezed every border against its
+   own fill by about 10% — success reached 1.09:1, all but invisible.
+
+   Worse, --accent-border was a single ground-level value while
+   --accent-soft varies per accent, so the pair only happened to work for
+   the accent it was picked against; on iris it fell to 1.19:1. A derived
+   border cannot drift from its fill, and a fourth accent gets a correct
+   border for free.
+
+   18% is not a guess. Across every family, ground and accent it yields
+   1.27-1.44:1 against the fill, which is the band the app actually
+   shipped (1.21-1.45:1) — a correction, not a restyle. color-mix is
+   already a dependency; base.css uses it for the focus ring. */
+:root {
+  --accent-border: color-mix(in srgb, var(--accent) 18%, var(--accent-soft));
+  --success-border: color-mix(in srgb, var(--success) 18%, var(--success-soft));
+  --warn-border: color-mix(in srgb, var(--warn) 18%, var(--warn-soft));
+  --danger-border: color-mix(in srgb, var(--danger) 18%, var(--danger-soft));
+}
+
 /* ---- non-colour foundations ---------------------------------------------
    Fixed across themes. The live styles carry 47 distinct font-size values
    and per-component padding, which is a large part of why the UI reads as
@@ -292,23 +306,4 @@ html[data-theme='dark'][data-accent='iris'] {
 
   --t-fast: 0.12s ease;
   --t-base: 0.18s ease;
-}
-
-/* ---- legacy aliases, DEPRECATED -------------------------------------------
-   Every one of these is a name that describes a colour rather than a job,
-   which is the thing that made the app un-themeable. They exist only so the
-   5,700 lines of stylesheet written against them keep working — and now
-   respond to the theme — while the literals are swept file by file.
-
-   Do not use these in new code. They are deleted when the sweep finishes.
-
-   --line was borders; --muted was secondary text; --blue was simultaneously
-   the brand accent, the focus ring and the "selected" state, which is why
-   it could not be repointed. */
-:root {
-  --line: var(--border);
-  --muted: var(--text-muted);
-  --blue: var(--accent);
-  --green: var(--success);
-  --amber: var(--warn);
 }
