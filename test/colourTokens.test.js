@@ -216,3 +216,16 @@ test('every role is defined in the dark ground as well as the light one', () => 
   ));
   assert.deepEqual(missing, [], `defined in light but not dark: ${missing.join(', ')}`);
 });
+
+test('the asset inspectors stay capped, so the settings band cannot grow', () => {
+  // Two unbounded lists deciding how far down the page the writing surface
+  // began is the defect this whole pass existed to fix. The cap plus the
+  // scroll is the entire mechanism: lose either and 150 images push the
+  // canvas off the screen again, silently, on exactly the templates that
+  // are used most.
+  const sheet = stripComments(css('screens/email.css'));
+  const rule = sheet.match(/\.template-more-body \.template-asset-group \{([^}]*)\}/);
+  assert.ok(rule, '.template-more-body .template-asset-group rule is gone');
+  assert.match(rule[1], /max-height:\s*\d+px/, 'the inspector cap was removed');
+  assert.match(rule[1], /overflow-y:\s*auto/, 'capped without a scroll hides rows instead of scrolling them');
+});

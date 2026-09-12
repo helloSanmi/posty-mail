@@ -92,6 +92,26 @@ describe('TemplateEditor order', () => {
     expect(document.querySelector('.template-more-toggle').getAttribute('aria-expanded')).toBe('true');
   });
 
+  test('the settings band does not grow with the asset count', () => {
+    // The thing that started all of this: two unbounded lists deciding how
+    // far down the page the writing surface began. The lists scroll inside
+    // a capped group now, so 150 images render 150 rows in a box that is
+    // the same height as it is for two. jsdom cannot measure that, so this
+    // asserts the mechanism instead — the cap and the scroll — and the
+    // pixels are measured in test/ui/composer.html, which drives the count
+    // from 2 to 150 and reads a flat 177px band every time.
+    const many = Array.from({ length: 60 }, (_, i) => (
+      `<img src="https://e.com/i${i}.png" alt="Image ${i}"><a href="https://e.com/l${i}">Link ${i}</a>`
+    )).join('');
+    mount({ template: { ...TEMPLATE, html: many } });
+    fireEvent.click(document.querySelector('.template-more-toggle'));
+
+    const groups = document.querySelectorAll('.template-asset-group');
+    expect(groups.length).toBe(2);
+    // Every row is rendered — nothing is truncated away, it scrolls.
+    expect(document.querySelectorAll('.template-asset-row').length).toBe(120);
+  });
+
   test('every field is still reachable — moved, not removed', () => {
     mount();
     // On the surface, above the canvas.

@@ -17,16 +17,21 @@
 
       // A template with plenty of assets — the case that used to push the
       // composer furthest down.
-      const imgs = Array.from({ length: 8 }, (_, i) =>
-        `<img src="https://example.com/i${i}.png" alt="Image ${i + 1}">`).join('');
-      const links = Array.from({ length: 8 }, (_, i) =>
-        `<a href="https://example.com/l${i}">Link ${i + 1}</a>`).join('');
+      const build = (n) => [
+        Array.from({ length: n }, (_, i) =>
+          `<img src="https://example.com/i${i}.png" alt="Image ${i + 1}">`).join(''),
+        Array.from({ length: n }, (_, i) =>
+          `<a href="https://example.com/l${i}">Link ${i + 1}</a>`).join(''),
+      ].join('');
 
       function Probe() {
         const [template, setTemplate] = useState({
           id: 't1', name: 'September newsletter', subject: 'A quick update',
-          previewText: '', html: `<p>Hello</p>${imgs}${links}`, text: '',
+          previewText: '', html: `<p>Hello</p>${build(8)}`, text: '',
         });
+        window.__setAssets = (n) => setTemplate((t) => ({
+          ...t, html: `<p>Hello</p>${build(n)}`,
+        }));
         return h('main', { className: 'sh' },
           h('aside', { className: 'sh-side' }, h('div', { className: 'sh-brand' }, 'Posty')),
           h('section', { className: 'sh-main' },
