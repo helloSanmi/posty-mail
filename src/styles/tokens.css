@@ -44,8 +44,42 @@ html[data-theme='light'] {
   --danger: #b02418;
   --danger-soft: #fbe2de;
 
+  /* Tinted borders. Fifteen-plus rules paint a *-soft fill alongside a
+     tinted border — preflight panels, the blocker and demo banners, the
+     auth callouts, the active nav item, selected chips. Sending both to
+     the same *-soft token erases the outline entirely, which is the single
+     largest regression the sweep could introduce. */
+  --accent-border: #cfe0fb;
+  --success-border: #c7e9d4;
+  --warn-border: #f3d9a5;
+  --danger-border: #f3c1c1;
+
+  /* The universal row and icon-button hover wash — 24 sites. Without its
+     own role it collapses into the same tier as the sticky table headers
+     directly above the rows it highlights, and the affordance silently
+     disappears. Contrast maths still passes, which is why nothing
+     automated would have caught it. */
+  --surface-hover: #eef3fa;
+
+  /* Inverted chips: tooltips and the toast. Their backgrounds currently map
+     to `text`, which is correct in light and catastrophic in dark — the
+     chip turns light and keeps painting white text on itself. Both halves
+     move together or not at all. */
+  --inverse-surface: #14202f;
+  --inverse-text: #f7f9fc;
+
+  /* The canvas behind CUSTOMER-AUTHORED email HTML. It never follows the
+     theme: those emails are written by people who have no idea this app
+     has themes, and they assume a white page. Darkening it damages their
+     product, not ours. Identical in both grounds, deliberately. */
+  --email-canvas: #f5f7f9;
+
   --shadow: rgba(14, 27, 45, 0.12);
-  --scrim: rgba(11, 23, 38, 0.72);
+  /* Two tiers. Today's backdrops are 0.45 (modal, drawer) and 0.32 (search
+     palette); collapsing both onto one scrim flattens a real depth
+     ordering. */
+  --scrim: rgba(11, 23, 38, 0.62);
+  --scrim-soft: rgba(11, 23, 38, 0.38);
 }
 
 html[data-theme='dark'] {
@@ -75,8 +109,23 @@ html[data-theme='dark'] {
   --danger: #f27a6b;
   --danger-soft: #3a1613;
 
+  --accent-border: #1d3f5c;
+  --success-border: #1a4a34;
+  --warn-border: #4a3812;
+  --danger-border: #5a2620;
+
+  --surface-hover: #1c2836;
+
+  /* Inverted in dark: the chip becomes light with dark text, which is what
+     an inverted chip means on a dark ground. */
+  --inverse-surface: #e6edf5;
+  --inverse-text: #0e1620;
+
+  --email-canvas: #f5f7f9;
+
   --shadow: rgba(0, 6, 13, 0.55);
-  --scrim: rgba(4, 9, 15, 0.84);
+  --scrim: rgba(4, 9, 15, 0.78);
+  --scrim-soft: rgba(4, 9, 15, 0.5);
 }
 
 /* Follow the operating system unless the reader has chosen explicitly.
@@ -107,8 +156,21 @@ html[data-theme='dark'] {
     --danger: #f27a6b;
     --danger-soft: #3a1613;
 
+    --accent-border: #1d3f5c;
+    --success-border: #1a4a34;
+    --warn-border: #4a3812;
+    --danger-border: #5a2620;
+
+    --surface-hover: #1c2836;
+
+    --inverse-surface: #e6edf5;
+    --inverse-text: #0e1620;
+
+    --email-canvas: #f5f7f9;
+
     --shadow: rgba(0, 6, 13, 0.55);
-    --scrim: rgba(4, 9, 15, 0.84);
+    --scrim: rgba(4, 9, 15, 0.78);
+    --scrim-soft: rgba(4, 9, 15, 0.5);
   }
 }
 

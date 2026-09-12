@@ -310,11 +310,6 @@
   outline: 2px solid var(--blue);
   outline-offset: -2px;
 }
-.template-link-placeholder {
-  color: #9a3412 !important;
-  font-weight: 500;
-}
-
 /* Edit link modal */
 .edit-link-actions {
   align-items: center;
