@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
   BarChart3, Bell, Building2, Inbox, LayoutDashboard, LogOut, MailCheck,
-  PanelLeft, PanelLeftClose, PanelLeftOpen, PlugZap, Search, Users, X,
+  PanelLeft, PanelLeftClose, PanelLeftOpen, PlugZap, Search, ShieldCheck,
+  Users, X,
 } from 'lucide-react';
 import './shell.css';
 
@@ -31,6 +32,7 @@ const NAV = [
   { icon: Inbox, label: 'Campaigns' },
   { icon: BarChart3, label: 'Reports' },
   { icon: PlugZap, label: 'Settings' },
+  { icon: ShieldCheck, label: 'Admin' },
   { icon: Building2, label: 'Workspaces' },
 ];
 
