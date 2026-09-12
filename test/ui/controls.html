@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Control row probe</title>
+    <!-- The card-head control rows and the collapsed sidebar, in real
+         markup against the real stylesheets, so alignment and overlap can
+         be MEASURED. Dev-only; vite builds index.html alone. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body style="margin:0">
+    <!-- collapsed shell: the expand button must not be overlapped by nav -->
+    <main class="sh is-collapsed" style="min-height:300px">
+      <aside class="sh-side">
+        <div class="sh-brand">
+          <img src="/posty-mark.svg" alt="" class="sh-mark is-image" />
+          <span class="sh-brand-text"><strong>Posty</strong></span>
+          <button type="button" class="sh-icon-btn sh-collapse" id="expand" aria-label="Expand sidebar">&gt;</button>
+        </div>
+        <nav class="sh-nav">
+          <a class="sh-nav-item is-active" id="homeitem" href="#"><span class="sh-nav-label">Home</span></a>
+          <a class="sh-nav-item" href="#"><span class="sh-nav-label">Email</span></a>
+        </nav>
+      </aside>
+      <section class="sh-main"><div class="sh-content"></div></section>
+    </main>
+
+    <!-- admin card head -->
+    <div style="padding:24px">
+      <section class="sm-card">
+        <div class="sm-card-head">
+          <div class="sm-tabs" role="tablist">
+            <button class="sm-tab is-active" type="button">Team members<span class="sm-tab-n">5</span></button>
+            <button class="sm-tab" type="button">Roles &amp; access<span class="sm-tab-n">3</span></button>
+            <button class="sm-tab" type="button">Activity log</button>
+          </div>
+          <button type="button" class="sm-btn sm-btn-primary" id="adminbtn">Add user</button>
+          <button type="button" class="sm-icon-btn" id="adminicon">x</button>
+        </div>
+      </section>
+
+      <!-- reports control row -->
+      <div class="rp-controls" style="margin-top:24px">
+        <label class="rp-range-select"><span class="visually-hidden">Time range</span>
+          <select id="rpsel"><option>Last 7 days</option><option>Last 90 days</option></select>
+        </label>
+        <span class="rp-spacer"></span>
+        <span class="rp-health">Last event 2m ago</span>
+        <button type="button" class="rp-icon-btn" id="rpicon">r</button>
+      </div>
+
+      <!-- sign-in button -->
+      <div style="max-width:320px;margin-top:24px">
+        <button type="submit" class="sm-authbtn" id="authbtn">Sign in</button>
+      </div>
+    </div>
+  </body>
+</html>

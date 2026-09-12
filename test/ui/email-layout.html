@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Email layout probe</title>
+    <!-- Reproduces the Email page's real DOM — the shell grid, the em-grid
+         three-column layout and the REAL EmailPreview component — against
+         the real stylesheets, so the overflow can be measured instead of
+         reasoned about. Dev-only; vite builds index.html alone. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body style="margin:0">
+    <div id="root"></div>
+    <script type="module">
+      import { createRoot } from 'react-dom/client';
+      import { createElement as h, useState } from 'react';
+      import { EmailPreview } from '/src/components/EmailPreview.jsx';
+
+      function Probe() {
+        const [client, setClient] = useState('gmail');
+        const [device, setDevice] = useState('computer');
+        const [dark, setDark] = useState(false);
+        return h('main', { className: 'sh' },
+          h('aside', { className: 'sh-side' }, h('div', { className: 'sh-brand' }, 'Posty')),
+          h('section', { className: 'sh-main' },
+            h('div', { className: 'sh-content' },
+              h('div', { className: 'page-stack template-page' },
+                h('div', { className: 'em-grid' },
+                  h('section', { className: 'em-card' }, 'Templates'),
+                  h('section', { className: 'em-editor' },
+                    h('div', { className: 'em-fields' },
+                      h('label', null, 'Name', h('input', { readOnly: true, value: '' })),
+                      h('label', null, 'Subject', h('input', { readOnly: true, value: '' })))),
+                  h('aside', { className: 'em-preview' },
+                    h(EmailPreview, {
+                      subject: '',
+                      previewClient: client, setPreviewClient: setClient,
+                      previewDevice: device, setPreviewDevice: setDevice,
+                      previewHtml: '<p>hi</p>',
+                      previewDark: dark, setPreviewDark: setDark,
+                    }))))))); 
+      }
+      createRoot(document.getElementById('root')).render(h(Probe));
+    </script>
+  </body>
+</html>
