@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Token fixture</title>
+    <!--
+      A live instance of every primitive the colour sweep touches, linked
+      against the REAL stylesheets.
+
+      It exists because this app cannot be logged into during review, so
+      "click through it" is not available as a verification method. What IS
+      available is computing resolved styles on rendered markup, which is
+      what catches the failure mode a light-theme eyeball cannot: a literal
+      swept to a role that happens to resolve to the same colour today and
+      to a wrong one under a different theme.
+
+      Dev-only. Vite builds index.html alone, so nothing here ships.
+    -->
+    <link rel="stylesheet" href="/src/styles.css" />
+    <style>
+      body { padding: 24px; display: grid; gap: 20px; }
+      .fx-group { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      .fx-label { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--text-subtle); width: 100%; }
+    </style>
+  </head>
+  <body>
+    <div class="fx-group"><span class="fx-label">buttons</span>
+      <button type="button">Default</button>
+      <button type="button" class="primary">Primary</button>
+      <button type="button" class="danger">Danger</button>
+      <button type="button" disabled>Disabled</button>
+    </div>
+
+    <div class="fx-group"><span class="fx-label">inputs</span>
+      <label>Field<input value="value" /></label>
+      <label>Select<select><option>Option</option></select></label>
+    </div>
+
+    <div class="fx-group"><span class="fx-label">pills</span>
+      <span class="pill">Neutral</span>
+      <span class="pill green">Green</span>
+      <span class="pill amber">Amber</span>
+      <span class="pill blue">Blue</span>
+      <span class="pill red">Red</span>
+      <span class="pill muted">Muted</span>
+    </div>
+
+    <div class="fx-group"><span class="fx-label">surfaces</span>
+      <div class="surface" style="flex:1">Surface card</div>
+      <div class="skeleton-card" style="flex:1">Skeleton</div>
+    </div>
+
+    <div class="fx-group"><span class="fx-label">states</span>
+      <p class="empty-state" style="flex:1">Empty state</p>
+      <p class="empty-state error" style="flex:1">Error state</p>
+      <span class="status-line">Status line</span>
+    </div>
+  </body>
+</html>

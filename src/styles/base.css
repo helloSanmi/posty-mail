@@ -38,10 +38,10 @@ strong, b { font-weight: 600; }
 
 button {
   align-items: center;
-  background: #fff;
-  border: 1px solid #d3dae4;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #374151;
+  color: var(--text);
   cursor: pointer;
   display: inline-flex;
   font-weight: 500;
@@ -51,20 +51,20 @@ button {
 }
 
 button.primary {
-  background: var(--blue);
-  border-color: var(--blue);
-  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
   font-weight: 500;
 }
 
 button.danger {
-  border-color: #f0c7c7;
-  color: #9f1d1d;
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
 button:disabled { cursor: not-allowed; opacity: .55; }
 label {
-  color: #4b5563;
+  color: var(--text-muted);
   display: grid;
   font-weight: 500;
   gap: 7px;
@@ -72,10 +72,10 @@ label {
 }
 
 input, select, textarea {
-  background: #fff;
-  border: 1px solid #d2dae5;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #111827;
+  color: var(--text);
   min-height: 42px;
   padding: 9px 11px;
   width: 100%;
@@ -83,7 +83,7 @@ input, select, textarea {
 
 input[type="checkbox"],
 input[type="radio"] {
-  accent-color: var(--blue);
+  accent-color: var(--accent);
   height: 16px;
   margin: 0;
   min-height: 0;
@@ -94,22 +94,22 @@ input[type="radio"] {
 textarea { resize: vertical; }
 
 input:focus, select:focus, textarea:focus {
-  border-color: #5b8def;
-  box-shadow: 0 0 0 3px rgba(91, 141, 239, .16);
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 22%, transparent);
   outline: none;
 }
 
 .surface {
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 20px;
 }
 
 .pill {
-  background: #eef2f6;
+  background: var(--surface-sunken);
   border-radius: 999px;
-  color: #4b5563;
+  color: var(--text-muted);
   display: inline-grid;
   font-size: .76rem;
   font-weight: 500;
@@ -117,10 +117,10 @@ input:focus, select:focus, textarea:focus {
   place-items: center;
 }
 
-.pill.green { background: #e7f8ef; color: var(--green); }
-.pill.amber { background: #fff4dc; color: var(--amber); }
-.pill.blue { background: #eef4ff; color: var(--blue); }
-.status-line, .inline-status { color: var(--muted); }
+.pill.green { background: var(--success-soft); color: var(--success); }
+.pill.amber { background: var(--warn-soft); color: var(--warn); }
+.pill.blue { background: var(--accent-soft); color: var(--accent); }
+.status-line, .inline-status { color: var(--text-muted); }
 
 .visually-hidden {
   border: 0 !important;
@@ -135,23 +135,23 @@ input:focus, select:focus, textarea:focus {
 }
 
 .empty-state {
-  background: #f8fafc;
-  border: 1px dashed #d6dde6;
+  background: var(--surface);
+  border: 1px dashed var(--border);
   border-radius: 10px;
-  color: var(--muted);
+  color: var(--text-muted);
   margin: 0;
   padding: 16px;
   text-align: center;
 }
 .empty-state.error {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #991b1b;
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
 .skeleton-card {
-  background: #fff;
-  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
 }
