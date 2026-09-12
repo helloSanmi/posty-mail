@@ -1,10 +1,7 @@
 import { useState } from 'react';
-import {
-  MailX, Palette, PlugZap, ShieldOff, UserPlus,
-} from 'lucide-react';
+import { MailX, PlugZap, ShieldOff, UserPlus } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { usePageSectionLabel } from '../components/PageSectionContext';
-import { AppearanceCard } from '../components/settings/AppearanceCard';
 import { BounceSyncCard } from '../components/settings/BounceSyncCard';
 import { DeliverabilityCard } from '../components/settings/DeliverabilityCard';
 import { PreferenceCenterCard } from '../components/settings/PreferenceCenterCard';
@@ -50,15 +47,6 @@ const SECTIONS = [
     label: 'Unsubscribes',
     icon: MailX,
     permission: 'settings',
-  },
-  {
-    // No permission. Every other section here is account plumbing that
-    // changes what the workspace does; this one changes what one person
-    // sees on one device, so gating it behind `settings` would deny an
-    // Editor a dark theme for no reason anyone could defend.
-    id: 'appearance',
-    label: 'Appearance',
-    icon: Palette,
   },
 ];
 
@@ -120,8 +108,6 @@ export function SettingsPage({ notify }) {
           {active === 'forms' && <SubscribeFormsCard notify={notify} />}
 
           {active === 'email' && <BounceSyncCard notify={notify} />}
-
-          {active === 'appearance' && <AppearanceCard />}
 
           {active === 'unsubscribes' && (
             <>

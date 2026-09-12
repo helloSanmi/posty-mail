@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import { PageSectionContext } from './PageSectionContext';
 import { DemoBanner } from './DemoBanner';
 import { GlobalSearch } from './GlobalSearch';
+import { AppearanceMenu } from './AppearanceMenu';
 import { NotificationBell } from './NotificationBell';
 
 // localStorage key for the collapsed-sidebar preference. Persisted so the
@@ -252,6 +253,11 @@ export function AppShell({ children }) {
             </button>
           )}
           {user && <NotificationBell />}
+          {/* Appearance sits here rather than in Settings: it changes what
+              one person sees on one device, not what the workspace does,
+              and it is judged by looking — so the page has to stay in
+              front of you while you pick. */}
+          <AppearanceMenu />
         </header>
         <div id="main-content" className="sh-content" tabIndex={-1}>
           <PageSectionContext.Provider value={setSection}>
