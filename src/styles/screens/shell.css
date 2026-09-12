@@ -1,0 +1,334 @@
+/* The application frame, redesigned.
+ *
+ * The governing idea of direction A: the chrome recedes so the work reads.
+ * Today the rail, the page and the cards are all near-white, so the frame
+ * and the content are the same material and nothing sits behind anything.
+ * Here the rail is sunken, the content sits on bg, and cards lift to
+ * surface — three planes instead of one.
+ *
+ * The accent appears in exactly three places in the whole frame: the brand
+ * mark, the rail on the active nav item, and the primary button. Scarcity
+ * is what makes it read as emphasis rather than as decoration. */
+
+.sh {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  min-height: calc(100vh - 45px);
+  transition: grid-template-columns 0.18s ease;
+}
+.sh.is-collapsed { grid-template-columns: 60px minmax(0, 1fr); }
+
+/* ---- sidebar ---------------------------------------------------------- */
+.sh-side {
+  background: var(--surface-sunken);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: var(--s3) 10px;
+}
+
+.sh-brand {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  min-width: 0;
+  padding: 2px 4px 2px 6px;
+}
+.sh-mark {
+  background: var(--accent);
+  border-radius: 6px;
+  flex: none;
+  height: 22px;
+  width: 22px;
+}
+.sh-brand-text { display: grid; min-width: 0; }
+.sh-brand-text strong {
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
+}
+/* The workspace name is the thing that tells you WHICH business you are
+   operating in, so it sits with the brand rather than as a detached line
+   of muted text below it. */
+.sh-workspace {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sh-icon-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0;
+  position: relative;
+  transition: background var(--t-fast), color var(--t-fast);
+  width: 28px;
+}
+.sh-icon-btn:hover { background: var(--surface-raised); color: var(--text); }
+.sh-icon-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.sh-collapse { margin-left: auto; }
+.sh-drawer-close { display: none; margin-left: auto; }
+
+.sh-nav { display: flex; flex-direction: column; gap: 1px; }
+.sh-nav-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: var(--text-base);
+  gap: 11px;
+  min-width: 0;
+  padding: 8px 10px;
+  transition: background var(--t-fast), color var(--t-fast);
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+.sh-nav-item svg { flex: none; }
+.sh-nav-item:hover { color: var(--text); }
+.sh-nav-item:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+/* Active is a LIFT, not a fill. Today's active item is a saturated tinted
+   block — the heaviest element on screen, competing with the page it is
+   pointing at. */
+.sh-nav-item.is-active {
+  background: var(--surface-raised);
+  box-shadow: var(--e1);
+  color: var(--text);
+  font-weight: 500;
+}
+.sh-nav-item.is-active::before {
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  content: '';
+  height: 18px;
+  left: -10px;
+  position: absolute;
+  width: 3px;
+}
+.sh-nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sh-user {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 9px;
+  margin-top: auto;
+  min-width: 0;
+  padding: 12px 4px 2px 6px;
+}
+.sh-avatar {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 50%;
+  color: var(--accent);
+  display: inline-flex;
+  flex: none;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+.sh-user-text { display: grid; min-width: 0; }
+.sh-user-text strong {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sh-user-text span {
+  color: var(--text-subtle);
+  font-size: var(--text-2xs);
+  text-transform: capitalize;
+}
+.sh-user .sh-icon-btn { margin-left: auto; }
+
+/* Collapsed: icons only. Labels are removed from the flow rather than
+   hidden with opacity, so nothing reserves width behind the rail. */
+.sh.is-collapsed .sh-brand-text,
+.sh.is-collapsed .sh-nav-label,
+.sh.is-collapsed .sh-user-text { display: none; }
+.sh.is-collapsed .sh-brand { justify-content: center; padding-left: 0; }
+.sh.is-collapsed .sh-collapse {
+  margin: 0;
+  position: absolute;
+  right: 8px;
+  top: 52px;
+}
+.sh.is-collapsed .sh-side { padding-top: 14px; position: relative; }
+.sh.is-collapsed .sh-nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+.sh.is-collapsed .sh-nav-item.is-active::before { left: -10px; }
+.sh.is-collapsed .sh-user { justify-content: center; padding-left: 0; }
+.sh.is-collapsed .sh-user .sh-icon-btn { margin-left: 0; }
+.sh.is-collapsed .sh-avatar { display: none; }
+
+/* ---- topbar ----------------------------------------------------------- */
+.sh-main { display: flex; flex-direction: column; min-width: 0; }
+.sh-top {
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: var(--s3);
+  padding: 10px var(--s5);
+}
+.sh-menu { display: none; }
+.sh-title { flex: 1; min-width: 0; }
+/* The eyebrow earns its place only when it names something the heading
+   does not already say. It used to repeat the heading verbatim. */
+.sh-eyebrow {
+  color: var(--text-subtle);
+  display: block;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+.sh-top h1 { font-size: var(--text-lg); line-height: 1.2; }
+
+.sh-search {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text-subtle);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: var(--text-sm);
+  gap: var(--s2);
+  padding: 6px 10px;
+  transition: border-color var(--t-fast), color var(--t-fast);
+}
+.sh-search:hover { border-color: var(--border-strong); color: var(--text-muted); }
+.sh-search:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.sh-search-label { min-width: 62px; text-align: left; }
+.sh-search kbd {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  padding: 0 4px;
+}
+
+.sh-badge {
+  background: var(--danger);
+  border-radius: var(--r-full);
+  color: var(--accent-contrast);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 4px;
+  position: absolute;
+  right: -2px;
+  top: -2px;
+}
+/* The badge is the one place danger is used for a count rather than a
+   failure, so it must stay legible on the dark ground too. */
+html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
+
+.sh-content {
+  background: var(--bg);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--s4);
+  padding: var(--s5);
+}
+
+/* ---- drawer ----------------------------------------------------------- */
+.sh-scrim {
+  background: var(--scrim);
+  border: 0;
+  cursor: pointer;
+  display: none;
+  inset: 0;
+  position: fixed;
+  z-index: 30;
+}
+
+@media (max-width: 860px) {
+  .sh, .sh.is-collapsed { grid-template-columns: minmax(0, 1fr); }
+  .sh-side {
+    bottom: 0;
+    left: 0;
+    position: fixed;
+    top: 0;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    width: 240px;
+    z-index: 31;
+  }
+  .sh.is-drawer-open .sh-side { transform: translateX(0); }
+  .sh.is-drawer-open .sh-scrim { display: block; }
+  .sh-menu { display: inline-flex; }
+  .sh-collapse { display: none; }
+  .sh-drawer-close { display: inline-flex; }
+  /* Collapsed is a desktop-only state; as a drawer the rail is full width. */
+  .sh.is-collapsed .sh-brand-text,
+  .sh.is-collapsed .sh-nav-label,
+  .sh.is-collapsed .sh-user-text { display: initial; }
+  .sh.is-collapsed .sh-nav-item { justify-content: flex-start; padding: 8px 10px; }
+  .sh.is-collapsed .sh-avatar { display: inline-flex; }
+  .sh-search-label, .sh-search kbd { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sh, .sh-side { transition: none; }
+}
+
+/* Placeholder for a nav destination whose design has not landed yet. The
+   shell is navigable so it can be exercised; the other pages are honest
+   about not existing rather than showing a half-built stand-in. */
+.sh-stub {
+  color: var(--text-subtle);
+  font-size: var(--text-sm);
+  margin: 0;
+  padding: var(--s8) 0;
+  text-align: center;
+}
+
+/* The page's primary action, in the topbar. */
+.sh-action {
+  align-items: center;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  color: var(--accent-contrast);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: 6px;
+  padding: 6px var(--s3);
+  transition: background var(--t-fast);
+}
+.sh-action:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.sh-action:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }

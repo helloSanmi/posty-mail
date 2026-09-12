@@ -1,0 +1,389 @@
+/* Reports.
+ *
+ * The most colour-hungry page in the app, and the one where colour was
+ * most badly spent: the loudest hue on screen filled a range pill while
+ * every metric the page exists to report rendered in grey.
+ *
+ * The rule here is that hue means WHICH METRIC, never how you should feel
+ * about it. Opens accent, clicks success, bounces danger, unsubscribes
+ * warn — the same four identities they carry on Home and in the campaign
+ * table, so they are learned once. Chrome is achromatic; emphasis in the
+ * chrome is weight. */
+
+/* ---- control row -------------------------------------------------------
+   One row, no surface, no heading, no sectioning landmark. It scopes
+   everything below it so it sits directly on the numbers it scopes. */
+.rp-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  padding-bottom: var(--s3);
+}
+.rp-spacer { flex: 1; }
+
+.rp-ranges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.rp-range {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: 5px var(--s3);
+  transition: background var(--t-fast), color var(--t-fast);
+  white-space: nowrap;
+}
+.rp-range:hover { color: var(--text); }
+.rp-range:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+/* Weight, not hue. The accent is spent on opens, further down, where it
+   means something. */
+.rp-range.is-active {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  box-shadow: var(--e1);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.rp-health {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: var(--text-sm);
+  gap: 6px;
+  white-space: nowrap;
+}
+.rp-health-dot {
+  background: var(--success);
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
+}
+
+.rp-icon-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0;
+  transition: background var(--t-fast), color var(--t-fast);
+  width: 28px;
+}
+.rp-icon-btn:hover { background: var(--surface-sunken); color: var(--text); }
+.rp-icon-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+/* ---- summary band ------------------------------------------------------ */
+.rp-band {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1);
+  overflow: hidden;
+}
+.rp-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.rp-metric {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--border);
+  display: grid;
+  font: inherit;
+  gap: 3px;
+  padding: var(--s4) var(--s4) var(--s3);
+  position: relative;
+  text-align: left;
+  transition: background var(--t-fast);
+}
+.rp-metric:first-child { border-left: 0; }
+.rp-metric:not(.is-plain) { cursor: pointer; }
+.rp-metric:not(.is-plain):hover { background: var(--surface-sunken); }
+.rp-metric:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+
+/* Identity rule. 3px normally, 4px when this is the metric the panel below
+   is showing. */
+.rp-metric::before {
+  content: '';
+  height: 3px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: height var(--t-fast);
+}
+.rp-metric.is-accent::before { background: var(--accent); }
+.rp-metric.is-success::before { background: var(--success); }
+.rp-metric.is-danger::before { background: var(--danger); }
+.rp-metric.is-warn::before { background: var(--warn); }
+.rp-metric.is-drilled::before { height: 4px; }
+
+.rp-metric-label {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.rp-metric.is-accent .rp-metric-label { color: var(--accent); }
+.rp-metric.is-success .rp-metric-label { color: var(--success); }
+.rp-metric.is-danger .rp-metric-label { color: var(--danger); }
+.rp-metric.is-warn .rp-metric-label { color: var(--warn); }
+/* Sent has no rule and no hue. The absence marks it as a different KIND of
+   number — a volume with no rate — and as the one column that is not a
+   control. */
+.rp-metric.is-plain .rp-metric-label { color: var(--text-muted); }
+
+.rp-metric-value {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
+}
+.rp-metric-foot { align-items: baseline; display: flex; gap: var(--s2); min-height: 20px; }
+.rp-metric-rate { color: var(--text-muted); font-size: var(--text-sm); }
+/* Neutral on purpose: green used to fire both on rising opens and on
+   falling bounces, so one colour carried two unrelated meanings — and
+   painted the danger-identity metric green. */
+.rp-delta {
+  background: var(--surface-sunken);
+  border-radius: var(--r-full);
+  color: var(--text-subtle);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  padding: 1px 7px;
+}
+
+.rp-metric.is-drilled.is-accent { background: var(--accent-soft); }
+.rp-metric.is-drilled.is-success { background: var(--success-soft); }
+.rp-metric.is-drilled.is-danger { background: var(--danger-soft); }
+.rp-metric.is-drilled.is-warn { background: var(--warn-soft); }
+
+/* The funnel's whole surface reduced to its only two original numbers. */
+.rp-dropoff {
+  align-items: center;
+  background: var(--surface-sunken);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  gap: var(--s2) var(--s5);
+  padding: var(--s2) var(--s4);
+}
+.rp-dropoff span { align-items: center; display: inline-flex; gap: 5px; }
+.rp-dropoff b { color: var(--text); font-weight: 600; }
+.rp-dropoff svg { color: var(--text-subtle); }
+
+.rp-alllink {
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 2px var(--s2);
+}
+.rp-alllink:hover { background: var(--accent-soft); }
+.rp-alllink.is-active { background: var(--accent-soft); }
+.rp-alllink:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+/* ---- cards -------------------------------------------------------------- */
+.rp-card, .rp-drill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1);
+  padding: var(--s4) var(--s5) var(--s4);
+}
+/* The panel wears the pressed metric's colour on its top edge, which is
+   what ties it to the column that opened it. */
+.rp-drill { border-top: 3px solid var(--border-strong); }
+.rp-drill.is-accent { border-top-color: var(--accent); }
+.rp-drill.is-success { border-top-color: var(--success); }
+.rp-drill.is-danger { border-top-color: var(--danger); }
+.rp-drill.is-warn { border-top-color: var(--warn); }
+
+.rp-card-head {
+  align-items: baseline;
+  display: flex;
+  gap: var(--s2);
+  justify-content: space-between;
+  padding-bottom: var(--s2);
+}
+.rp-card-head h2 { font-size: var(--text-md); }
+.rp-count { color: var(--text-muted); font-size: var(--text-sm); }
+.rp-dim { color: var(--text-muted); }
+.rp-when { font-size: var(--text-sm); white-space: nowrap; }
+.rp-trunc { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* .rp-trunc sets display:block, which drops a <td> out of the table
+   layout entirely — the cell stops being a cell and stacks under its row.
+   Landing it on a td is easy to do and the failure looks like a spacing
+   bug rather than a display one, so the class defends itself. */
+td.rp-trunc, th.rp-trunc { display: table-cell; }
+
+/* ---- tables ------------------------------------------------------------- */
+.rp-table { border-collapse: collapse; table-layout: fixed; width: 100%; }
+.rp-table th {
+  border-bottom: 1px solid var(--border);
+  color: var(--text-subtle);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  padding: var(--s2);
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rp-table td {
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-base);
+  padding: 9px var(--s2);
+}
+.rp-table tbody tr:last-child td { border-bottom: 0; }
+.rp-row:hover td { background: var(--accent-soft); }
+.rp-num { text-align: right; }
+.rp-table th.rp-num { text-align: right; }
+
+.rp-cname { align-items: center; display: flex; gap: 7px; min-width: 0; }
+.rp-state { border-radius: 50%; flex: none; height: 7px; width: 7px; }
+.rp-state.is-running { background: var(--warn); }
+.rp-state.is-errors { background: var(--danger); }
+
+/* The rate is the figure that matters; the raw count is support. Promoting
+   the rate and colouring it by identity is also what makes the mobile
+   stack legible — colour survives the breakpoint, column position does
+   not. */
+.rp-figure { display: block; font-size: var(--text-base); font-weight: 600; }
+.rp-figure.is-accent { color: var(--accent); }
+.rp-figure.is-success { color: var(--success); }
+.rp-figure.is-danger { color: var(--danger); }
+.rp-sub { color: var(--text-subtle); display: block; font-size: var(--text-xs); }
+
+.rp-events th:first-child { width: 118px; }
+.rp-events th:last-child { width: 64px; }
+.rp-events td:last-child { text-align: right; }
+
+.rp-pill {
+  border-radius: var(--r-full);
+  display: inline-block;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+/* Four identities, not two. The old map painted opens and clicks the same
+   green, bounces and unsubscribes the same amber, and "Added to list" as a
+   problem. */
+.rp-pill.is-accent { background: var(--accent-soft); color: var(--accent); }
+.rp-pill.is-success { background: var(--success-soft); color: var(--success); }
+.rp-pill.is-danger { background: var(--danger-soft); color: var(--danger); }
+.rp-pill.is-warn { background: var(--warn-soft); color: var(--warn); }
+.rp-pill.is-muted { background: var(--surface-sunken); color: var(--text-muted); }
+
+/* ---- chart -------------------------------------------------------------- */
+.rp-chart {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 5px;
+  height: 132px;
+  padding-top: var(--s2);
+}
+/* Clicks stack INSIDE opens: a click requires an open, so bars side by
+   side would read as independent quantities and overstate the day. */
+.rp-chart-col {
+  border-radius: 3px 3px 0 0;
+  flex: 1;
+  min-height: 3px;
+  overflow: hidden;
+  position: relative;
+  transition: opacity var(--t-fast);
+}
+.rp-chart-opens, .rp-chart-clicks { display: block; left: 0; position: absolute; right: 0; }
+.rp-chart-opens { background: var(--accent); bottom: 0; top: 0; }
+.rp-chart-clicks { background: var(--success); bottom: 0; }
+.rp-chart:hover .rp-chart-col { opacity: 0.45; }
+.rp-chart .rp-chart-col:hover { opacity: 1; }
+
+.rp-axis {
+  color: var(--text-subtle);
+  display: flex;
+  font-size: var(--text-xs);
+  justify-content: space-between;
+  padding-top: 6px;
+}
+
+/* ---- top links ---------------------------------------------------------- */
+.rp-links { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.rp-link {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: var(--s3);
+  grid-template-columns: minmax(0, 1fr) 180px 52px;
+  padding: 9px 0;
+}
+.rp-links li:first-child { border-top: 0; }
+.rp-link-url {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  font-size: var(--text-base);
+  gap: 6px;
+  min-width: 0;
+  text-decoration: none;
+}
+.rp-link-url svg { color: var(--text-subtle); flex: none; }
+.rp-link-url:hover { text-decoration: underline; }
+.rp-link-url:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.rp-link-bar {
+  background: var(--surface-sunken);
+  border-radius: var(--r-full);
+  height: 6px;
+  overflow: hidden;
+}
+/* These are CLICKS, so the bar is success. The old block was rendered in
+   the blue family, which asserted the wrong metric — it read as opens. */
+.rp-link-fill { background: var(--success); display: block; height: 100%; }
+.rp-link-count {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ---- narrow ------------------------------------------------------------- */
+@media (max-width: 1000px) {
+  .rp-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rp-metric:nth-child(4) { border-left: 0; }
+  .rp-metric:nth-child(n + 4) { border-top: 1px solid var(--border); }
+}
+@media (max-width: 820px) {
+  .rp-link { grid-template-columns: minmax(0, 1fr) 52px; }
+  .rp-link-bar { display: none; }
+  /* The campaign table's raw counts go before its rates do — the rate is
+     the figure being compared. */
+  .rp-sub { display: none; }
+}
+@media (max-width: 620px) {
+  .rp-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rp-metric { border-left: 0; border-top: 1px solid var(--border); }
+  .rp-metric:nth-child(-n + 2) { border-top: 0; }
+  .rp-metric:nth-child(odd) { border-right: 1px solid var(--border); }
+  .rp-events td:nth-child(3), .rp-events th:nth-child(3) { display: none; }
+  .rp-table th:nth-child(2), .rp-table td:nth-child(2) { display: none; }
+}
