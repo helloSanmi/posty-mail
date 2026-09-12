@@ -184,13 +184,20 @@
 .sh.is-collapsed .sh-brand-text,
 .sh.is-collapsed .sh-nav-label,
 .sh.is-collapsed .sh-user-text { display: none; }
-.sh.is-collapsed .sh-brand { justify-content: center; padding-left: 0; }
-.sh.is-collapsed .sh-collapse {
-  margin: 0;
-  position: absolute;
-  right: 8px;
-  top: 52px;
+/* Collapsed, the brand stacks: logomark, then the expand button beneath
+   it, both in normal flow. It used to be absolutely positioned at
+   top:52px, which put it exactly on top of the first nav item — and since
+   the nav comes later in the document it painted over the button, leaving
+   no way to expand the sidebar again. Nothing absolute means nothing to
+   overlap. */
+.sh.is-collapsed .sh-brand {
+  align-items: center;
+  flex-direction: column;
+  gap: var(--s2);
+  justify-content: center;
+  padding-left: 0;
 }
+.sh.is-collapsed .sh-collapse { margin: 0; }
 .sh.is-collapsed .sh-side { padding-top: 14px; position: relative; }
 .sh.is-collapsed .sh-nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
 .sh.is-collapsed .sh-nav-item.is-active::before { left: -10px; }
@@ -289,6 +296,14 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
    width of a 2560px monitor. */
 .sh-content > .page-stack {
   padding: 0;
+  /* And it must FILL the column, up to that measure. .sh-content is a flex
+     column, where `margin: 0 auto` on a child cancels the default stretch
+     and the width falls back to fit-content — so every page became exactly
+     as wide as its own content, and no two pages lined up. Reports with its
+     wide tables reached the full measure while Admin sat far narrower, on
+     the same screen, which reads as the pages being different sizes
+     because they were. */
+  width: 100%;
 }
 
 /* ---- drawer ----------------------------------------------------------- */

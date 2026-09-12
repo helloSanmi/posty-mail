@@ -495,7 +495,20 @@
   grid-template-rows: auto auto minmax(0, 1fr);
   min-height: 520px;
 }
-.preview-header { justify-content: space-between; }
+/* The preview lives in a 360px column now. An `auto` grid track takes an
+   automatic minimum of min-content, so this single-column grid refused to
+   shrink below its widest child — measured at 417px — and pushed the
+   column, the page grid and the page itself wider than the viewport. The
+   explicit minmax(0, 1fr) is what lets it shrink; the min-width:0 on the
+   rows is the same rule one level down, and without it the ellipsis on the
+   subject line can never engage. */
+.email-preview { grid-template-columns: minmax(0, 1fr); }
+.preview-header,
+.preview-subject { min-width: 0; }
+
+/* The toolbar carries three controls — device, client, dark — which cannot
+   fit on one line at this width. */
+.preview-header { flex-wrap: wrap; justify-content: space-between; }
 /* Subject row inside the preview. Reads as "Subject: <text>" so an empty
    subject still looks like a labeled field, not a floating empty pill. The
    `.is-empty` modifier dims the field and removes the bold weight on the

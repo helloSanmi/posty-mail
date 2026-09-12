@@ -300,20 +300,19 @@ export function AnalyticsPage() {
           about 64px down the page. Scope and figures are now one object.
           Still URL-backed (?range=30d) so refresh / share works. */}
       <div className="rp-controls">
-        <div className="rp-ranges" role="radiogroup" aria-label="Time range">
-          {RANGES.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              role="radio"
-              aria-checked={rangeId === r.id}
-              className={`rp-range${rangeId === r.id ? ' is-active' : ''}`}
-              onClick={() => setRange(r.id)}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
+        {/* A select, not a six-button strip. Six ranges whose labels run
+            from "Today" to "Last 90 days" gave six chips of six different
+            widths, so the control row never lined up and the strip ate the
+            width the figures need. A dropdown states the current range in
+            one place and is the same size whichever one is chosen. */}
+        <label className="rp-range-select">
+          <span className="visually-hidden">Time range</span>
+          <select value={rangeId} onChange={(event) => setRange(event.target.value)}>
+            {RANGES.map((r) => (
+              <option key={r.id} value={r.id}>{r.label}</option>
+            ))}
+          </select>
+        </label>
         <span className="rp-spacer" />
         {/* Replaces a whole surface whose only unique content was "is the
             webhook firing". One line answers it on every range. */}

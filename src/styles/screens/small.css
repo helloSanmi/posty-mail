@@ -26,6 +26,16 @@
 .sm-trunc { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 td.sm-trunc, th.sm-trunc { display: table-cell; }
 
+/* ---- one control height ------------------------------------------------
+   .sm-btn, .sm-tab and .sm-icon-btn sit side by side in card heads. Each
+   used to size itself from its own padding and font — the tabs landed at
+   ~29px, the buttons at ~32px, the icon buttons at 28px — so no row of them
+   ever lined up. They are different CONTROLS, not different sizes; the
+   shared 32px is set on each rule directly rather than as an override,
+   which at equal specificity would have to come after all three to win. */
+.sm-btn,
+.sm-tab { min-height: 32px; }
+
 .sm-icon-btn {
   align-items: center;
   background: transparent;
@@ -36,10 +46,10 @@ td.sm-trunc, th.sm-trunc { display: table-cell; }
   display: inline-flex;
   flex: none;
   justify-content: center;
-  min-height: 28px;
+  min-height: 32px;
   padding: 0;
   transition: background var(--t-fast), color var(--t-fast);
-  width: 28px;
+  width: 32px;
 }
 .sm-icon-btn:hover { background: var(--surface-sunken); color: var(--text); }
 .sm-icon-btn.is-danger:hover { background: var(--danger-soft); color: var(--danger); }
@@ -298,6 +308,9 @@ td.sm-trunc, th.sm-trunc { display: table-cell; }
 
 .sm-authbtn {
   background: var(--accent);
+  /* base.css makes every button an inline-flex. At width:100% that leaves
+     the label hard left unless the main axis is centred explicitly. */
+  justify-content: center;
   border: 1px solid var(--accent);
   border-radius: var(--r-md);
   color: var(--accent-contrast);

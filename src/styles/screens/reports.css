@@ -22,6 +22,21 @@
 }
 .rp-spacer { flex: 1; }
 
+/* The range dropdown. base.css gives every select a 42px min-height and a
+   100% width, both wrong for a control sitting inline in a toolbar — it
+   would tower over the refresh button beside it and stretch across the
+   row. Sized to match the rest of the control row instead. */
+.rp-range-select { display: inline-flex; margin: 0; }
+.rp-range-select select {
+  font-size: var(--text-sm);
+  min-height: 30px;
+  padding: 4px 26px 4px 10px;
+  width: auto;
+}
+/* The refresh button shares the row with the select, so it shares its
+   height. It was 28px against the select's 30px. */
+.rp-controls .rp-icon-btn { min-height: 30px; width: 30px; }
+
 .rp-ranges {
   display: flex;
   flex-wrap: wrap;
