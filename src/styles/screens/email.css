@@ -535,25 +535,20 @@
   font-weight: 400;
 }
 
+/* In the flow, not floating. It sits under the header row and above the
+   canvas, and it is laid out as one horizontal band — reply-to, category
+   and the two inspectors side by side — so opening it costs one band of
+   height rather than a stacked column. */
 .template-more-body {
-  background: var(--surface-raised);
+  align-items: start;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  box-shadow: var(--e3);
   display: grid;
   gap: var(--s3);
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  /* Tall enough for both inspectors, short enough to leave the canvas
-     visible behind it — the point of floating rather than pushing. */
-  max-height: min(60vh, 460px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr);
+  margin-top: var(--s2);
   padding: var(--s3);
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  width: min(680px, 100%);
-  z-index: 30;
 }
 
 /* Save sits in the card head beside the Edit / Preview tabs, so it is sized
@@ -583,12 +578,17 @@
    inspectors. They arrived from three different parts of the file with
    three different scales, which is what made the panel feel like a
    cupboard rather than a drawer. */
+/* One column, not two: this fieldset is a column of the band now, about
+   240px wide, and two fields side by side inside it left each of them ~110px
+   — narrower than the email addresses they hold. */
 .template-more-body .template-replyto-fieldset {
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   display: grid;
-  gap: var(--s2) var(--s3);
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--s2);
+  /* Declared, not omitted: the base rule sets two columns, and dropping the
+     property here just lets that one through rather than overriding it. */
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
   padding: var(--s2) var(--s3) var(--s3);
 }
@@ -617,10 +617,12 @@
 }
 
 /* The inspectors span the disclosure and keep their own two-up grid. */
+/* Each inspector is its own column of the band, so the two sit side by
+   side with the fields rather than under them. */
 .template-more-body .template-assets {
-  grid-column: 1 / -1;
-  max-height: 220px;
+  display: contents;
 }
+.template-more-body .template-asset-group { max-height: 190px; overflow-y: auto; }
 .template-more-body .template-asset-title {
   font-size: var(--text-2xs);
   letter-spacing: var(--tracking-label);

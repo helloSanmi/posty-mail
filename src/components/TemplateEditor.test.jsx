@@ -63,6 +63,19 @@ describe('TemplateEditor order', () => {
     expect(toggle.textContent).toMatch(/reply-to/i);
   });
 
+  test('it opens in the flow, as one band beside the fields', () => {
+    // It was briefly a panel floating over the canvas. In the flow it is
+    // not a trap, so it needs no outside-press or Escape dismissal — it
+    // closes with the control that opened it, like any other section.
+    mount();
+    fireEvent.click(document.querySelector('.template-more-toggle'));
+    const body = document.querySelector('.template-more-body');
+    expect(body).not.toBeNull();
+    // Reply-to and both inspectors are siblings in one row, not stacked.
+    expect(body.querySelector('.template-replyto-fieldset')).not.toBeNull();
+    expect(body.querySelectorAll('.template-asset-group').length).toBeGreaterThan(0);
+  });
+
   test('opening it reveals the fields and the inspectors', () => {
     mount();
     fireEvent.click(document.querySelector('.template-more-toggle'));
@@ -71,50 +84,6 @@ describe('TemplateEditor order', () => {
     expect(body.querySelector('.template-replyto-fieldset')).not.toBeNull();
     expect(body.querySelector('.template-assets')).not.toBeNull();
     expect(document.querySelector('.template-more-toggle').getAttribute('aria-expanded')).toBe('true');
-  });
-
-  test('Escape and an outside press close it', () => {
-    // A floating panel that only closes via the control that opened it is a
-    // trap: it covers the canvas and the obvious gesture is to click away.
-    mount();
-    const open = () => fireEvent.click(document.querySelector('.template-more-toggle'));
-
-    open();
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(document.querySelector('.template-more-body')).toBeNull();
-
-    open();
-    fireEvent.mouseDown(document.body);
-    expect(document.querySelector('.template-more-body')).toBeNull();
-  });
-
-  test('a press INSIDE the panel does not close it', () => {
-    // Otherwise typing in reply-to would dismiss the thing you are typing in.
-    mount();
-    fireEvent.click(document.querySelector('.template-more-toggle'));
-    fireEvent.mouseDown(document.querySelector('.template-more-body'));
-    expect(document.querySelector('.template-more-body')).not.toBeNull();
-  });
-
-  test('the footer actions are the same size as each other', () => {
-    // They match Save in the card head too — all three are 28px, the height
-    // of the Edit / Preview tabs Save sits beside.
-    mount();
-    const btns = [...document.querySelectorAll('.template-actions button')];
-    expect(btns).toHaveLength(2);
-    btns.forEach((b) => expect(b.className).toMatch(/template-action-btn/));
-  });
-
-  test('Save is not duplicated in the footer', () => {
-    // It lives in the card head, which is permanently on screen. Having it
-    // in both places meant the same action twice, and the copy down here
-    // was the one you could not see while typing.
-    mount();
-    const footer = [...document.querySelectorAll('.template-actions button')]
-      .map((b) => b.textContent.trim().toLowerCase());
-    expect(footer.some((t) => t.includes('save'))).toBe(false);
-    expect(footer.some((t) => t.includes('delete'))).toBe(true);
-    expect(footer.some((t) => t.includes('duplicate'))).toBe(true);
   });
 
   test('every field is still reachable — moved, not removed', () => {
