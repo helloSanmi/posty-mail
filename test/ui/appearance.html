@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Appearance harness</title>
+    <!-- Mounts the real AppearanceCard against the real stylesheets, so the
+         picker can be driven and the RESULT measured on the page. The unit
+         tests prove the attributes get written; only this proves that
+         writing them actually repaints anything. Dev-only. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+    <style>body{padding:24px;max-width:640px}</style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div class="surface" style="margin-top:20px">
+      <p>Body text on a card.</p>
+      <button class="primary" type="button">Primary action</button>
+      <span class="pill blue">Accent pill</span>
+    </div>
+    <script type="module">
+      import { createRoot } from 'react-dom/client';
+      import { createElement } from 'react';
+      import { AppearanceCard } from '/src/components/settings/AppearanceCard.jsx';
+      createRoot(document.getElementById('root')).render(createElement(AppearanceCard));
+    </script>
+  </body>
+</html>

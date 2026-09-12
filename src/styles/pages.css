@@ -3979,3 +3979,66 @@
   flex: 1;
   max-height: none;
 }
+
+/* ---- appearance picker --------------------------------------------------- */
+.appearance-card {
+  display: grid;
+  gap: var(--s5);
+}
+.appearance-head h3 {
+  font-size: var(--text-md);
+  margin: 0 0 2px;
+}
+.appearance-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3) var(--s5);
+  justify-content: space-between;
+}
+.appearance-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.accent-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.accent-swatch {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: var(--s2);
+  /* The label element replaces `label`'s grid display and bottom margin
+     from base.css, which would otherwise stack the dot above the name. */
+  margin: 0;
+  padding: 6px 12px 6px 8px;
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+.accent-swatch:hover { background: var(--surface-hover); }
+.accent-swatch.is-active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+/* The group is a radiogroup, so focus lands on the input inside. Hoist the
+   ring onto the visible swatch — a focus ring on a visually-hidden input is
+   a keyboard user losing their place entirely. */
+.accent-swatch:focus-within {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 22%, transparent);
+}
+.accent-swatch-dot {
+  /* --accent here resolves from [data-accent-preview] in tokens.css, so the
+     dot is painted by the same declaration that paints the app. */
+  background: var(--accent);
+  border-radius: 50%;
+  height: 16px;
+  width: 16px;
+}

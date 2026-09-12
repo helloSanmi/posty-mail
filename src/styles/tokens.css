@@ -172,21 +172,30 @@ html[data-theme='dark'] {
 
 /* ---- accents -------------------------------------------------------------
    An accent supplies four values and never accent-contrast. Light is the
-   default so a missing data-accent still resolves. */
+   default so a missing data-accent still resolves.
+
+   [data-accent-preview] rides along on every rule so the swatches in the
+   appearance picker are painted by the same declarations that paint the
+   app. A preview that copied these values would show the wrong colour the
+   first time an accent is retuned, and it would be wrong in exactly the
+   place a reader is looking in order to choose. */
 :root,
-html[data-accent='harbour'] {
+html[data-accent='harbour'],
+[data-accent-preview='harbour'] {
   --accent: #15608f;
   --accent-hover: #114f76;
   --accent-soft: #e1edf6;
   --focus-ring: #1e7cb8;
 }
-html[data-accent='verdigris'] {
+html[data-accent='verdigris'],
+[data-accent-preview='verdigris'] {
   --accent: #0f6675;
   --accent-hover: #0b525e;
   --accent-soft: #dceef1;
   --focus-ring: #0f6675;
 }
-html[data-accent='iris'] {
+html[data-accent='iris'],
+[data-accent-preview='iris'] {
   --accent: #4a50ae;
   --accent-hover: #3c4193;
   --accent-soft: #e7e8f8;
@@ -194,19 +203,22 @@ html[data-accent='iris'] {
 }
 
 html[data-theme='dark'][data-accent='harbour'],
-html[data-theme='dark']:not([data-accent]) {
+html[data-theme='dark']:not([data-accent]),
+html[data-theme='dark'] [data-accent-preview='harbour'] {
   --accent: #6fb4e6;
   --accent-hover: #93c9ef;
   --accent-soft: #123048;
   --focus-ring: #93c9ef;
 }
-html[data-theme='dark'][data-accent='verdigris'] {
+html[data-theme='dark'][data-accent='verdigris'],
+html[data-theme='dark'] [data-accent-preview='verdigris'] {
   --accent: #45bfd1;
   --accent-hover: #74d2e0;
   --accent-soft: #0c3138;
   --focus-ring: #74d2e0;
 }
-html[data-theme='dark'][data-accent='iris'] {
+html[data-theme='dark'][data-accent='iris'],
+html[data-theme='dark'] [data-accent-preview='iris'] {
   --accent: #9ba4f2;
   --accent-hover: #b6bcf7;
   --accent-soft: #1e2350;
@@ -215,19 +227,22 @@ html[data-theme='dark'][data-accent='iris'] {
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']):not([data-accent]),
-  :root:not([data-theme='light'])[data-accent='harbour'] {
+  :root:not([data-theme='light'])[data-accent='harbour'],
+  :root:not([data-theme='light']) [data-accent-preview='harbour'] {
     --accent: #6fb4e6;
     --accent-hover: #93c9ef;
     --accent-soft: #123048;
     --focus-ring: #93c9ef;
   }
-  :root:not([data-theme='light'])[data-accent='verdigris'] {
+  :root:not([data-theme='light'])[data-accent='verdigris'],
+  :root:not([data-theme='light']) [data-accent-preview='verdigris'] {
     --accent: #45bfd1;
     --accent-hover: #74d2e0;
     --accent-soft: #0c3138;
     --focus-ring: #74d2e0;
   }
-  :root:not([data-theme='light'])[data-accent='iris'] {
+  :root:not([data-theme='light'])[data-accent='iris'],
+  :root:not([data-theme='light']) [data-accent-preview='iris'] {
     --accent: #9ba4f2;
     --accent-hover: #b6bcf7;
     --accent-soft: #1e2350;

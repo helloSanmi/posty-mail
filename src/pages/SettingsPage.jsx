@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { MailX, PlugZap, ShieldOff, UserPlus } from 'lucide-react';
+import {
+  MailX, Palette, PlugZap, ShieldOff, UserPlus,
+} from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { usePageSectionLabel } from '../components/PageSectionContext';
+import { AppearanceCard } from '../components/settings/AppearanceCard';
 import { BounceSyncCard } from '../components/settings/BounceSyncCard';
 import { DeliverabilityCard } from '../components/settings/DeliverabilityCard';
 import { PreferenceCenterCard } from '../components/settings/PreferenceCenterCard';
@@ -48,13 +51,26 @@ const SECTIONS = [
     icon: MailX,
     permission: 'settings',
   },
+  {
+    // No permission. Every other section here is account plumbing that
+    // changes what the workspace does; this one changes what one person
+    // sees on one device, so gating it behind `settings` would deny an
+    // Editor a dark theme for no reason anyone could defend.
+    id: 'appearance',
+    label: 'Appearance',
+    icon: Palette,
+  },
 ];
 
 export function SettingsPage({ notify }) {
   const { can } = useAuth();
   // Only show sections the current role can reach (Connections needs the
   // `connections` area; the rest need `settings`).
-  const sections = SECTIONS.filter((section) => can(section.permission));
+  // A section with no `permission` is open to everyone — can(undefined) is
+  // false, so this has to be explicit rather than relying on the call.
+  const sections = SECTIONS.filter(
+    (section) => !section.permission || can(section.permission),
+  );
   // Land on the first section the user can actually see.
   const [active, setActive] = useState(sections[0]?.id || 'forms');
   // Bumped after a sender save. DeliverabilityCard listens and re-reads its
@@ -104,6 +120,8 @@ export function SettingsPage({ notify }) {
           {active === 'forms' && <SubscribeFormsCard notify={notify} />}
 
           {active === 'email' && <BounceSyncCard notify={notify} />}
+
+          {active === 'appearance' && <AppearanceCard />}
 
           {active === 'unsubscribes' && (
             <>
