@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import {
-  Lock, Pencil, Plus, Trash2, X,
+  Check, Minus, Pencil, Trash2, X,
 } from 'lucide-react';
 import { AREAS } from '../../shared/permissions.js';
 import { Modal } from './Modal';
@@ -9,15 +9,31 @@ import {
 } from '../services/brevoApi';
 import { ConfirmDialog } from './ConfirmDialog';
 
-const AREA_LABEL = Object.fromEntries(AREAS.map((a) => [a.key, a.label]));
-
-// Roles & access. An admin creates custom roles and toggles which app areas
-// each can reach. The built-in Admin role is locked (full access); Editor and
-// Viewer are editable presets. Assign roles to people in Team members above.
-export function RolesManager({ notify, onRolesChanged }) {
+// Roles & access, as a matrix.
+//
+// It used to be a stack of rows, each carrying a wall of permission pills —
+// up to six per role, wrapping. That shows what ONE role can reach and makes
+// the actual question ("who can touch Connections?") a reading exercise
+// across every row. A role x area grid answers it by looking down a column,
+// and it is the same width whatever the answer is.
+//
+// It also rendered as its own card BELOW the admin card, which left the
+// Roles tab showing an empty card with a tab strip and then a second box
+// repeating the tab's name as a heading. It is content inside that card now,
+// like Team members and Activity, and the New role button sits in the card
+// head where the other tabs' actions sit.
+export function RolesManager({
+  notify, onRolesChanged, creating, onCreatingChange,
+}) {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(null); // role object or { create:true }
+  const [editing, setEditingState] = useState(null); // role object or { create:true }
+  // `creating` is owned by AdminPage, because the button that starts it
+  // lives in the card head up there. Editing is ours — it starts from a row.
+  const setEditing = (next) => {
+    setEditingState(next);
+    if (!next?.create) onCreatingChange?.(false);
+  };
   const [confirm, setConfirm] = useState(null);
 
   function reload() {
@@ -29,6 +45,10 @@ export function RolesManager({ notify, onRolesChanged }) {
 
   useEffect(() => { reload(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (creating) setEditingState({ create: true });
+  }, [creating]);
+
   async function handleSave(draft) {
     try {
       if (editing?.create) {
@@ -39,6 +59,7 @@ export function RolesManager({ notify, onRolesChanged }) {
         notify?.('Role updated');
       }
       setEditing(null);
+      onCreatingChange?.(false);
       await reload();
       onRolesChanged?.();
     } catch (error) {
@@ -68,72 +89,76 @@ export function RolesManager({ notify, onRolesChanged }) {
   }
 
   return (
-    <section className="surface">
-      <div className="section-heading">
-        <div>
-          <h3>Roles &amp; access</h3>
-          <span className="muted">What each role can open. Assign roles in Team members.</span>
-        </div>
-        <button type="button" className="primary" onClick={() => setEditing({ create: true })}>
-          <Plus size={14} aria-hidden="true" /> New role
-        </button>
-      </div>
-
+    <>
       {loading ? (
-        <p className="muted">Loading…</p>
+        <p className="status-line">Loading…</p>
       ) : (
-        <ul className="roles-list">
-          {roles.map((role) => (
-            <li key={role.id} className="role-row">
-              <div className="role-row-main">
-                <div className="role-row-head">
+        <table className="sm-table roles-matrix">
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th className="sm-num">People</th>
+              {AREAS.map((area) => (
+                <th key={area.key} className="roles-area-col" title={area.description}>
+                  {area.label}
+                </th>
+              ))}
+              <th><span className="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {roles.map((role) => (
+              <tr key={role.id} className="sm-row">
+                <td>
                   <strong>{role.name}</strong>
                   {role.locked && (
-                    <span className="role-lock" title="Full access — can't be changed">
-                      <Lock size={12} aria-hidden="true" /> Full access
-                    </span>
+                    <span className="roles-note">Full access, including user &amp; role management</span>
                   )}
-                  <span className="muted role-usercount">
-                    {role.userCount} {role.userCount === 1 ? 'member' : 'members'}
-                  </span>
-                </div>
-                <div className="role-areas">
-                  {role.locked ? (
-                    <span className="muted">Everything, including user &amp; role management.</span>
-                  ) : role.permissions.length === 0 ? (
-                    <span className="muted">No access yet — Home only.</span>
-                  ) : (
-                    role.permissions.map((key) => (
-                      <span key={key} className="pill role-area-pill">{AREA_LABEL[key] || key}</span>
-                    ))
-                  )}
-                </div>
-              </div>
-              <div className="role-row-actions">
-                <button
-                  type="button"
-                  className="row-action"
-                  disabled={role.locked}
-                  onClick={() => setEditing(role)}
-                  title={role.locked ? "The Admin role can't be edited" : 'Edit role'}
-                  aria-label={`Edit ${role.name}`}
-                >
-                  <Pencil size={14} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className="row-action row-action-danger"
-                  disabled={role.isSystem}
-                  onClick={() => confirmDelete(role)}
-                  title={role.isSystem ? "Built-in roles can't be deleted" : 'Delete role'}
-                  aria-label={`Delete ${role.name}`}
-                >
-                  <Trash2 size={14} aria-hidden="true" />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+                </td>
+                <td className="sm-num">{role.userCount}</td>
+                {AREAS.map((area) => {
+                  const granted = role.locked || role.permissions.includes(area.key);
+                  return (
+                    <td key={area.key} className="roles-cell">
+                      {/* The icon is decorative; the cell carries the
+                          answer as text for anything not looking at it. */}
+                      <span className={`roles-mark${granted ? ' is-on' : ''}`}>
+                        {granted
+                          ? <Check size={14} aria-hidden="true" />
+                          : <Minus size={14} aria-hidden="true" />}
+                        <span className="visually-hidden">
+                          {`${role.name} ${granted ? 'can' : 'cannot'} open ${area.label}`}
+                        </span>
+                      </span>
+                    </td>
+                  );
+                })}
+                <td className="roles-actions">
+                  <button
+                    type="button"
+                    className="sm-icon-btn"
+                    disabled={role.locked}
+                    onClick={() => setEditing(role)}
+                    title={role.locked ? "The Admin role can't be edited" : 'Edit role'}
+                    aria-label={`Edit ${role.name}`}
+                  >
+                    <Pencil size={14} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="sm-icon-btn is-danger"
+                    disabled={role.isSystem}
+                    onClick={() => confirmDelete(role)}
+                    title={role.isSystem ? "Built-in roles can't be deleted" : 'Delete role'}
+                    aria-label={`Delete ${role.name}`}
+                  >
+                    <Trash2 size={14} aria-hidden="true" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
       {editing && (
@@ -151,7 +176,7 @@ export function RolesManager({ notify, onRolesChanged }) {
           onConfirm={async () => { await confirm.onConfirm(); setConfirm(null); }}
         />
       )}
-    </section>
+    </>
   );
 }
 

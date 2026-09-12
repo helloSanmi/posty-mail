@@ -288,6 +288,17 @@ html[data-theme='dark'] [data-accent-preview='iris'] {
   --danger-border: color-mix(in srgb, var(--danger) 18%, var(--danger-soft));
 }
 
+/* Held for the single frame in which the theme changes. See applyTheme in
+   src/theme.js: this is not only to avoid the whole interface cross-fading,
+   it is what makes the swap resolve at all for elements that transition a
+   colour taken from a custom property — those keep painting their old value
+   when only the property changes. */
+html[data-theme-switching] *,
+html[data-theme-switching] *::before,
+html[data-theme-switching] *::after {
+  transition: none !important;
+}
+
 /* ---- non-colour foundations ---------------------------------------------
    Fixed across themes. The live styles carry 47 distinct font-size values
    and per-component padding, which is a large part of why the UI reads as

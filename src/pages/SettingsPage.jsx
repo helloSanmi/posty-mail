@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { MailX, PlugZap, ShieldOff, UserPlus } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
-import { usePageSectionLabel } from '../components/PageSectionContext';
 import { BounceSyncCard } from '../components/settings/BounceSyncCard';
 import { DeliverabilityCard } from '../components/settings/DeliverabilityCard';
 import { PreferenceCenterCard } from '../components/settings/PreferenceCenterCard';
@@ -68,8 +67,9 @@ export function SettingsPage({ notify }) {
 
   // Feeds the topbar eyebrow, so the shell says which section is open
   // rather than repeating the page name.
-  const activeLabel = sections.find((section) => section.id === active)?.label;
-  usePageSectionLabel(activeLabel);
+  // No topbar eyebrow. It named the active section — and the section is
+  // already named, in the tab strip directly below it, where the active
+  // one is highlighted. Two labels for one thing, a centimetre apart.
 
   return (
     <div className="page-stack content-page settings-page">

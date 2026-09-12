@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin probe</title>
+    <!-- The roles matrix and the audit table in real markup against the real
+         stylesheets. Dev-only; vite builds index.html alone. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body style="margin:0">
+    <div id="root"></div>
+    <script type="module">
+      import { createRoot } from 'react-dom/client';
+      import { createElement as h } from 'react';
+      import { AppearanceControls } from '/src/components/AppearanceControls.jsx';
+
+      const AREAS = ['Audience','Email','Campaigns','Reports','Settings','Connections'];
+      const ROLES = [
+        { name:'Admin', people:2, locked:true, perms:AREAS },
+        { name:'Editor', people:5, perms:['Audience','Email','Campaigns','Reports'] },
+        { name:'Viewer', people:11, perms:['Reports'] },
+        { name:'Ops', people:1, perms:['Connections','Settings'] },
+      ];
+      const LOGS = [
+        { when:'2 min ago', who:'sanmi@example.com', action:'role.update', res:'role', id:'a1b2c3d4', meta:'name: Editor · permissions: contacts, templates', ip:'192.168.1.44' },
+        { when:'1 hr ago', who:'ops@example.com', action:'user.invite', res:'user', id:'9f8e7d6c', meta:'email: new@example.com · role: Viewer', ip:'10.0.0.8' },
+        { when:'Yesterday', who:'system', action:'campaign.send', res:'campaign', id:'44ab99cd', meta:'recipients: 4120 · template: September newsletter', ip:'-' },
+      ];
+
+      function Probe() {
+        return h('main', { className:'sh' },
+          h('aside', { className:'sh-side' }, h('div', { className:'sh-brand' }, 'Posty')),
+          h('section', { className:'sh-main' },
+            h('header', { className:'sh-top' },
+              h('div', { className:'sh-title' }, h('h1', null, 'Admin')),
+              h(AppearanceControls)),
+            h('div', { className:'sh-content' },
+              h('div', { className:'page-stack content-page' },
+                h('section', { className:'sm-card' },
+                  h('div', { className:'sm-card-head' },
+                    h('div', { className:'sm-tabs' },
+                      h('button', { className:'sm-tab', type:'button' }, 'Team members'),
+                      h('button', { className:'sm-tab is-active', type:'button' }, 'Roles & access'),
+                      h('button', { className:'sm-tab', type:'button' }, 'Activity log')),
+                    h('button', { className:'sm-btn sm-btn-primary', type:'button' }, '+ New role')),
+                  h('table', { className:'sm-table roles-matrix' },
+                    h('thead', null, h('tr', null,
+                      h('th', null, 'Role'), h('th', { className:'sm-num' }, 'People'),
+                      ...AREAS.map(a=>h('th',{key:a,className:'roles-area-col'},a)),
+                      h('th', null, ''))),
+                    h('tbody', null, ROLES.map(r=>h('tr',{key:r.name,className:'sm-row'},
+                      h('td', null, h('strong', null, r.name),
+                        r.locked ? h('span',{className:'roles-note'},'Full access, including user & role management') : null),
+                      h('td', { className:'sm-num' }, r.people),
+                      ...AREAS.map(a=>h('td',{key:a,className:'roles-cell'},
+                        h('span',{className:'roles-mark'+(r.perms.includes(a)?' is-on':'')}, r.perms.includes(a)?'✓':'–'))),
+                      h('td', { className:'roles-actions' },
+                        h('button',{className:'sm-icon-btn',type:'button'},'E'),
+                        h('button',{className:'sm-icon-btn is-danger',type:'button'},'D'))))))),
+                h('section', { className:'sm-card', style:{marginTop:'16px'} },
+                  h('table', { className:'sm-table sm-audit' },
+                    h('thead', null, h('tr', null,
+                      h('th',null,'When'),h('th',null,'Who'),h('th',null,'Action'),
+                      h('th',null,'Target'),h('th',null,'Details'),h('th',{className:'sm-audit-ip'},'IP'))),
+                    h('tbody', null, LOGS.map((l,i)=>h('tr',{key:i,className:'sm-row'},
+                      h('td',{className:'sm-dim sm-when'},l.when),
+                      h('td',{className:'sm-trunc'},l.who),
+                      h('td',null,h('span',{className:'sm-audit-action'},l.action)),
+                      h('td',{className:'sm-dim sm-trunc'},l.res,h('span',{className:'sm-audit-id'},l.id)),
+                      h('td',{className:'sm-dim sm-trunc'},l.meta),
+                      h('td',{className:'sm-dim sm-audit-ip'},l.ip)))))))))); 
+      }
+      createRoot(document.getElementById('root')).render(h(Probe));
+    </script>
+  </body>
+</html>
