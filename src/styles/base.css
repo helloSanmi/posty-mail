@@ -91,6 +91,18 @@ input[type="radio"] {
   width: 16px;
 }
 
+/* The UA picks a placeholder colour by fading the input's own text colour,
+   which lands at 3.16:1 on a dark ground — dim enough to read as
+   deliberate and too low to actually be legible. --text-subtle is the role
+   that is held to 4.5:1 against every surface, in both grounds. The
+   opacity reset is for Firefox, which dims placeholders on top of whatever
+   colour it is given. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-subtle);
+  opacity: 1;
+}
+
 textarea { resize: vertical; }
 
 input:focus, select:focus, textarea:focus {
