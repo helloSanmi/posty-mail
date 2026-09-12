@@ -283,7 +283,12 @@ export function TemplateEditor({
       </div>
 
       <details className="template-more">
-        <summary>More settings<span>reply-to, category</span></summary>
+        <summary>More settings<span>reply-to, category, images, links</span></summary>
+        {/* Reply-to, category, and the image and link inspectors. All of it
+            is either set once per template or consulted rather than written
+            — one click away, and out of the way of the canvas. The
+            inspectors come last because they are derived from the body:
+            there is nothing to inspect until something has been written. */}
         <div className="template-more-body">
         <fieldset className="template-replyto-fieldset">
           <legend>Reply-to (optional)</legend>
@@ -328,6 +333,98 @@ export function TemplateEditor({
               ))}
             </select>
           </label>
+        )}
+        {(images.length > 0 || links.length > 0) && (
+          <div className="template-assets">
+            {images.length > 0 && (
+              <div className="template-asset-group">
+                <div className="template-asset-header">
+                  <span className="template-asset-title">Images</span>
+                  <span className="muted">{images.length}</span>
+                </div>
+                <ul className="template-asset-list">
+                  {images.map((image) => (
+                    <li
+                      key={image.index}
+                      className="template-asset-row"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openReplace(image.index)}
+                      onKeyDown={(event) => handleAssetRowKey(event, () => openReplace(image.index))}
+                      title="Click to replace image"
+                      aria-label={`Replace ${image.alt || `image ${image.index + 1}`}`}
+                    >
+                      <div className="template-asset-thumb" aria-hidden="true">
+                        {image.src
+                          ? <img src={image.src} alt="" />
+                          : <Image size={14} />}
+                      </div>
+                      <div className="template-asset-info">
+                        {/* Single line: name only. The full URL still lives in
+                            the `title` attribute on the row so a user can hover
+                            to see it, but we don't waste vertical space showing
+                            a truncated URL nobody reads. */}
+                        <strong title={image.src}>{image.alt || `Image ${image.index + 1}`}</strong>
+                      </div>
+                      <div className="template-asset-actions">
+                        <button
+                          type="button"
+                          className="row-action row-action-danger"
+                          onClick={(event) => { event.stopPropagation(); removeImage(image.index); }}
+                          title="Remove image"
+                          aria-label="Remove image"
+                        >
+                          <Trash2 size={13} aria-hidden="true" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {links.length > 0 && (
+              <div className="template-asset-group">
+                <div className="template-asset-header">
+                  <span className="template-asset-title">Links</span>
+                  <span className="muted">{links.length}</span>
+                </div>
+                <ul className="template-asset-list">
+                  {links.map((link) => {
+                    const isPlaceholder = /\[[A-Z_]+\]/.test(link.href);
+                    const isMergeTag = /\{\{[^}]+\}\}/.test(link.href);
+                    return (
+                      <li
+                        key={link.index}
+                        className="template-asset-row"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setEditingLink(link)}
+                        onKeyDown={(event) => handleAssetRowKey(event, () => setEditingLink(link))}
+                        title="Click to edit link"
+                        aria-label={`Edit link: ${link.text}`}
+                      >
+                        <div className="template-asset-thumb is-link" aria-hidden="true">
+                          <Link2 size={14} />
+                        </div>
+                        <div className="template-asset-info">
+                          {/* Single line: link text only. The full href is
+                              hover-revealed via title. Inline tags surface
+                              "placeholder" / "merge tag" when relevant so the
+                              user still knows when an href is unfinished. */}
+                          <strong title={link.href || '(no URL)'}>
+                            {link.text}
+                            {isPlaceholder && <span className="template-asset-tag is-warn"> placeholder</span>}
+                            {isMergeTag && <span className="template-asset-tag is-info"> merge</span>}
+                          </strong>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
         )}
         </div>
       </details>
@@ -441,106 +538,6 @@ export function TemplateEditor({
         </div>
       </div>
 
-      {/* The inspectors sit under the thing they inspect: both lists are
-          derived from template.html, so above it they were a readout
-          printed before its source. The links list is not merely a readout
-          though — the visual editor has no href handling, so this is the
-          only place a link can be edited, which is why it stays on the page
-          rather than moving behind a click. */}
-      {(images.length > 0 || links.length > 0) && (
-        <div className="template-assets">
-          {images.length > 0 && (
-            <div className="template-asset-group">
-              <div className="template-asset-header">
-                <span className="template-asset-title">Images</span>
-                <span className="muted">{images.length}</span>
-              </div>
-              <ul className="template-asset-list">
-                {images.map((image) => (
-                  <li
-                    key={image.index}
-                    className="template-asset-row"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => openReplace(image.index)}
-                    onKeyDown={(event) => handleAssetRowKey(event, () => openReplace(image.index))}
-                    title="Click to replace image"
-                    aria-label={`Replace ${image.alt || `image ${image.index + 1}`}`}
-                  >
-                    <div className="template-asset-thumb" aria-hidden="true">
-                      {image.src
-                        ? <img src={image.src} alt="" />
-                        : <Image size={14} />}
-                    </div>
-                    <div className="template-asset-info">
-                      {/* Single line: name only. The full URL still lives in
-                          the `title` attribute on the row so a user can hover
-                          to see it, but we don't waste vertical space showing
-                          a truncated URL nobody reads. */}
-                      <strong title={image.src}>{image.alt || `Image ${image.index + 1}`}</strong>
-                    </div>
-                    <div className="template-asset-actions">
-                      <button
-                        type="button"
-                        className="row-action row-action-danger"
-                        onClick={(event) => { event.stopPropagation(); removeImage(image.index); }}
-                        title="Remove image"
-                        aria-label="Remove image"
-                      >
-                        <Trash2 size={13} aria-hidden="true" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {links.length > 0 && (
-            <div className="template-asset-group">
-              <div className="template-asset-header">
-                <span className="template-asset-title">Links</span>
-                <span className="muted">{links.length}</span>
-              </div>
-              <ul className="template-asset-list">
-                {links.map((link) => {
-                  const isPlaceholder = /\[[A-Z_]+\]/.test(link.href);
-                  const isMergeTag = /\{\{[^}]+\}\}/.test(link.href);
-                  return (
-                    <li
-                      key={link.index}
-                      className="template-asset-row"
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setEditingLink(link)}
-                      onKeyDown={(event) => handleAssetRowKey(event, () => setEditingLink(link))}
-                      title="Click to edit link"
-                      aria-label={`Edit link: ${link.text}`}
-                    >
-                      <div className="template-asset-thumb is-link" aria-hidden="true">
-                        <Link2 size={14} />
-                      </div>
-                      <div className="template-asset-info">
-                        {/* Single line: link text only. The full href is
-                            hover-revealed via title. Inline tags surface
-                            "placeholder" / "merge tag" when relevant so the
-                            user still knows when an href is unfinished. */}
-                        <strong title={link.href || '(no URL)'}>
-                          {link.text}
-                          {isPlaceholder && <span className="template-asset-tag is-warn"> placeholder</span>}
-                          {isMergeTag && <span className="template-asset-tag is-info"> merge</span>}
-                        </strong>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-
       <details className="plain-text-details">
         <summary>
           Plain text <span className="muted">· optional, auto-generated from HTML</span>
@@ -573,12 +570,17 @@ export function TemplateEditor({
       <div className="template-actions">
         {saveStatus && <span className="muted">{saveStatus}</span>}
         {onDuplicate && (
-          <button type="button" onClick={onDuplicate} title="Make a copy of this template">
+          <button
+            type="button"
+            className="template-action-btn"
+            onClick={onDuplicate}
+            title="Make a copy of this template"
+          >
             <Copy size={14} aria-hidden="true" /> Duplicate
           </button>
         )}
         {canDelete && (
-          <button type="button" className="danger" onClick={onDelete}>
+          <button type="button" className="template-action-btn danger" onClick={onDelete}>
             Delete template
           </button>
         )}

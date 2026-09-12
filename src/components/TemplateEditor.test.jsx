@@ -53,21 +53,25 @@ describe('TemplateEditor order', () => {
     expect(order('.template-header-fields', '.body-editor')).toBe(true);
   });
 
-  test('reply-to and category are one click away, not in the way', () => {
+  test('everything consulted rather than written is one click away', () => {
     mount();
     const more = document.querySelector('.template-more');
     expect(more).not.toBeNull();
     expect(more.open).toBe(false);
-    expect(more.textContent).toMatch(/reply-to/i);
     // Still rendered — a disclosure hides, it does not remove.
     expect(more.querySelector('.template-replyto-fieldset')).not.toBeNull();
+    expect(more.querySelector('.template-assets')).not.toBeNull();
+    // The summary says what is inside, so it is not a mystery drawer.
+    expect(more.querySelector('summary').textContent).toMatch(/images/i);
   });
 
-  test('the asset inspectors sit under the thing they inspect', () => {
-    // Both lists are derived from template.html; above it they were a
-    // readout printed before its source.
+  test('the footer actions are the same size as each other', () => {
+    // They match Save in the card head too — all three are 28px, the height
+    // of the Edit / Preview tabs Save sits beside.
     mount();
-    expect(order('.body-editor', '.template-assets')).toBe(true);
+    const btns = [...document.querySelectorAll('.template-actions button')];
+    expect(btns).toHaveLength(2);
+    btns.forEach((b) => expect(b.className).toMatch(/template-action-btn/));
   });
 
   test('Save is not duplicated in the footer', () => {

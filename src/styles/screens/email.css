@@ -547,3 +547,62 @@
   .template-header-fields,
   .template-more-body { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Duplicate and Delete sized to Save. They are the same class of thing — a
+   button you press once — and three controls at three heights in one panel
+   reads as three unrelated widgets. */
+.template-action-btn {
+  font-size: var(--text-sm);
+  min-height: 28px;
+  padding: 0 var(--s3);
+}
+
+/* ---- inside More settings -----------------------------------------------
+   Everything in here is small and uniform: fields, legends and the two
+   inspectors. They arrived from three different parts of the file with
+   three different scales, which is what made the panel feel like a
+   cupboard rather than a drawer. */
+.template-more-body .template-replyto-fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  display: grid;
+  gap: var(--s2) var(--s3);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  margin: 0;
+  padding: var(--s2) var(--s3) var(--s3);
+}
+.template-more-body legend {
+  color: var(--text-subtle);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  padding: 0 4px;
+  text-transform: uppercase;
+}
+.template-more-body label {
+  color: var(--text-muted);
+  display: grid;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+}
+.template-more-body input,
+.template-more-body select {
+  font-size: var(--text-sm);
+  min-height: 32px;
+  padding: 4px var(--s2);
+}
+
+/* The inspectors span the disclosure and keep their own two-up grid. */
+.template-more-body .template-assets {
+  grid-column: 1 / -1;
+  max-height: 220px;
+}
+.template-more-body .template-asset-title {
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.template-more-body .template-asset-row { font-size: var(--text-sm); }
