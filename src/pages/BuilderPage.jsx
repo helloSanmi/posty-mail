@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Eye, Send } from 'lucide-react';
-import { AdvancedSendSettings } from '../components/AdvancedSendSettings';
-import { CampaignForm } from '../components/CampaignForm';
+import {
+  Check, ChevronDown, Eye, Send, Users,
+} from 'lucide-react';
 import { CampaignTabs } from '../components/CampaignTabs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { DateTimePicker } from '../components/DateTimePicker';
+import { GroupSelector } from '../components/GroupSelector';
 import { InboxPreviewModal } from '../components/InboxPreviewModal';
-import { SendReview } from '../components/SendReview';
 import { VariantsEditor } from '../components/VariantsEditor';
 import { defaultTemplates } from '../templates/defaultTemplates';
 import { chunkContacts, complianceIssues } from '../../shared/campaignUtils.js';
@@ -26,8 +27,27 @@ import {
   sendTestCampaignEmail,
 } from '../services/brevoApi';
 
+// Pre-send checks render in severity order so the row blocking Send is
+// always first, regardless of which subsystem produced it.
+const SEVERITY_RANK = { error: 0, warn: 1, info: 2 };
+
+// The form is four steps: what to send, who receives it, when it goes, and
+// then checking and sending. They are steps, not an accordion — everything
+// stays visible and editable, because you do revisit the name after picking
+// recipients. Sections are separated by a hairline and space rather than by
+// nested boxes, so there is one card on the left and one review rail on the
+// right. A/B variants and the sending-rate settings are genuinely occasional,
+// so they collapse into disclosures below the steps.
+
 const AUTOSAVE_DEBOUNCE_MS = 800;
 const PREFLIGHT_DEBOUNCE_MS = 600;
+
+const FREQUENCY_LABEL = {
+  once: 'Once',
+  daily: 'Daily at this time',
+  weekly: 'Weekly on this weekday',
+  monthly: 'Monthly on this day',
+};
 
 export function BuilderPage(props) {
   const { contacts: allContacts, template, setTemplate, setPage, notify, onCampaignScheduled, refreshContacts } = props;
@@ -106,6 +126,14 @@ export function BuilderPage(props) {
   const [readiness, setReadiness] = useState(null);
   // Inbox-preview modal open/closed.
   const [previewOpen, setPreviewOpen] = useState(false);
+  // Recipients popover (step 2). Anchored to the picker button.
+  const [recipientsOpen, setRecipientsOpen] = useState(false);
+  const recipientsRef = useRef(null);
+  // The two disclosures under the steps. A/B starts open when the restored
+  // draft already carries variants, so resuming never hides saved work.
+  const [showVariants, setShowVariants] = useState(
+    () => Array.isArray(draftFromNav?.variants) && draftFromNav.variants.length > 0,
+  );
 
   const contacts = groupContacts ?? allContacts;
   const batches = useMemo(() => chunkContacts(contacts, form.batchSize), [contacts, form.batchSize]);
@@ -122,8 +150,14 @@ export function BuilderPage(props) {
   const canSchedule = readyContacts > 0;
   // Combine template lint (from the backend) with send-readiness checks so
   // both show in one panel and both can block Send on error severity.
+  // Severity order, not source order. These two lists were concatenated by
+  // where each check came from — readiness first, backend preflight second —
+  // which put an 'info' note above the very error disabling Send. The row
+  // that blocks the send has to be the first row.
   const allChecks = useMemo(
-    () => [...readinessToChecks(readiness), ...(preflight?.checks || [])],
+    () => [...readinessToChecks(readiness), ...(preflight?.checks || [])]
+      .slice()
+      .sort((a, b) => (SEVERITY_RANK[a.severity] ?? 3) - (SEVERITY_RANK[b.severity] ?? 3)),
     [readiness, preflight],
   );
   const preflightErrors = allChecks.filter((c) => c.severity === 'error');
@@ -147,6 +181,10 @@ export function BuilderPage(props) {
   // displays the "Select template..." placeholder rather than silently
   // defaulting to whatever happens to be first in the list.
   const selectedTemplateId = templateChosen ? (template.id || templateOptions[0]?.id || '') : '';
+  // Groups an admin has disabled stay out of the picker, but a group that was
+  // already selected keeps its name in the trigger summary.
+  const activeGroups = groups.filter((g) => !g.disabled);
+  const recipientLoading = (selectedGroupIds.length > 0 || selectedSegmentIds.length > 0) && groupContacts === null;
 
   useEffect(() => {
     getSavedTemplates().then(setSavedTemplates).catch(() => setSavedTemplates([]));
@@ -247,6 +285,23 @@ export function BuilderPage(props) {
     return () => { cancelled = true; };
   }, [selectedGroupIds, selectedSegmentIds, notify]);
 
+  // Close the recipients popover on outside click or Escape.
+  useEffect(() => {
+    if (!recipientsOpen) return undefined;
+    function onPointer(event) {
+      if (!recipientsRef.current?.contains(event.target)) setRecipientsOpen(false);
+    }
+    function onKey(event) {
+      if (event.key === 'Escape') setRecipientsOpen(false);
+    }
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [recipientsOpen]);
+
   // Debounced autosave to the Draft table. On a fresh /builder visit there is
   // no draft id yet. The first autosave creates one. On a Resume click the
   // draft id is already set from `state.draft` and subsequent saves upsert
@@ -292,6 +347,79 @@ export function BuilderPage(props) {
     form, selectedGroupIds, selectedSegmentIds, variants, testEmail,
     showAdvanced, template.id, templateChosen, recipientsChosen,
   ]);
+
+  const timezone = useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local time';
+    } catch {
+      return 'Local time';
+    }
+  }, []);
+
+  // Plain-language restatement of the schedule, including the "that's in the
+  // past" warning — the one place the builder tells you what the date you
+  // typed actually means.
+  const scheduleSummary = useMemo(() => {
+    if (form.sendMode === 'now') return null;
+    if (!form.scheduledAt) return 'Pick a date and time.';
+    const date = new Date(form.scheduledAt);
+    if (Number.isNaN(date.getTime())) return 'Invalid date.';
+    const formatted = new Intl.DateTimeFormat(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(date);
+    if (date.getTime() <= Date.now()) {
+      return `${formatted}. That's in the past, will send immediately.`;
+    }
+    return `${formatted} (${timezone}) · ${FREQUENCY_LABEL[form.frequency] || 'Once'}`;
+  }, [form.sendMode, form.scheduledAt, form.frequency, timezone]);
+
+  // What the recipients picker says on its face: the selection on the first
+  // line, what it resolves to on the second.
+  const selectedNames = useMemo(() => {
+    const names = [];
+    for (const id of selectedGroupIds) {
+      const match = groups.find((group) => group.id === id);
+      if (match) names.push(match.name);
+    }
+    for (const id of selectedSegmentIds) {
+      const match = segments.find((segment) => segment.id === id);
+      if (match) names.push(match.name);
+    }
+    return names;
+  }, [groups, segments, selectedGroupIds, selectedSegmentIds]);
+
+  const recipientsLabel = (() => {
+    if (!recipientsChosen) return 'Select recipients';
+    if (!selectedGroupIds.length && !selectedSegmentIds.length) return 'All contacts';
+    if (selectedNames.length) return selectedNames.join(', ');
+    // Names haven't loaded yet — fall back to counts so the trigger is never blank.
+    const parts = [];
+    if (selectedGroupIds.length) {
+      parts.push(`${selectedGroupIds.length} group${selectedGroupIds.length === 1 ? '' : 's'}`);
+    }
+    if (selectedSegmentIds.length) {
+      parts.push(`${selectedSegmentIds.length} segment${selectedSegmentIds.length === 1 ? '' : 's'}`);
+    }
+    return parts.join(' · ');
+  })();
+
+  const recipientsResolved = !recipientsChosen
+    ? 'Nobody selected yet'
+    : recipientLoading
+      ? 'Counting…'
+      : `${peopleLabel(readyContacts)}${held > 0 ? ' after suppressions' : ''}`;
+
+  const sendLabel = submitting
+    ? 'Scheduling…'
+    : !canSchedule
+      ? 'Add audience first'
+      : form.sendMode === 'now'
+        ? `Send to ${peopleLabel(readyContacts)}`
+        : `Schedule for ${formatScheduledShort(form.scheduledAt)}`;
 
   function requestSchedule() {
     if (!form.name.trim()) {
@@ -477,90 +605,370 @@ export function BuilderPage(props) {
   return (
     <div className="page-stack content-page">
       <CampaignTabs active="new" />
-      <section className="send-page-grid">
-        <div className="surface send-main">
-          <div className="section-heading">
-            <h2>Create campaign</h2>
-            <SaveIndicator state={saveState} />
-          </div>
-          {!canSchedule && <AudienceBlocker setPage={setPage} />}
-          <CampaignForm
-            form={form}
-            setForm={setForm}
-            templateOptions={templateOptions}
-            selectedTemplateId={selectedTemplateId}
-            onSelectTemplate={selectTemplate}
-            templateChosen={templateChosen}
-            groups={groups.filter((g) => !g.disabled)}
-            selectedGroupIds={selectedGroupIds}
-            onSelectGroups={handleSelectGroups}
-            segments={segments}
-            selectedSegmentIds={selectedSegmentIds}
-            onSelectSegments={handleSelectSegments}
-            recipientsChosen={recipientsChosen}
-            recipientCount={readyContacts}
-            recipientLoading={(selectedGroupIds.length > 0 || selectedSegmentIds.length > 0) && groupContacts === null}
-          />
-          <div className="test-email-row">
-            <label className="test-email-label">
-              Send a test
-              <input
-                type="email"
-                value={testEmail}
-                onChange={(event) => setTestEmail(event.target.value)}
-                placeholder="you@example.com"
-              />
-            </label>
+      {/* The page needs its own h2. Without it the only heading on screen is
+          the rail's "Review", so heading navigation lands on the sidebar and
+          the form sits under a title naming something else. CampaignTabs
+          renders a <nav>, not a heading. */}
+      <h2 className="bd-page-title">Create campaign</h2>
+      {/* The blocker sits above the card rather than inside it: a page-level
+          warning, not a box nested in the form. */}
+      {!canSchedule && <AudienceBlocker setPage={setPage} />}
+      <div className="bd-grid">
+        <section className="bd-card">
+          <ol className="bd-steps">
+            <li className="bd-step">
+              <span className="bd-step-head">
+                <span className="bd-step-n">1</span>
+                <span className="bd-step-title">What to send</span>
+              </span>
+              <div className="bd-step-body">
+                <label className="bd-field">
+                  Campaign name
+                  <input
+                    value={form.name}
+                    onChange={(event) => setForm({ ...form, name: event.target.value })}
+                    placeholder="Name this campaign"
+                  />
+                </label>
+                <label className="bd-field">
+                  Email template
+                  <select value={selectedTemplateId} onChange={selectTemplate}>
+                    {!templateChosen && (
+                      <option value="" disabled>Select template…</option>
+                    )}
+                    {templateOptions.map((item) => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </li>
+
+            <li className="bd-step">
+              <span className="bd-step-head">
+                <span className="bd-step-n">2</span>
+                <span className="bd-step-title">Who receives it</span>
+              </span>
+              <div className="bd-step-body">
+                {/* One control that states what is selected AND what it
+                    resolves to, so the count that matters is on the button. */}
+                <div className="send-recipients-field bd-field-wide" ref={recipientsRef}>
+                  <button
+                    type="button"
+                    className="bd-picker"
+                    onClick={() => setRecipientsOpen((value) => !value)}
+                    aria-expanded={recipientsOpen}
+                    aria-haspopup="dialog"
+                  >
+                    <Users size={15} aria-hidden="true" />
+                    <span className="bd-picker-text">
+                      <span>
+                        <span className="visually-hidden">Recipients: </span>
+                        {recipientsLabel}
+                      </span>
+                      <span className="bd-dim">{recipientsResolved}</span>
+                    </span>
+                    <ChevronDown size={15} aria-hidden="true" />
+                  </button>
+                  {recipientsOpen && (
+                    <div className="send-recipients-popover" role="dialog" aria-label="Choose recipients">
+                      <GroupSelector
+                        compact
+                        groups={activeGroups}
+                        selectedIds={selectedGroupIds}
+                        onChange={(ids) => handleSelectGroups(ids)}
+                        showAllContactsOption
+                        emptyMessage="No groups yet. This campaign will go to All contacts."
+                      />
+                      {segments.length > 0 && (
+                        <div className="recipients-segments">
+                          <div className="recipients-segments-head">
+                            <strong>Segments</strong>
+                            <span className="muted">Add a dynamic list. Re-evaluated at send time.</span>
+                          </div>
+                          <ul className="recipients-segments-list">
+                            {segments.map((segment) => {
+                              const checked = selectedSegmentIds.includes(segment.id);
+                              return (
+                                <li key={segment.id}>
+                                  <label className={`recipients-segment-row${checked ? ' is-checked' : ''}`}>
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => {
+                                        const next = checked
+                                          ? selectedSegmentIds.filter((id) => id !== segment.id)
+                                          : [...selectedSegmentIds, segment.id];
+                                        handleSelectSegments(next);
+                                      }}
+                                    />
+                                    <span>{segment.name}</span>
+                                  </label>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </li>
+
+            <li className="bd-step">
+              <span className="bd-step-head">
+                <span className="bd-step-n">3</span>
+                <span className="bd-step-title">When it goes</span>
+              </span>
+              <div className="bd-step-body">
+                <div className="bd-choice" role="group" aria-label="When to send">
+                  {[['now', 'Send now'], ['schedule', 'Schedule']].map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`bd-choice-btn${form.sendMode === key ? ' is-active' : ''}`}
+                      aria-pressed={form.sendMode === key}
+                      onClick={() => setForm({ ...form, sendMode: key })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {form.sendMode === 'schedule' && (
+                  <div className="bd-schedule">
+                    <div className="bd-field">
+                      <span>Send date &amp; time</span>
+                      <DateTimePicker
+                        value={form.scheduledAt}
+                        onChange={(next) => setForm({ ...form, scheduledAt: next })}
+                        min={toLocalInput(new Date())}
+                      />
+                    </div>
+                    <label className="bd-field">
+                      Repeat
+                      <select
+                        value={form.frequency}
+                        onChange={(event) => setForm({ ...form, frequency: event.target.value })}
+                      >
+                        <option value="once">Once</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                    </label>
+                    {scheduleSummary && (
+                      <span className="bd-dim bd-field-wide">{scheduleSummary}</span>
+                    )}
+                    {/* Send-time per recipient timezone. Treats the chosen hour as a
+                        local-clock target. Each contact receives when their wall clock
+                        hits that time. Contacts with no stored timezone fall back to UTC. */}
+                    <label className="bd-check bd-field-wide">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(form.useRecipientTimezone)}
+                        onChange={(event) => setForm({ ...form, useRecipientTimezone: event.target.checked })}
+                      />
+                      Send at each recipient&apos;s local time
+                      <span className="bd-dim">(uses the stored timezone on each contact; UTC otherwise)</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            </li>
+
+            <li className="bd-step">
+              <span className="bd-step-head">
+                <span className="bd-step-n">4</span>
+                <span className="bd-step-title">Check and send</span>
+              </span>
+              <div className="bd-step-body">
+                <div className="bd-test">
+                  <label className="bd-field">
+                    Send a test to
+                    <input
+                      type="email"
+                      value={testEmail}
+                      onChange={(event) => setTestEmail(event.target.value)}
+                      placeholder="you@example.com"
+                    />
+                  </label>
+                  <button type="button" className="bd-btn" onClick={requestTestEmail}>Send test</button>
+                  <button
+                    type="button"
+                    className="bd-btn"
+                    onClick={() => setPreviewOpen(true)}
+                    disabled={!template?.html}
+                    title={template?.html
+                      ? 'See how it renders in Gmail, Outlook, and Apple Mail'
+                      : 'Pick a template first'}
+                  >
+                    <Eye size={14} aria-hidden="true" /> Inbox preview
+                  </button>
+                </div>
+              </div>
+            </li>
+          </ol>
+
+          <div className="bd-extras">
             <button
               type="button"
-              onClick={() => setPreviewOpen(true)}
-              disabled={!template?.html}
-              title={template?.html ? 'See how it renders in Gmail, Outlook, and Apple Mail' : 'Pick a template first'}
+              className={`bd-disclose${showVariants ? ' is-open' : ''}`}
+              aria-expanded={showVariants}
+              onClick={() => setShowVariants((value) => !value)}
             >
-              <Eye size={14} aria-hidden="true" /> Inbox preview
+              <ChevronDown size={14} aria-hidden="true" /> A/B test the subject line
             </button>
-            <button type="button" onClick={requestTestEmail}>Send test</button>
-          </div>
-          <VariantsEditor
-            variants={variants}
-            onChange={setVariants}
-            baseTemplate={template}
-          />
-          {showAdvanced && <AdvancedSendSettings form={form} setForm={setForm} />}
-          <PreflightPanel result={{ checks: allChecks }} />
-          <div className="send-secondary-actions">
+            {showVariants && (
+              <VariantsEditor
+                variants={variants}
+                onChange={setVariants}
+                baseTemplate={template}
+              />
+            )}
+
             <button
-              className="text-button"
               type="button"
+              className={`bd-disclose${showAdvanced ? ' is-open' : ''}`}
+              aria-expanded={showAdvanced}
               onClick={() => setShowAdvanced((value) => !value)}
             >
-              {showAdvanced ? 'Hide advanced settings' : 'Show advanced settings'}
+              <ChevronDown size={14} aria-hidden="true" /> Sending rate and consent
             </button>
+            {showAdvanced && (
+              <div className="bd-panel">
+                <label className="bd-field">
+                  Batch size
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={form.batchSize}
+                    onChange={(event) => setForm({ ...form, batchSize: event.target.value })}
+                  />
+                </label>
+                <label className="bd-field">
+                  Delay minutes
+                  <input
+                    type="number"
+                    min="0"
+                    max="60"
+                    value={form.delayMinutes}
+                    onChange={(event) => setForm({ ...form, delayMinutes: event.target.value })}
+                  />
+                </label>
+                <label className="bd-check bd-field-wide">
+                  <input
+                    type="checkbox"
+                    checked={form.requireOptIn}
+                    onChange={(event) => setForm({ ...form, requireOptIn: event.target.checked })}
+                  />
+                  Only send to opted-in people
+                </label>
+                <label className="bd-check bd-field-wide">
+                  <input
+                    type="checkbox"
+                    checked={form.gdprMode}
+                    onChange={(event) => setForm({ ...form, gdprMode: event.target.checked })}
+                  />
+                  Apply EU/UK consent checks
+                </label>
+              </div>
+            )}
           </div>
-          <div className="actions-row send-actions">
-            <button type="button" onClick={handleSaveDraft}>Save draft</button>
-            <button
-              className="primary"
-              type="button"
-              onClick={requestSchedule}
-              disabled={!readyToSchedule || submitting}
-            >
-              <Send size={18} aria-hidden="true" />
-              {submitting ? 'Scheduling…' : (canSchedule ? (form.sendMode === 'now' ? 'Send now' : 'Schedule send') : 'Add audience first')}
-            </button>
+        </section>
+
+        <aside className="bd-card bd-review">
+          <div className="bd-review-head">
+            <h2>Review</h2>
+          </div>
+
+          <dl className="bd-summary">
+            <div><dt>Email</dt><dd>{template.name || 'Selected email'}</dd></div>
+            <div>
+              <dt>Recipients</dt>
+              <dd>{recipientLoading ? 'Counting…' : peopleLabel(readyContacts)}</dd>
+            </div>
+            <div>
+              <dt>Sending</dt>
+              <dd>{form.sendMode === 'now' ? 'Immediately' : formatScheduledAt(form.scheduledAt)}</dd>
+            </div>
+            <div>
+              <dt>Repeat</dt>
+              <dd>{form.frequency === 'once' ? 'Once' : form.frequency}</dd>
+            </div>
+            <div>
+              <dt>Not included</dt>
+              <dd>{held ? peopleLabel(held) : '0 people'}</dd>
+            </div>
+            <div><dt>Send batches</dt><dd>{batches.length}</dd></div>
+          </dl>
+
+          {/* Both counts above stay clickable: who is about to receive this,
+              and who is being held back and for which compliance reason. */}
+          <PeopleDisclosure
+            label={`Show the ${peopleLabel(readyContacts)} receiving this`}
+            people={readyList}
+          />
+          <PeopleDisclosure
+            label={`Why ${peopleLabel(held)} ${held === 1 ? 'is' : 'are'} not included`}
+            people={heldList.map((entry) => ({ ...entry.contact, reasons: entry.reasons }))}
+            tone="held"
+          />
+
+          <ul className="bd-checks" role="status" aria-label="Pre-send checks">
+            {allChecks.length === 0 ? (
+              <li className="bd-checkrow">
+                <span className="bd-checkmark" aria-hidden="true"><Check size={11} /></span>
+                <span className="bd-checktext">
+                  Pre-send checks passed
+                  <span className="bd-dim">Subject, unsubscribe, size, links, images all look good.</span>
+                </span>
+              </li>
+            ) : allChecks.map((check) => {
+              const ok = check.severity === 'info';
+              // error and warn are not the same thing: an error is what is
+              // disabling Send. Flattening both to amber left only the
+              // sr-only prefix to distinguish a blocker from a suggestion.
+              const tone = ok ? '' : (check.severity === 'error' ? ' is-error' : ' is-warn');
+              return (
+                <li key={check.code} className={`bd-checkrow${tone}`}>
+                  <span className="bd-checkmark" aria-hidden="true">
+                    {ok ? <Check size={11} /> : '!'}
+                  </span>
+                  <span className="bd-checktext">
+                    <span>
+                      <span className="visually-hidden">{`${SEVERITY_LABEL[check.severity] || 'Note'}: `}</span>
+                      {check.message}
+                    </span>
+                    {check.hint && <span className="bd-dim">{check.hint}</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* One primary action, and the consequence stated on it rather than
+              in a sentence above it. "Emails will start going out immediately.
+              This cannot be undone." belongs in the confirm step, not on the
+              form — and that is where it still lives. */}
+          <button
+            type="button"
+            className="bd-send"
+            onClick={requestSchedule}
+            disabled={!readyToSchedule || submitting}
+          >
+            <Send size={15} aria-hidden="true" />
+            {sendLabel}
+          </button>
+
+          <div className="actions-row send-secondary-actions">
+            <button type="button" className="bd-btn" onClick={handleSaveDraft}>Save draft</button>
+            <SaveIndicator state={saveState} />
             {status && <span className="inline-status" role="status">{status}</span>}
           </div>
-        </div>
-        <SendReview
-          readyContacts={readyContacts}
-          readyList={readyList}
-          template={template}
-          frequency={form.frequency}
-          held={held}
-          heldList={heldList}
-          batches={batches}
-        />
-      </section>
+        </aside>
+      </div>
 
       {confirm && (
         <ConfirmDialog
@@ -584,56 +992,46 @@ export function BuilderPage(props) {
   );
 }
 
-// Pre-send checks UI. Compact when everything passes, expandable to the full
-// list. Errors block send (gated upstream via readyToSchedule); warnings and
-// info are advisory.
-function PreflightPanel({ result }) {
-  // `result` is null while a fetch is in flight or before the first one.
-  // Don't show a "no checks yet" panel. Just nothing. Renders the checklist
-  // once we have one.
-  if (!result || !Array.isArray(result.checks)) return null;
-  const groups = {
-    error: result.checks.filter((c) => c.severity === 'error'),
-    warn: result.checks.filter((c) => c.severity === 'warn'),
-    info: result.checks.filter((c) => c.severity === 'info'),
-  };
-  const total = groups.error.length + groups.warn.length + groups.info.length;
-  if (total === 0) {
-    return (
-      <div className="preflight-panel is-ok" role="status">
-        <strong>✓ Pre-send checks passed.</strong>
-        <span className="muted">Subject, unsubscribe, size, links, images all look good.</span>
-      </div>
-    );
-  }
-  // Headline summary string. e.g. "2 errors, 1 warning, 1 note"
-  const parts = [];
-  if (groups.error.length) parts.push(`${groups.error.length} ${groups.error.length === 1 ? 'error' : 'errors'}`);
-  if (groups.warn.length) parts.push(`${groups.warn.length} ${groups.warn.length === 1 ? 'warning' : 'warnings'}`);
-  if (groups.info.length) parts.push(`${groups.info.length} ${groups.info.length === 1 ? 'note' : 'notes'}`);
-  const severityClass = groups.error.length
-    ? 'is-error'
-    : groups.warn.length
-      ? 'is-warn'
-      : 'is-info';
+const SEVERITY_LABEL = { error: 'Error', warn: 'Warning', info: 'Note' };
+
+// A count in the review rail that opens into the actual list of people, so
+// the admin can eyeball who is about to receive (or be skipped by) the send.
+// Held contacts carry the compliance reason they were excluded for.
+function PeopleDisclosure({ label, people, tone }) {
+  const [open, setOpen] = useState(false);
+  if (!people.length) return null;
   return (
-    <details className={`preflight-panel ${severityClass}`}>
-      <summary>
-        <strong>Pre-send checks</strong>
-        <span className="muted">{parts.join(', ')}</span>
-      </summary>
-      <ul className="preflight-list">
-        {[...groups.error, ...groups.warn, ...groups.info].map((check) => (
-          <li key={check.code} className={`preflight-row is-${check.severity}`}>
-            <span className="preflight-tag">{check.severity}</span>
-            <div>
-              <div className="preflight-message">{check.message}</div>
-              {check.hint && <div className="preflight-hint muted">{check.hint}</div>}
-            </div>
-          </li>
-        ))}
-      </ul>
-    </details>
+    <>
+      <button
+        type="button"
+        className={`bd-disclose${open ? ' is-open' : ''}`}
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <ChevronDown size={14} aria-hidden="true" /> {label}
+      </button>
+      {open && (
+        <ul className={`review-people-list${tone === 'held' ? ' is-held' : ''}`}>
+          {people.map((person) => {
+            const fullName = [person.firstname, person.lastname].filter(Boolean).join(' ');
+            return (
+              <li key={person.email} className="review-people-item">
+                <span className="review-people-avatar" aria-hidden="true">
+                  {(person.firstname || person.email || '?').slice(0, 1).toUpperCase()}
+                </span>
+                <span className="review-people-text">
+                  {fullName && <strong>{fullName}</strong>}
+                  <span className="review-people-email">{person.email}</span>
+                  {Array.isArray(person.reasons) && person.reasons.length > 0 && (
+                    <span className="review-people-reason">{person.reasons.join(' · ')}</span>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
   );
 }
 
@@ -644,6 +1042,10 @@ function SaveIndicator({ state }) {
   return null;
 }
 
+function peopleLabel(count) {
+  return `${count.toLocaleString()} ${count === 1 ? 'person' : 'people'}`;
+}
+
 function formatScheduledAt(value) {
   try {
     return new Intl.DateTimeFormat(undefined, {
@@ -651,6 +1053,18 @@ function formatScheduledAt(value) {
     }).format(new Date(value));
   } catch {
     return 'at the scheduled time';
+  }
+}
+
+// Short form for the send button, where the whole consequence has to fit on
+// one line: "Schedule for 14 Sep, 09:00".
+function formatScheduledShort(value) {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
+    }).format(new Date(value));
+  } catch {
+    return 'the scheduled time';
   }
 }
 
@@ -726,4 +1140,3 @@ function toLocalInput(date) {
   const offset = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
-

@@ -348,3 +348,40 @@ td.sm-trunc, th.sm-trunc { display: table-cell; }
 @media (max-width: 520px) {
   .sm-kpis { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---- classes the live pages need that the static mock did not ----------- */
+
+/* Campaign detail's title sits inline with the back button and the live
+   indicator, so it takes the row's type size rather than a heading's, and
+   must be allowed to shrink before the controls beside it do. */
+.sm-detail-title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  margin: 0;
+  min-width: 0;
+}
+
+/* The aggregate above the links table — a caption, not a row. */
+.sm-total-clicks {
+  margin: 0 0 var(--s2);
+}
+
+/* A label that is a SIBLING of its field rather than wrapping it. Needed
+   wherever the control renders its own button (the password show/hide
+   toggle): wrapping would fold that button's text into the field's
+   accessible name. base.css styles `label` as a grid with a bottom margin,
+   which would put a gap between the label and the input it names. */
+.sm-field-label {
+  color: var(--text-muted);
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+
+/* Workspace rows carry a name plus its host, so they need the two-line
+   treatment the flat row items do not. */
+.sm-ws .sm-rowtext {
+  gap: 2px;
+  min-width: 0;
+}

@@ -26,7 +26,6 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   const [previewClient, setPreviewClient] = useState('gmail');
   const [previewDark, setPreviewDark] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [activeTab, setActiveTab] = useState('edit');
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -211,7 +210,14 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
 
   return (
     <div className="page-stack template-page">
-      <section className="template-shell">
+      {/* Three columns: what you have, what you are editing, what it will
+          look like. Edit and Preview are no longer tabs — you are making
+          something visual, and not being able to see it while you make it
+          was this page's real cost. The Edit/Preview pill and its activeTab
+          state are gone: email.css stacks the preview under the editor below
+          1280px and drops to a single column below 900px, so the narrow
+          layout is handled by the sheet rather than by hiding a pane. */}
+      <div className="em-grid">
         <TemplateList
           templates={templateOptions}
           selectedTemplateId={selectedTemplateId}
@@ -219,51 +225,52 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
           onNew={createTemplate}
           onStartFromGallery={() => setGalleryOpen(true)}
         />
-        <section className="template-main">
-          <div className="template-tabs-bar">
-            <div className="template-tabs">
-              <button
-                type="button"
-                className={activeTab === 'edit' ? 'active' : ''}
-                onClick={() => setActiveTab('edit')}
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                className={activeTab === 'preview' ? 'active' : ''}
-                onClick={() => setActiveTab('preview')}
-              >
-                Preview
-              </button>
+
+        <section className="em-editor">
+          {/* The editor column names what you are editing, so the answer
+              doesn't depend on reading the Name field or re-opening the
+              picker. The draft pill is the only status the list can't
+              show, and saveStatus is repeated here because the editor's
+              own action row sits far below the fold on a long template. */}
+          <div className="em-card-head">
+            <h2>{template.name || 'Untitled template'}</h2>
+            <div className="em-head-tools">
+              {isUnsavedDraft && <span className="pill amber">Unsaved draft</span>}
+              {saveStatus && (
+                <span className="status-line" role="status">{saveStatus}</span>
+              )}
             </div>
           </div>
-          {activeTab === 'edit' ? (
-            <TemplateEditor
-              template={template}
-              setTemplate={setTemplate}
-              onSave={handleSaveTemplate}
-              saveStatus={saveStatus}
-              notify={notify}
-              canDelete={Boolean(selectedTemplateId)}
-              onDelete={requestDeleteTemplate}
-              onDuplicate={duplicateTemplate}
-              categories={categories}
-            />
-          ) : (
-            <EmailPreview
-              subject={subject}
-              previewClient={previewClient}
-              setPreviewClient={setPreviewClient}
-              previewDevice={previewDevice}
-              setPreviewDevice={setPreviewDevice}
-              previewHtml={previewHtml}
-              previewDark={previewDark}
-              setPreviewDark={setPreviewDark}
-            />
-          )}
+          <TemplateEditor
+            template={template}
+            setTemplate={setTemplate}
+            onSave={handleSaveTemplate}
+            saveStatus={saveStatus}
+            notify={notify}
+            canDelete={Boolean(selectedTemplateId)}
+            onDelete={requestDeleteTemplate}
+            onDuplicate={duplicateTemplate}
+            categories={categories}
+          />
         </section>
-      </section>
+
+        {/* Side by side, not a tab away. `.em-preview` is what keeps the
+            preview beside the editor on wide screens and moves it to a
+            full-width row below 1280px instead of squeezing it into the
+            list column. */}
+        <aside className="em-preview" aria-label="Email preview">
+          <EmailPreview
+            subject={subject}
+            previewClient={previewClient}
+            setPreviewClient={setPreviewClient}
+            previewDevice={previewDevice}
+            setPreviewDevice={setPreviewDevice}
+            previewHtml={previewHtml}
+            previewDark={previewDark}
+            setPreviewDark={setPreviewDark}
+          />
+        </aside>
+      </div>
       {deleteTarget && (
         <ConfirmDialog
           title={`Delete "${deleteTarget.name || 'Untitled template'}"?`}

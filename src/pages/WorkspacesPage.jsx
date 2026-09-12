@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, Trash2, Users, Mail, Inbox } from 'lucide-react';
+import { Building2, Trash2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { listWorkspaces, deleteWorkspace } from '../services/brevoApi';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -8,6 +8,12 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 // headline counts, plus the ability to delete one (cascade-wipes its data).
 // Gated client-side on user.isSuperAdmin; the server gates again via
 // requireSuperAdmin so this page can't be reached by tampering.
+//
+// The audit's note here was the opposite of everywhere else: under-structure,
+// not clutter. Six columns spent ~270px on three single-digit numbers, each
+// with an icon AND an uppercase label, and below 760px the header row vanished
+// and the values stacked as bare unlabelled lines. The three counts are now one
+// cell with inline labels, which survives the narrow breakpoint.
 export function WorkspacesPage({ notify }) {
   const { user } = useAuth();
   const [workspaces, setWorkspaces] = useState([]);
@@ -31,7 +37,7 @@ export function WorkspacesPage({ notify }) {
   if (!isSuperAdmin) {
     return (
       <div className="page-stack content-page">
-        <section className="surface">
+        <section className="sm-card">
           <p className="empty-state">
             This page is for install super-admins only.
           </p>
@@ -62,49 +68,50 @@ export function WorkspacesPage({ notify }) {
 
   return (
     <div className="page-stack content-page">
-      <section className="surface">
-        <div className="section-heading">
-          <h2 className="section-heading-quiet">
-            <Building2 size={16} aria-hidden="true" />
+      <section className="sm-card">
+        <div className="sm-card-head">
+          <h2>
+            <Building2 size={15} aria-hidden="true" />
             {workspaces.length} workspace{workspaces.length === 1 ? '' : 's'} on this install
           </h2>
         </div>
 
         {loading ? (
-          <p className="empty-state">Loading…</p>
+          <p className="empty-state" role="status">Loading…</p>
         ) : workspaces.length === 0 ? (
           <p className="empty-state">No workspaces yet.</p>
         ) : (
-          <div className="workspaces-table">
-            <div className="workspaces-head">
-              <span>Workspace</span>
-              <span>Sender</span>
-              <span><Users size={13} aria-hidden="true" /> Users</span>
-              <span><Mail size={13} aria-hidden="true" /> Contacts</span>
-              <span><Inbox size={13} aria-hidden="true" /> Campaigns</span>
-              <span aria-hidden="true" />
-            </div>
+          <ul className="sm-rows">
             {workspaces.map((ws) => {
               const isCurrent = ws.id === user?.accountId;
               const isDefault = ws.id === 'default';
               return (
-                <div className="workspaces-row" key={ws.id}>
-                  <span className="workspaces-name">
-                    <strong>{ws.name}</strong>
-                    {isDefault && <span className="pill muted">default</span>}
-                    {isCurrent && <span className="pill blue">you</span>}
+                <li className="sm-rowitem sm-ws" key={ws.id}>
+                  <span className="sm-rowtext">
+                    <span className="sm-rowname">
+                      {ws.name}
+                      {isDefault && <span className="sm-chip">default</span>}
+                      {isCurrent && <span className="sm-chip is-accent">you</span>}
+                    </span>
+                    <span className="sm-dim">{ws.senderEmail || '—'}</span>
                   </span>
-                  <span className="muted">{ws.senderEmail || '—'}</span>
-                  <span>{ws.users}</span>
-                  <span>{ws.contacts}</span>
-                  <span>{ws.campaigns}</span>
-                  <span className="workspaces-actions">
-                    {/* Default + the workspace you're signed into can't be
-                        deleted — the server enforces this too. */}
+                  {/* Three columns of one number each became one cell. The
+                      labels are inline, so they survive the narrow breakpoint
+                      that used to strip the header row and leave bare digits. */}
+                  <span className="sm-counts">
+                    <span><b>{ws.users}</b> user{ws.users === 1 ? '' : 's'}</span>
+                    <span><b>{Number(ws.contacts || 0).toLocaleString()}</b> contacts</span>
+                    <span><b>{ws.campaigns}</b> campaigns</span>
+                  </span>
+                  {/* Absent, not disabled, on the default workspace and the one
+                      you're signed into — the server enforces this too — but the
+                      column keeps its width so the right edge does not go ragged
+                      down the list. */}
+                  <span className="sm-rowactions">
                     {!isDefault && !isCurrent && (
                       <button
                         type="button"
-                        className="row-action row-action-danger"
+                        className="sm-icon-btn is-danger"
                         onClick={() => confirmDelete(ws)}
                         title="Delete workspace"
                         aria-label={`Delete ${ws.name}`}
@@ -113,10 +120,10 @@ export function WorkspacesPage({ notify }) {
                       </button>
                     )}
                   </span>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </section>
 

@@ -245,6 +245,11 @@
   width: 16px;
 }
 .bd-checkrow.is-warn .bd-checkmark { background: var(--warn-soft); color: var(--warn); }
+/* An error-severity check is the row DISABLING the Send button. Painting it
+   the same amber as an advisory warning leaves only the sr-only prefix to
+   tell them apart, so a blocking problem reads as a suggestion. */
+.bd-checkrow.is-error .bd-checkmark { background: var(--danger-soft); color: var(--danger); }
+.bd-checkrow.is-error .bd-checktext strong { color: var(--danger); }
 .bd-checktext { display: grid; gap: 1px; }
 
 .bd-send {

@@ -286,6 +286,10 @@
 .hm-events li:first-child { border-top: 0; }
 .hm-dot { border-radius: 50%; flex: none; height: 7px; width: 7px; }
 .hm-dot.is-accent { background: var(--accent); }
+/* Neutral events (request, sent, deferred) carry no state. Without a tone
+   the dot has no background and renders as a blank 7px gap, which forced
+   them to be mis-coloured as accent. */
+.hm-dot.is-muted { background: var(--border-strong); }
 .hm-dot.is-success { background: var(--success); }
 .hm-dot.is-warn { background: var(--warn); }
 .hm-dot.is-danger { background: var(--danger); }

@@ -43,6 +43,15 @@
   height: 22px;
   width: 22px;
 }
+/* The real logomark, not the mock's solid stand-in tile. It carries its own
+   brand colour, so an accent ground behind it puts blue on blue — and under
+   a non-default accent it would frame the mark in a colour the brand never
+   chose. Same box, no fill. */
+.sh-mark.is-image {
+  background: none;
+  border-radius: 0;
+  object-fit: contain;
+}
 .sh-brand-text { display: grid; min-width: 0; }
 .sh-brand-text strong {
   font-size: var(--text-md);
@@ -90,6 +99,10 @@
   border-radius: var(--r-md);
   color: var(--text-muted);
   cursor: pointer;
+  /* The live nav renders NavLink anchors, not the buttons this sheet was
+     drawn against, and base.css carries no anchor reset — without this
+     every nav label is underlined. */
+  text-decoration: none;
   display: flex;
   font: inherit;
   font-size: var(--text-base);

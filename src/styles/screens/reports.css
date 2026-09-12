@@ -254,6 +254,15 @@ td.rp-trunc, th.rp-trunc { display: table-cell; }
   padding: 9px var(--s2);
 }
 .rp-table tbody tr:last-child td { border-bottom: 0; }
+/* The row is the navigation control on the live page — it opens the
+   drill-down — so it needs the affordance and the focus ring a <button>
+   used to carry. A hover wash alone tells a mouse user something is here
+   and a keyboard user nothing. */
+.rp-row.is-interactive { cursor: pointer; }
+.rp-row.is-interactive:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
 .rp-row:hover td { background: var(--accent-soft); }
 .rp-num { text-align: right; }
 .rp-table th.rp-num { text-align: right; }
