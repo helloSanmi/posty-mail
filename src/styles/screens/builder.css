@@ -198,7 +198,7 @@
 .bd-panel p { grid-column: 1 / -1; margin: 0; }
 
 /* ---- review rail -------------------------------------------------------- */
-.bd-review { position: sticky; top: var(--s4); }
+.bd-review { position: sticky; top: 0; }
 .bd-review-head { padding-bottom: var(--s3); }
 .bd-review-head h2 { font-size: var(--text-md); }
 

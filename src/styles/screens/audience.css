@@ -142,7 +142,7 @@
 .au-search:focus-within { border-color: var(--accent); }
 
 /* ---- groups rail ------------------------------------------------------- */
-.au-groups { position: sticky; top: var(--s4); }
+.au-groups { position: sticky; top: 0; }
 .au-group-list { display: flex; flex-direction: column; gap: 1px; list-style: none; margin: 0; padding: 0; }
 .au-group {
   align-items: center;

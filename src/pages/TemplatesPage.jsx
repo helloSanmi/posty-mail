@@ -231,7 +231,11 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
           onStartFromGallery={() => setGalleryOpen(true)}
         />
 
-        <section className="em-editor">
+        {/* em-card as well as em-editor: the list beside it is a padded
+            card, and without the same box the editor's title sat a
+            padding's height above the list's, so the two columns started
+            at different heights. */}
+        <section className="em-card em-editor">
           {/* The editor column names what you are editing, so the answer
               doesn't depend on reading the Name field or re-opening the
               picker. The draft pill is the only status the list can't
@@ -239,35 +243,35 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
               own action row sits far below the fold on a long template. */}
           <div className="em-card-head">
             <h2>{template.name || 'Untitled template'}</h2>
-            <div className="em-tabs" role="tablist" aria-label="Template view">
-              <button
-                type="button"
-                role="tab"
-                id="em-tab-edit"
-                aria-selected={activeTab === 'edit'}
-                aria-controls="em-panel-edit"
-                className={`em-tab${activeTab === 'edit' ? ' is-active' : ''}`}
-                onClick={() => setActiveTab('edit')}
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                role="tab"
-                id="em-tab-preview"
-                aria-selected={activeTab === 'preview'}
-                aria-controls="em-panel-preview"
-                className={`em-tab${activeTab === 'preview' ? ' is-active' : ''}`}
-                onClick={() => setActiveTab('preview')}
-              >
-                Preview
-              </button>
-            </div>
-            <div className="em-head-tools">
+            <div className="em-head-right">
               {isUnsavedDraft && <span className="pill amber">Unsaved draft</span>}
               {saveStatus && (
                 <span className="status-line" role="status">{saveStatus}</span>
               )}
+              <div className="em-tabs" role="tablist" aria-label="Template view">
+                <button
+                  type="button"
+                  role="tab"
+                  id="em-tab-edit"
+                  aria-selected={activeTab === 'edit'}
+                  aria-controls="em-panel-edit"
+                  className={`em-tab${activeTab === 'edit' ? ' is-active' : ''}`}
+                  onClick={() => setActiveTab('edit')}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="em-tab-preview"
+                  aria-selected={activeTab === 'preview'}
+                  aria-controls="em-panel-preview"
+                  className={`em-tab${activeTab === 'preview' ? ' is-active' : ''}`}
+                  onClick={() => setActiveTab('preview')}
+                >
+                  Preview
+                </button>
+              </div>
             </div>
           </div>
           <div
