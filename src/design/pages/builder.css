@@ -1,0 +1,277 @@
+/* Builder.
+ *
+ * One card on the left, one on the right. The old page had five boxes
+ * nested inside its own box; here sections are separated by a hairline and
+ * space, which is all a section separator ever needed to be. */
+
+.bd-grid {
+  align-items: start;
+  display: grid;
+  gap: var(--s4);
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.bd-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1);
+  padding: var(--s5);
+}
+
+.bd-dim { color: var(--text-subtle); font-size: var(--text-sm); }
+
+/* ---- steps -------------------------------------------------------------
+   Numbered because the order is real: you cannot pick recipients before
+   you have decided what to send, and the send button is last for a reason.
+   Everything stays visible — this is a structure, not an accordion. */
+.bd-steps { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.bd-step { border-top: 1px solid var(--border); padding: var(--s4) 0; }
+.bd-steps li:first-child { border-top: 0; padding-top: 0; }
+
+.bd-step-head { align-items: center; display: flex; gap: var(--s2); padding-bottom: var(--s3); }
+.bd-step-n {
+  align-items: center;
+  background: var(--surface-sunken);
+  border-radius: 50%;
+  color: var(--text-subtle);
+  display: inline-flex;
+  flex: none;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+.bd-step-title { font-size: var(--text-md); font-weight: 600; letter-spacing: var(--tracking-tight); }
+.bd-step-body { display: grid; gap: var(--s3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.bd-field {
+  color: var(--text-muted);
+  display: grid;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: 5px;
+  min-width: 0;
+}
+.bd-field-wide { grid-column: 1 / -1; }
+.bd-field input, .bd-field select {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-base);
+  min-width: 0;
+  padding: 7px var(--s2);
+  width: 100%;
+}
+.bd-field input:focus, .bd-field select:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.bd-check {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-size: var(--text-sm);
+  gap: var(--s2);
+}
+.bd-check input { accent-color: var(--accent); margin: 0; }
+
+/* Recipients: one control that states what is selected AND what it
+   resolves to. The count after suppressions is the number that matters and
+   it used to live in a separate summary line. */
+.bd-picker {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--s2);
+  grid-column: 1 / -1;
+  padding: 9px var(--s3);
+  text-align: left;
+  width: 100%;
+}
+.bd-picker:hover { border-color: var(--accent); }
+.bd-picker:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.bd-picker svg { color: var(--text-subtle); flex: none; }
+.bd-picker-text { display: grid; flex: 1; gap: 1px; min-width: 0; }
+.bd-picker-text > span:first-child {
+  font-size: var(--text-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-choice {
+  background: var(--surface-sunken);
+  border-radius: var(--r-md);
+  display: inline-flex;
+  gap: 2px;
+  grid-column: 1 / -1;
+  padding: 2px;
+  width: fit-content;
+}
+.bd-choice-btn {
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: 5px var(--s4);
+}
+.bd-choice-btn.is-active {
+  background: var(--surface-raised);
+  box-shadow: var(--e1);
+  color: var(--text);
+  font-weight: 500;
+}
+.bd-choice-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+.bd-schedule {
+  display: grid;
+  gap: var(--s3);
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bd-test { align-items: end; display: flex; gap: var(--s2); grid-column: 1 / -1; }
+.bd-test .bd-field { flex: 1; }
+
+.bd-btn {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: 6px;
+  padding: 7px var(--s3);
+  white-space: nowrap;
+}
+.bd-btn:hover { border-color: var(--text-subtle); }
+.bd-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* ---- disclosures -------------------------------------------------------- */
+.bd-extras { border-top: 1px solid var(--border); margin-top: var(--s4); padding-top: var(--s3); }
+.bd-disclose {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: 6px;
+  padding: 5px 6px 5px 2px;
+}
+.bd-disclose:hover { color: var(--text); }
+.bd-disclose:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.bd-disclose svg { transition: transform var(--t-fast); }
+.bd-disclose.is-open svg { transform: rotate(180deg); }
+.bd-panel {
+  background: var(--surface-sunken);
+  border-radius: var(--r-md);
+  display: grid;
+  gap: var(--s3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: var(--s1) 0 var(--s3);
+  padding: var(--s3);
+}
+.bd-panel p { grid-column: 1 / -1; margin: 0; }
+
+/* ---- review rail -------------------------------------------------------- */
+.bd-review { position: sticky; top: var(--s4); }
+.bd-review-head { padding-bottom: var(--s3); }
+.bd-review-head h2 { font-size: var(--text-md); }
+
+.bd-summary { display: grid; gap: var(--s2); margin: 0 0 var(--s4); }
+.bd-summary > div {
+  align-items: baseline;
+  display: flex;
+  gap: var(--s3);
+  justify-content: space-between;
+}
+.bd-summary dt { color: var(--text-muted); font-size: var(--text-sm); margin: 0; }
+.bd-summary dd {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  margin: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-checks {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  list-style: none;
+  margin: 0 0 var(--s4);
+  padding: var(--s3) 0 0;
+}
+.bd-checkrow { align-items: flex-start; display: flex; font-size: var(--text-sm); gap: var(--s2); }
+.bd-checkmark {
+  align-items: center;
+  background: var(--success-soft);
+  border-radius: 50%;
+  color: var(--success);
+  display: inline-flex;
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  height: 16px;
+  justify-content: center;
+  margin-top: 1px;
+  width: 16px;
+}
+.bd-checkrow.is-warn .bd-checkmark { background: var(--warn-soft); color: var(--warn); }
+.bd-checktext { display: grid; gap: 1px; }
+
+.bd-send {
+  align-items: center;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  color: var(--accent-contrast);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: 600;
+  gap: var(--s2);
+  justify-content: center;
+  padding: 10px var(--s3);
+  width: 100%;
+}
+.bd-send:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.bd-send:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+@media (max-width: 1080px) {
+  .bd-grid { grid-template-columns: minmax(0, 1fr); }
+  .bd-review { position: static; }
+}
+@media (max-width: 620px) {
+  .bd-step-body, .bd-schedule, .bd-panel { grid-template-columns: minmax(0, 1fr); }
+  .bd-test { align-items: stretch; flex-direction: column; }
+  .bd-btn { justify-content: center; }
+}
