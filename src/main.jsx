@@ -17,10 +17,13 @@ import { AuthProvider, useAuth } from './auth/AuthContext';
 import { blankTemplate } from './templates/defaultTemplates';
 import { getSavedContacts } from './services/brevoApi';
 // LoginPage stays eager — it's the first paint for signed-out users, so
-// lazy-loading it would only add a flash. Every in-app page is split into
+// lazy-loading it would only add a flash. ResetPasswordPage is eager for the
+// same reason and a sharper one: it is always reached cold, from a link in an
+// email, by someone who is locked out and already anxious. Every in-app page is split into
 // its own chunk (loaded on navigation) so the initial bundle is small.
 // The pages are named exports, so map them onto `default` for React.lazy.
 import { LoginPage } from './pages/LoginPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import './styles.css';
 
 const named = (loader, name) => lazy(() => loader().then((m) => ({ default: m[name] })));
@@ -254,6 +257,22 @@ function Session() {
     <UiProvider onUnauthorized={handleUnauthorized}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        {/* Public, and siblings of /login rather than anything inside
+            ProtectedShell.
+
+            RequireAuth is not a route allowlist — it wraps the /* catch-all —
+            so naming these NARROWS the catch-all by one path rather than
+            loosening a gate. Registering them inside ProtectedShell instead
+            would render, then bounce to /login?redirect=/reset-password/<token>,
+            laundering the secret token into a query parameter on the one page
+            that treats that parameter as attacker-controlled, and never show
+            the form at all.
+
+            The tokenless path is registered too, so a link truncated by a mail
+            client reaches the page's own "incomplete link" state instead of
+            ProtectedShell's <Navigate to="/" />. */}
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/*"
           element={

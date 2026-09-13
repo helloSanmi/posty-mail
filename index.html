@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Posty</title>
+    <!-- Deploy-independent. helmet's default Referrer-Policy: no-referrer
+         covers the single-process production deploy (server.js mounts helmet
+         before the static/SPA block), but the Vite dev server serves this file
+         with no helmet at all. The password-reset page carries a bearer token
+         in its path, and a referrer header would hand it to every origin the
+         page touches. -->
+    <meta name="referrer" content="no-referrer" />
     <script>
       /* Applies the stored theme BEFORE first paint. Without this the page
          renders light and then flips, which on a dark theme is worse than

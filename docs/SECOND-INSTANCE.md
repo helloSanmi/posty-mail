@@ -263,8 +263,23 @@ It also checks the process actually came back — a `pm2 restart` that silently
 no-ops now fails the deploy instead of reporting success.
 
 **Ports must differ** (`4010` / `4011`), and each `.env` needs its own
-`PUBLIC_BASE_URL` — that value generates unsubscribe links and the image URLs
-embedded in emails, so a wrong one sends recipients to the other business.
+`PUBLIC_BASE_URL` — that value generates unsubscribe links, the image URLs
+embedded in emails, and the password-reset link, so a wrong one sends
+recipients to the other business. For reset it is worse than cosmetic: the two
+installs have separate databases, so a token minted by B against A's domain
+does not exist there, and the user sees a dead link with nothing to fix.
+
+**`ALLOW_PASSWORD_RESET` is per-instance.** B turns it on independently, once
+B's own sender is verified and B's `PUBLIC_BASE_URL` is its own domain. The
+boot log says why it is off if it is.
+
+**Reset tokens appear in the shared access log.** The link is a path segment,
+so the GET of the reset page records it in whatever nginx or cloudflared log
+fronts both businesses — meaning whoever can read those logs can read the other
+business's live reset tokens. That window is bounded, not closed: the token
+expires after 60 minutes, is single-use, and is replaced by the next request.
+Both instances may also share one `BREVO_API_KEY` on a 300/day free tier, so
+reset mail competes with campaign sends for quota.
 
 **Don't copy `.env.example` for production.** It sets
 `VITE_API_URL=http://localhost:4010`, which Vite bakes into the bundle at

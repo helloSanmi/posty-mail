@@ -308,8 +308,15 @@ td.sm-trunc, th.sm-trunc { display: table-cell; }
 
 .sm-authbtn {
   background: var(--accent);
-  /* base.css makes every button an inline-flex. At width:100% that leaves
-     the label hard left unless the main axis is centred explicitly. */
+  /* base.css makes every BUTTON an inline-flex. The reset page also uses this
+     class on a react-router <Link>, which gets none of that — it would render
+     as an underlined, hard-left run of text inside a filled block. Declaring
+     the three properties here makes the class self-sufficient; buttons already
+     have them from base.css, so nothing changes for the existing call sites. */
+  align-items: center;
+  display: inline-flex;
+  text-decoration: none;
+  /* At width:100% the label sits hard left unless the main axis is centred. */
   justify-content: center;
   border: 1px solid var(--accent);
   border-radius: var(--r-md);

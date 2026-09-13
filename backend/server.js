@@ -15,6 +15,7 @@ import {
   permissionGate,
 } from './lib/permissions.js';
 import { logProviderStatus } from './lib/setupStatus.js';
+import { logPasswordResetStatus } from './lib/passwordReset.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerRoleRoutes } from './routes/roles.js';
@@ -222,6 +223,7 @@ ensureAllAccountsSeeded().catch((error) => {
 // WORKS (not just that it's set) + a sender-verification warning, so a bad
 // config is obvious at startup instead of only at send time. Non-blocking.
 logProviderStatus();
+logPasswordResetStatus();
 
 // Catch up on any Brevo events that fired while we were down. Non-blocking.
 // startup is unaffected if Brevo is unreachable. Idempotent thanks to the

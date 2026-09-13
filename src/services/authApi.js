@@ -28,11 +28,49 @@ export async function getCurrentUser() {
   return data;
 }
 
-export async function forgotPasswordRequest(email, newPassword) {
+// --- password reset -------------------------------------------------------
+//
+// These replace forgotPasswordRequest(email, newPassword), which POSTed a new
+// password to an unauthenticated endpoint that then set it. Renamed rather
+// than kept with a discarded second argument: the next reader of
+// `forgotPassword(email, password)` would reasonably assume it still sets a
+// password, and renaming makes every stale call site fail at build time
+// instead of silently doing nothing.
+//
+// All three pass skipAuthRedirect and silent. Without skipAuthRedirect a 401
+// reaches Session()'s handler in main.jsx, which ends the session and
+// navigates to /login — teleporting the user off the reset page with no
+// explanation. Without silent, the interceptor also fires the global error
+// listener, so the same sentence appears inline AND as a toast that floats
+// away.
+export async function requestPasswordReset(email) {
   const { data } = await apiClient.post(
     '/api/auth/forgot-password',
-    { email, newPassword },
-    { skipAuthRedirect: true },
+    { email },
+    { skipAuthRedirect: true, silent: true },
+  );
+  return data;
+}
+
+export async function checkResetToken(token) {
+  const { data } = await apiClient.post(
+    '/api/auth/reset-password/check',
+    { token },
+    { skipAuthRedirect: true, silent: true },
+  );
+  return data;
+}
+
+// The token travels in the JSON BODY. Never in the URL — it would land in
+// every reverse-proxy access log along the way, and in the axios request URL —
+// and never in a header, which would collide with setAuthHeader's
+// instance-wide default and leak the reset token onto every subsequent request
+// the tab makes.
+export async function resetPassword(token, newPassword) {
+  const { data } = await apiClient.post(
+    '/api/auth/reset-password',
+    { token, newPassword },
+    { skipAuthRedirect: true, silent: true },
   );
   return data;
 }

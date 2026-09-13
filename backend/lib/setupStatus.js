@@ -17,7 +17,14 @@ function hasKey() {
   return Boolean(process.env.BREVO_API_KEY);
 }
 
-function isDemoMode() {
+// Exported because the password-reset capability check needs it and must NOT
+// infer it from provider.isConfigured(): that is literally hasBrevoKey() and
+// knows nothing about DEMO_MODE, so a demo install holding a real key would
+// advertise reset, report success, and deliver nothing.
+//
+// The dependency points this way on purpose — lib/passwordReset.js imports
+// this, never the reverse — so the two modules do not form a cycle.
+export function isDemoMode() {
   return process.env.DEMO_MODE === '1' || process.env.DEMO_MODE === 'true';
 }
 

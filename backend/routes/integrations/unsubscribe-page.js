@@ -1,3 +1,5 @@
+import { escapeHtml } from '../../lib/html.js';
+
 // HTML renderers for the public /unsubscribe page. Returned as plain HTML
 // strings (no React, no framework) so the page renders correctly even when
 // the user's mail client strips JS or scripts get blocked. All template
@@ -133,8 +135,7 @@ function renderPreferencesForm(safeEmail, categories, checkedSet, account = '') 
   </div>`;
 }
 
-export function escapeHtml(value) {
-  return String(value).replace(/[<>"&]/g, (c) => (
-    { '<': '&lt;', '>': '&gt;', '"': '&quot;', '&': '&amp;' }[c]
-  ));
-}
+// Re-exported so existing importers of this module keep working. The
+// implementation moved to lib/html.js when the password-reset email needed it
+// and lib/ could not import from routes/.
+export { escapeHtml };

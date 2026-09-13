@@ -100,7 +100,15 @@ const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 // the boot assertion below, so a route added next year cannot be silently
 // open the way /api/events and /api/assets were.
 const OPEN = [
-  '/auth',            // login, signup, forgot-password, me, status
+  // login, signup, me, status, and the three unauthenticated password-reset
+  // endpoints (forgot-password, reset-password, reset-password/check).
+  //
+  // isOpen() prefix-matches, so those three were covered by this one entry the
+  // moment they were written — assertEveryRouteIsGated will NOT flag a mistake
+  // under /auth. Each of them gates itself in its own handler. Documenting
+  // them here, never widening: any addition to this array in service of
+  // password reset is wrong by definition.
+  '/auth',
 
   '/health',
   '/webhooks',        // provider callbacks, signature-checked

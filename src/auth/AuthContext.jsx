@@ -3,9 +3,11 @@ import {
 } from 'react';
 import {
   authStatus,
-  forgotPasswordRequest,
+  checkResetToken as checkResetTokenRequest,
   getCurrentUser,
   loginRequest,
+  requestPasswordReset as requestPasswordResetRequest,
+  resetPassword as resetPasswordRequest,
   signupRequest,
 } from '../services/authApi';
 import { setAuthHeader } from '../services/apiClient';
@@ -21,7 +23,18 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [hasUsers, setHasUsers] = useState(true);
   const [openSignup, setOpenSignup] = useState(false);
-  const [passwordResetEnabled, setPasswordResetEnabled] = useState(true);
+  // Starts FALSE and only a literal `true` from the server turns it on.
+  //
+  // This was useState(true) plus `!== false`, which failed open three ways:
+  // before /status resolves, when /status throws (the catch below swallows it
+  // and leaves the optimistic true while bootstrapping flips to false), and
+  // when the field is missing entirely — which is exactly what a not-yet-
+  // restarted old process returns to a freshly built new bundle mid-deploy.
+  // All three drew a "Forgot password" link backed by nothing, and a link that
+  // appears and cannot send is worse than a hidden one: the response is
+  // identical by design, so the user cannot tell a lost email from a dead
+  // server. Deny by default applies to what is DRAWN too.
+  const [passwordResetEnabled, setPasswordResetEnabled] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(true);
 
   useEffect(() => {
@@ -42,7 +55,7 @@ export function AuthProvider({ children }) {
         if (cancelled) return;
         setHasUsers(status.hasUsers);
         setOpenSignup(status.openSignup);
-        setPasswordResetEnabled(status.passwordResetEnabled !== false);
+        setPasswordResetEnabled(status.passwordResetEnabled === true);
       } catch {
         // server may be unreachable. Let pages handle that
       }
@@ -117,8 +130,23 @@ export function AuthProvider({ children }) {
   // the memo for every consumer.
   const logout = useCallback(() => { endSession(); }, [endSession]);
 
-  async function forgotPassword(email, newPassword) {
-    return forgotPasswordRequest(email, newPassword);
+  // Ask for a link. Resolves to { ok: true } whether or not the address has an
+  // account — the server will not say, and neither can this.
+  async function requestPasswordReset(email) {
+    return requestPasswordResetRequest(email);
+  }
+
+  // Advisory only: the redeem call re-validates, so the page must still handle
+  // every submit-time failure. A token that is valid at mount can be expired a
+  // minute later, or spent by the same link opened in a second tab.
+  async function checkResetToken(token) {
+    return checkResetTokenRequest(token);
+  }
+
+  // Deliberately does NOT sign the user in. The server returns no token by
+  // design, and the reset page sends them to /login to type the new password.
+  async function resetPassword(token, newPassword) {
+    return resetPasswordRequest(token, newPassword);
   }
 
   const value = useMemo(() => ({
@@ -133,7 +161,9 @@ export function AuthProvider({ children }) {
     logout,
     endSession,
     applyUser,
-    forgotPassword,
+    requestPasswordReset,
+    checkResetToken,
+    resetPassword,
     // Access checks, driven by the permissions the backend resolved for this
     // user's role. can('dashboard') is always true.
     //

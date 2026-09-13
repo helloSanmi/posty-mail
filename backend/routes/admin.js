@@ -1,4 +1,5 @@
 import { hashPassword, publicUser, requireRole } from '../lib/auth.js';
+import { setUserPassword } from '../lib/passwordReset.js';
 import { listAuditLogs, recordAudit } from '../lib/audit.js';
 import { prisma } from '../lib/db.js';
 import { validate, z } from '../lib/validate.js';
@@ -148,17 +149,27 @@ export function registerAdminRoutes(app) {
         return;
       }
 
-      await prisma.user.update({
-        where: { id: req.params.id },
-        // The third and last place a password is written. All three stamp
-        // the same field, or "last changed" is a half-truth that depends on
-        // which route happened to be used.
-        data: {
-          passwordHash: await hashPassword(req.body.password),
-          passwordChangedAt: new Date(),
-        },
+      // All three password-writing paths now converge on setUserPassword
+      // rather than each stamping passwordChangedAt by hand. That used to be
+      // a convention documented in a comment; it is now structural.
+      //
+      // bumpTokenVersion is new here, and it closes a live gap. Until now this
+      // route wrote passwordHash and passwordChangedAt and nothing else — so
+      // an admin resetting a COMPROMISED teammate's password did not sign the
+      // attacker out, and that attacker kept a working JWT for up to seven
+      // days. Resetting someone's password is almost always a response to
+      // exactly that, which makes "and they stay signed in" the wrong default.
+      // The writer also burns any outstanding reset tokens for the target, so
+      // a link already sitting in a compromised mailbox cannot undo this.
+      await setUserPassword({
+        userId: target.id,
+        newPassword: req.body.password,
+        bumpTokenVersion: true,
       });
-      await recordAudit(req, 'user.password_reset', 'user', target.id);
+      await recordAudit(req, 'user.password_reset', 'user', target.id, {
+        signedOutSessions: true,
+        resetTokensInvalidated: true,
+      });
       res.json({ ok: true });
     }),
   );

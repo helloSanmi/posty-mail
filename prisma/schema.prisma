@@ -239,6 +239,7 @@ model User {
   // join table; deferred until we actually need it.
   accountId               String
   account                 Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  passwordResetTokens     PasswordResetToken[]
 
   @@index([accountId])
 }
@@ -361,4 +362,53 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
   @@index([accountId])
+}
+
+// A tokenised password reset, replacing the unauthenticated password-setter
+// that used to live at POST /api/auth/forgot-password — a route that set any
+// user's password given only their email address.
+//
+// userId is the ONLY authority on who a token belongs to. The redeem payload
+// carries no email and no user id, so there is nothing for a forged body to
+// redirect. onDelete: Cascade means a deleted user — or a deleted Account,
+// which already cascades to its users — cannot leave a live credential
+// pointing at a row that no longer exists. That matters because User.email is
+// globally unique and FREED on delete: an email-keyed token would survive
+// routine offboarding and reset whoever is invited with that address next.
+//
+// Rows are BURNED (usedAt set), never deleted, except by the 24h sweep. The
+// per-user send cap counts rows in the last hour, so deleting on issue would
+// destroy the counter's own evidence. It also means recordAudit — which
+// swallows its own failures by design (lib/audit.js) — is not the only record
+// that a reset happened.
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // sha256(token) as lowercase hex, 64 chars. @unique because the lookup IS
+  // the comparison: we hash what was presented and ask the index for an exact
+  // match, so there is no "find the row, then compare the secret" step for a
+  // timing side channel to live in. NOT bcrypt — bcrypt salts per row, so the
+  // digest is not a function of the token alone and the indexed lookup is lost.
+  tokenHash String    @unique
+  // Absolute, computed at issue time. Never createdAt + a TTL read later, or
+  // changing the constant would retroactively extend every token already
+  // sitting in a mailbox.
+  expiresAt DateTime
+  // The single-use latch, set by the one conditional UPDATE that claims it.
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  // Burn-all-for-one-user, and the per-user hourly send cap.
+  //
+  // There is ALSO a partial unique index on this column that Prisma's schema
+  // language cannot express, added by migration 20260913190000:
+  //   CREATE UNIQUE INDEX "PasswordResetToken_one_live_per_user"
+  //       ON "PasswordResetToken"("userId") WHERE "usedAt" IS NULL;
+  // It enforces one live token per user in the database. `prisma migrate diff`
+  // reports no drift for it — Prisma ignores indexes it cannot model — but do
+  // not assume it is absent just because it is not written below.
+  @@index([userId])
+  // The 24h sweep's only query.
+  @@index([expiresAt])
 }

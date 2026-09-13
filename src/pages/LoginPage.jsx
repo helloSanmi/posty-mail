@@ -18,15 +18,15 @@ export function LoginPage() {
     passwordResetEnabled,
     login,
     signup,
-    forgotPassword,
+    requestPasswordReset,
     bootstrapping,
   } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [mode, setMode] = useState('login'); // 'login' | 'signup' | 'forgot'
+  // 'sent' is a terminal state that REPLACES the form, not a banner over it.
+  const [mode, setMode] = useState('login'); // 'login' | 'signup' | 'forgot' | 'sent'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [touched, setTouched] = useState({ email: false, password: false });
   const [error, setError] = useState('');
@@ -34,14 +34,14 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const emailId = useId();
   const passwordId = useId();
-  const confirmId = useId();
   const nameId = useId();
 
   const allowSignup = !hasUsers || openSignup;
   const activeMode = !hasUsers ? 'signup' : mode;
   const isForgot = activeMode === 'forgot';
+  const isSent = activeMode === 'sent';
   const isSignup = activeMode === 'signup';
-  const minPasswordLength = isSignup || isForgot ? 8 : 1;
+  const minPasswordLength = isSignup ? 8 : 1;
 
   const emailError = touched.email && email && !EMAIL_PATTERN.test(email)
     ? 'Enter a valid email address'
@@ -49,12 +49,11 @@ export function LoginPage() {
   const passwordError = touched.password && password.length > 0 && password.length < minPasswordLength
     ? `Password must be at least ${minPasswordLength} characters`
     : '';
-  const confirmError = isForgot && confirmPassword.length > 0 && confirmPassword !== password
-    ? 'Passwords do not match'
-    : '';
-
+  // Forgot mode collects an email and nothing else — the new password is
+  // chosen on the reset page, after the link proves the person owns the
+  // mailbox.
   const formValid = isForgot
-    ? EMAIL_PATTERN.test(email) && password.length >= 8 && confirmPassword === password
+    ? EMAIL_PATTERN.test(email)
     : EMAIL_PATTERN.test(email) && password.length >= minPasswordLength;
 
   function switchMode(next) {
@@ -62,7 +61,6 @@ export function LoginPage() {
     setError('');
     setInfo('');
     setPassword('');
-    setConfirmPassword('');
     setTouched({ email: false, password: false });
   }
 
@@ -76,11 +74,8 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       if (isForgot) {
-        await forgotPassword(email, password);
-        setInfo('If that account exists, the password has been reset. Sign in with your new password.');
-        setMode('login');
-        setPassword('');
-        setConfirmPassword('');
+        await requestPasswordReset(email);
+        setMode('sent');
         return;
       }
       const authedUser = isSignup
@@ -120,30 +115,35 @@ export function LoginPage() {
     );
   }
 
-  const heading = isForgot
-    ? 'Reset your password'
-    : !hasUsers
-      ? 'Create the first admin account'
-      : isSignup
-        ? 'Create your account'
-        : 'Welcome back';
+  const heading = isSent
+    ? 'Check your email'
+    : isForgot
+      ? 'Reset your password'
+      : !hasUsers
+        ? 'Create the first admin account'
+        : isSignup
+          ? 'Create your account'
+          : 'Welcome back';
 
   // The sign-in subheading DID say the heading twice ("Sign in" over "Sign
-  // in to your Posty workspace") and deserved to go. The other three did
-  // not: each is the only on-screen text explaining what the flow will
-  // actually do — most importantly that reset sets a new password here and
-  // now rather than emailing a link. So sign-in gets the install name, and
-  // the states that need instructing keep it.
-  const subheading = isForgot
-    ? 'Enter your email and a new password to regain access.'
-    : !hasUsers
-      ? 'This first account becomes the workspace admin.'
-      : isSignup
-        ? 'Set up a new workspace in a few seconds.'
-        : INSTALL_NAME;
+  // in to your Posty workspace") and deserved to go. The others did not: each
+  // is the only on-screen text explaining what the flow will actually do. For
+  // reset that now means saying a link is coming — this page used to set a new
+  // password on the spot, and the subheading said so, which is exactly the
+  // kind of comment-and-copy pair that goes quietly false when the behaviour
+  // underneath it changes.
+  const subheading = isSent
+    ? null
+    : isForgot
+      ? 'Enter your email and we will send a reset link to the address on file.'
+      : !hasUsers
+        ? 'This first account becomes the workspace admin.'
+        : isSignup
+          ? 'Set up a new workspace in a few seconds.'
+          : INSTALL_NAME;
 
   const submitLabel = isForgot
-    ? (submitting ? 'Resetting…' : 'Reset password')
+    ? (submitting ? 'Sending…' : 'Send reset link')
     : isSignup
       ? (submitting ? 'Working…' : 'Create account')
       : (submitting ? 'Working…' : 'Sign in');
@@ -151,10 +151,50 @@ export function LoginPage() {
   // One row of links, not a divider plus a stack. Only two of the three can
   // ever be showing at once (the back-link owns the forgot mode outright),
   // so a single separator between them is all the row needs.
-  const showForgotLink = !isForgot && hasUsers && passwordResetEnabled;
+  const showForgotLink = !isForgot && !isSent && hasUsers && passwordResetEnabled;
   const showBackLink = isForgot;
-  const showSignupLink = !isForgot && allowSignup && hasUsers;
+  const showSignupLink = !isForgot && !isSent && allowSignup && hasUsers;
   const showLinkRow = showForgotLink || showBackLink || showSignupLink;
+
+  // Replaces the form rather than sitting above it.
+  //
+  // The old flow left an editable, pre-filled form under a dismissable banner,
+  // which invites a second and third submit — and those burn the same small
+  // per-address budget the user will need when the real link arrives.
+  //
+  // The wording is identical whether or not the account exists, and the
+  // address comes from local state (what they typed), never from the server
+  // response, which is only { ok: true }. This paragraph is the ONLY place a
+  // stuck user can be helped: a dry-run provider, a missing sender, a provider
+  // error and a hard bounce all produce exactly this screen, by design.
+  if (isSent) {
+    return (
+      <div className="auth-shell">
+        <div className="sm-authcard auth-card surface">
+          <div className="sm-authbrand">
+            <img src="/posty-mark.svg" alt="Posty" className="auth-logo" />
+            <h1>{heading}</h1>
+          </div>
+          <p className="auth-info" role="status">
+            If an account exists for {email}, a reset link is on its way. It
+            expires in 60 minutes. If nothing arrives, check your spam folder,
+            then ask a workspace admin to set a new password for you from
+            Access.
+          </p>
+          <button className="sm-authbtn" type="button" onClick={() => switchMode('login')}>
+            Back to sign in
+          </button>
+          <div className="sm-authlinks">
+            {/* Keeps the address, so correcting a typo is an edit rather than
+                a re-type. */}
+            <button type="button" onClick={() => setMode('forgot')}>
+              Use a different address
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-shell">
@@ -204,50 +244,33 @@ export function LoginPage() {
           <p id={`${emailId}-err`} className="field-error" role="alert">{emailError}</p>
         )}
 
-        {/* The label is a SIBLING here, not a wrapper. PasswordInput renders
-            a show/hide <button> inside itself, and accessible-name-from-
-            content walks the label's subtree — nesting it makes the field
-            announce as "Password Show password", and flip to "Password Hide
-            password" as the user toggles it. */}
-        <label className="sm-field-label" htmlFor={passwordId}>
-          {isForgot ? 'New password' : 'Password'}
-        </label>
-        <div className="sm-field">
-          <PasswordInput
-            id={passwordId}
-            required
-            minLength={minPasswordLength}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
-            placeholder={isSignup || isForgot ? 'At least 8 characters' : '••••••••'}
-            autoComplete={isSignup || isForgot ? 'new-password' : 'current-password'}
-            aria-invalid={Boolean(passwordError)}
-          />
-        </div>
-        {passwordError && (
-          <p className="field-error" role="alert">{passwordError}</p>
-        )}
-
-        {isForgot && (
+        {/* No password field in forgot mode, at all. Leaving it on screen
+            while the request ignored it would be WORSE than the flow it
+            replaced: the user would type a password, be told the request
+            succeeded, and believe they had set it. */}
+        {!isForgot && (
           <>
-            <label className="sm-field-label" htmlFor={confirmId}>
-              Confirm new password
-            </label>
+            {/* The label is a SIBLING here, not a wrapper. PasswordInput
+                renders a show/hide <button> inside itself, and accessible-
+                name-from-content walks the label's subtree — nesting it makes
+                the field announce as "Password Show password", and flip to
+                "Password Hide password" as the user toggles it. */}
+            <label className="sm-field-label" htmlFor={passwordId}>Password</label>
             <div className="sm-field">
               <PasswordInput
-                id={confirmId}
+                id={passwordId}
                 required
-                minLength={8}
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Type the new password again"
-                autoComplete="new-password"
-                aria-invalid={Boolean(confirmError)}
+                minLength={minPasswordLength}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+                placeholder={isSignup ? 'At least 8 characters' : '••••••••'}
+                autoComplete={isSignup ? 'new-password' : 'current-password'}
+                aria-invalid={Boolean(passwordError)}
               />
             </div>
-            {confirmError && (
-              <p className="field-error" role="alert">{confirmError}</p>
+            {passwordError && (
+              <p className="field-error" role="alert">{passwordError}</p>
             )}
           </>
         )}

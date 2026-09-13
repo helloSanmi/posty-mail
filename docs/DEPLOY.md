@@ -68,8 +68,9 @@ The values that matter for production:
 NODE_ENV=production
 PORT=4010
 
-# Your real public URL. Powers image URLs in emails, the unsubscribe link,
-# and CORS. MUST be the domain recipients will reach — not localhost.
+# Your real public URL. Powers image URLs in emails, the unsubscribe link, the
+# password-reset link, and CORS. MUST be the domain recipients will reach —
+# not localhost.
 PUBLIC_BASE_URL=https://mail.yourcompany.com
 
 # Postgres — match docker-compose.yml (or your own Postgres).
@@ -85,7 +86,29 @@ BREVO_API_KEY=your-brevo-api-key
 # Verify incoming Brevo webhooks (required in production). Pick a token and
 # append ?token=<value> to the webhook URL you configure in Brevo.
 BREVO_WEBHOOK_TOKEN=another-random-string
+
+# Optional. Lets people reset their own password by emailed link, instead of
+# asking an admin. Off unless set to exactly "true".
+ALLOW_PASSWORD_RESET=false
 ```
+
+**On `ALLOW_PASSWORD_RESET`.** Turning it on is not enough on its own: the
+server also needs a working `BREVO_API_KEY`, a sender configured (Settings ->
+Connections, after first login), `DEMO_MODE` off, and a `PUBLIC_BASE_URL` that
+resolves from the open internet. If any of those is missing the feature stays
+off deliberately — a "Forgot password" link that appears and cannot send an
+email is worse than a hidden one, because the request succeeds either way and
+the user cannot tell a lost email from a broken server. The boot log prints
+which precondition failed:
+
+```
+[setup] Password reset: DISABLED — ALLOW_PASSWORD_RESET=true but no sender is configured.
+```
+
+Enabling it later needs no code deploy: edit `.env`, then `pm2 restart posty`.
+`.env` is read once at process start, so an edit without a restart does
+nothing. Whether it is on or off, an admin can always set a password for
+anyone in their workspace from Access.
 
 You do **not** need to set `VITE_API_URL` — in a production build the frontend
 calls the API on its own origin (single-process deploy, see step 6).

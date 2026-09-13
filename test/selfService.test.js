@@ -203,44 +203,65 @@ describe('the profile route cannot be used to escalate', () => {
   });
 });
 
-describe('passwordChangedAt is stamped everywhere a password is written', () => {
-  // Three routes write a passwordHash: self-service change, the public
-  // forgot-password reset, and an admin reset. A field that tracked only one
-  // of them would be a half-truth that depends on which route happened to be
-  // used — and it is a field people would use to judge whether a password is
-  // stale.
+describe('every password write goes through the one writer', () => {
+  // Three routes write a passwordHash: the self-service change, the admin
+  // reset, and redeeming a reset token. They used to each stamp
+  // passwordChangedAt by hand, which is how a field ends up being a half-truth
+  // that depends on which route happened to be used.
+  //
+  // That convention is now structural: lib/passwordReset.js owns the write, so
+  // the stamp — and the tokenVersion bump, and burning any outstanding reset
+  // tokens — cannot be forgotten by a fourth caller added later. These
+  // assertions pin the convergence, not the old count.
   //
   // User CREATION deliberately does not stamp it. "Never changed" is the
   // honest answer for someone still on the password an admin set for them,
   // and that is exactly the person worth nudging.
-  const source = (file) => import('node:fs').then((fs) => fs.readFileSync(
-    new URL(`../backend/routes/${file}`, import.meta.url),
+  const read = (path) => import('node:fs').then((fs) => fs.readFileSync(
+    new URL(`../backend/${path}`, import.meta.url),
     'utf8',
   ));
 
-  it('every passwordHash write in auth.js stamps the timestamp', async () => {
-    const text = await source('auth.js');
-    const writes = [...text.matchAll(/passwordHash[,:][\s\S]{0,200}?\}/g)];
-    const updates = writes.filter((m) => /data:/.test(
-      text.slice(Math.max(0, m.index - 200), m.index),
-    ) || /passwordChangedAt/.test(m[0]));
-    assert.ok(updates.length > 0);
-    // The two UPDATE paths (self change, forgot-password) both stamp.
+  it('the stamp lives in exactly one place', async () => {
+    const text = await read('lib/passwordReset.js');
     assert.equal(
       (text.match(/passwordChangedAt: new Date\(\)/g) || []).length,
-      2,
-      'auth.js should stamp on the self-service change and the reset',
+      1,
+      'setUserPassword is the only thing that should stamp passwordChangedAt',
     );
   });
 
-  it('the admin reset stamps it too', async () => {
-    const text = await source('admin.js');
-    const reset = text.slice(text.indexOf("'/api/admin/users/:id/password'"));
-    assert.match(reset, /passwordChangedAt: new Date\(\)/);
+  it('no route stamps it by hand any more', async () => {
+    for (const path of ['routes/auth.js', 'routes/admin.js']) {
+      const text = await read(path);
+      assert.equal(
+        /passwordChangedAt: new Date\(\)/.test(text),
+        false,
+        `${path} should delegate to setUserPassword rather than stamping itself`,
+      );
+      assert.match(
+        text,
+        /setUserPassword\(/,
+        `${path} writes a password, so it must go through the shared writer`,
+      );
+    }
+  });
+
+  it('the writer also burns outstanding reset tokens, in the same transaction', async () => {
+    // Not tidiness. An attacker requests a reset and reads the link from a
+    // mailbox they control; the owner notices and changes their password from
+    // inside the app; a surviving token lets the attacker undo that fix. A
+    // password write that does not kill outstanding tokens makes the
+    // current-password check on /api/auth/password mean nothing.
+    const text = await read('lib/passwordReset.js');
+    const writer = text.slice(text.indexOf('export async function setUserPassword'));
+    const body = writer.slice(0, writer.indexOf('\n}\n'));
+    assert.match(body, /\$transaction/);
+    assert.match(body, /burnOutstanding\(tx, userId\)/);
   });
 
   it('creating a user does NOT stamp it', async () => {
-    const text = await source('admin.js');
+    const text = await read('routes/admin.js');
     const create = text.slice(
       text.indexOf("app.post(\n    '/api/admin/users'"),
       text.indexOf("'/api/admin/users/:id'"),
@@ -255,40 +276,96 @@ describe('passwordChangedAt is stamped everywhere a password is written', () => 
   });
 });
 
-describe('the unauthenticated password reset is OPT-IN', () => {
-  // It used to be opt-OUT (`!== 'false'`), which meant every install that had
-  // not thought about it shipped an endpoint that set ANY user's password
-  // from their email address alone: no token, no email sent, no proof the
-  // caller owns the mailbox.
+// Comments in this codebase explain the bugs they replaced, by design, so a
+// grep for the old shape has to look at code only.
+const stripComments = (text) => text.replace(/\/\/[^\n]*/g, '');
+
+describe('password reset is OPT-IN and tokenised', () => {
+  // It was once opt-OUT (`!== 'false'`), which meant every install that had
+  // not thought about it shipped an endpoint that set ANY user's password from
+  // their email address alone: no token, no email sent, no proof the caller
+  // owned the mailbox.
   //
-  // It also voided the current-password check on /api/auth/password, which is
-  // why it is tested here rather than filed as someone else's problem: an
-  // attacker holding a session never needed the old password, because this
-  // route would hand them a new one.
-  const source = () => import('node:fs').then((fs) => fs.readFileSync(
-    new URL('../backend/routes/auth.js', import.meta.url),
+  // It is now a tokenised, emailed flow — but the flag must stay opt-in and
+  // the issue endpoint must never accept a password again, so both are pinned
+  // here. A red grep in this file is a design question, not a flake.
+  const read = (path) => import('node:fs').then((fs) => fs.readFileSync(
+    new URL(`../backend/${path}`, import.meta.url),
     'utf8',
   ));
 
-  it('refuses unless ALLOW_PASSWORD_RESET is exactly "true"', async () => {
-    const text = await source();
-    const handler = text.slice(text.indexOf("'/api/auth/forgot-password'"));
+  it('the capability check demands exactly "true"', async () => {
+    const text = await read('lib/passwordReset.js');
     assert.match(
-      handler,
+      text,
       /process\.env\.ALLOW_PASSWORD_RESET !== 'true'/,
-      'the reset must be opt-in; `!== "false"` ships a takeover by default',
-    );
-    assert.equal(
-      /ALLOW_PASSWORD_RESET === 'false'/.test(handler),
-      false,
-      'the opt-out form is the bug',
+      'the reset must be opt-in; `!== "false"` ships it on by default',
     );
   });
 
-  it('and the status endpoint advertises it the same way', async () => {
-    // If /auth/status still said enabled-by-default, the login page would
-    // offer a "forgot password" link to a route that always 403s.
-    const text = await source();
-    assert.match(text, /passwordResetEnabled: process\.env\.ALLOW_PASSWORD_RESET === 'true'/);
+  it('the opt-out spelling appears nowhere in the backend', async () => {
+    const { readFileSync, readdirSync, statSync } = await import('node:fs');
+    const root = new URL('../backend/', import.meta.url).pathname;
+    const offenders = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir)) {
+        const full = `${dir}/${entry}`;
+        if (statSync(full).isDirectory()) walk(full);
+        else if (entry.endsWith('.js')) {
+          const text = readFileSync(full, 'utf8');
+          // Only the CODE form matters; the comments explain the old bug on
+          // purpose and must stay readable.
+          const code = text.replace(/\/\/[^\n]*/g, '');
+          if (/ALLOW_PASSWORD_RESET\s*[!=]==\s*'false'/.test(code)) {
+            offenders.push(full.replace(root, ''));
+          }
+        }
+      }
+    };
+    walk(root.replace(/\/$/, ''));
+    assert.deepEqual(offenders, [], 'the opt-out form is the bug');
+  });
+
+  it('the issue endpoint no longer accepts a password', async () => {
+    // This is the takeover itself. Any path that still takes newPassword on
+    // forgot-password is the original hole regardless of what sits beside it.
+    //
+    // Comments are stripped first: the block above forgotSchema names the old
+    // { email, newPassword } shape deliberately, and that explanation must
+    // stay readable without failing the grep that guards against it.
+    const text = await read('routes/auth.js');
+    const schema = stripComments(text.slice(
+      text.indexOf('const forgotSchema'),
+      text.indexOf('const redeemSchema'),
+    ));
+    assert.ok(schema.length > 0, 'forgotSchema should still exist');
+    assert.equal(/newPassword/.test(schema), false);
+    // .strict() so the OLD frontend's { email, newPassword } is rejected
+    // rather than silently stripped to { email } and quietly succeeding.
+    assert.match(schema, /\.strict\(/);
+  });
+
+  it('the redeem endpoint takes no email and no user id', async () => {
+    // The replaced route trusted an email in the body, and that WAS the
+    // takeover. The subject must come from the token row alone.
+    const text = await read('routes/auth.js');
+    const schema = stripComments(text.slice(
+      text.indexOf('const redeemSchema'),
+      text.indexOf('const checkSchema'),
+    ));
+    assert.ok(schema.length > 0);
+    assert.equal(/email|userId|accountId/.test(schema), false);
+    assert.match(schema, /\.strict\(\)/);
+  });
+
+  it('and the status endpoint advertises the real capability', async () => {
+    // If /auth/status reported the bare flag, the login page would offer a
+    // "forgot password" link on an install with no API key or no sender —
+    // where the request 200s and no email ever arrives.
+    const text = await read('routes/auth.js');
+    assert.match(
+      text,
+      /passwordResetEnabled: \(await resolvePasswordResetCapability\(\)\)\.enabled/,
+    );
   });
 });
