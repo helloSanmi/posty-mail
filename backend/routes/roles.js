@@ -14,20 +14,35 @@ import { recordAudit } from '../lib/audit.js';
 import { invalidateAccountRoles, requirePermission } from '../lib/permissions.js';
 import {
   ADMIN_AREA,
+  AREAS,
   BUILT_IN_ROLE_KEYS,
   GRANTABLE_AREA_KEYS,
+  LEVEL_NAMES,
+  areaAllows,
+  normalizePermissions,
 } from '../../shared/permissions.js';
 import { validate, z } from '../lib/validate.js';
 import { asyncRoute } from '../utils/store.js';
 
+// Permissions arrive as the v2 map ({ areas: { contacts: 'write' } }). The
+// bare v1 array is still accepted so an older tab left open overnight does
+// not start failing — normalizePermissions lifts it to the same shape.
+const permissionsSchema = z.union([
+  z.array(z.string()),
+  z.object({
+    v: z.number().optional(),
+    areas: z.record(z.string(), z.string()),
+  }),
+]);
+
 const createSchema = z.object({
   name: z.string().trim().min(1).max(60),
-  permissions: z.array(z.string()).default([]),
+  permissions: permissionsSchema.default({ v: 2, areas: {} }),
 });
 
 const updateSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
-  permissions: z.array(z.string()).optional(),
+  permissions: permissionsSchema.optional(),
 });
 
 // Turn a display name into a stable, URL-safe key. Falls back to 'role' if
@@ -55,11 +70,49 @@ async function uniqueKey(accountId, base) {
   return key;
 }
 
-// Reject any area that isn't a real grantable area. `admin` is deliberately
-// excluded from GRANTABLE_AREA_KEYS — it can never be handed to a custom or
-// editable role, only the built-in Admin role holds it.
-function invalidAreas(permissions) {
-  return permissions.filter((area) => !GRANTABLE_AREA_KEYS.includes(area));
+// Reject anything that isn't a real area at a level that area actually
+// offers. Two distinct rejections, and both matter:
+//
+//   * an unknown AREA — `admin` above all. It is deliberately excluded from
+//     GRANTABLE_AREA_KEYS, so "permissions": { "areas": { "admin": "manage" } }
+//     in a hand-rolled request is refused here, and stripped again by the
+//     normaliser, and stripped a third time on read. An admin granting
+//     themselves nothing new is not interesting; a compromised admin session
+//     minting a role that outlives it is.
+//   * a level the area does not have — asking for `analytics: 'manage'`
+//     would otherwise store a level nothing checks, which reads as a grant
+//     to whoever looks at the row next.
+//
+// Silently dropping either would be worse than refusing: the admin would see
+// a saved role that does not do what the screen said it did.
+function invalidEntries(permissions) {
+  // A v1 array carries no level, so every entry was mapped to 'write' and
+  // then checked against the area's ladder — which rejected the three areas
+  // that have no write rung (analytics, forms, and the old `settings` key).
+  // So the back-compat path the schema and the comment above both promise
+  // returned 400 for exactly the vocabulary it was meant to accept.
+  //
+  // normalizePermissions already knows what a v1 entry means: the TOP rung
+  // the area offers. Validating the normalised form asks the real question.
+  const areas = Array.isArray(permissions)
+    ? normalizePermissions(permissions).areas
+    : (permissions?.areas || {});
+  const bad = [];
+  Object.entries(areas).forEach(([key, level]) => {
+    if (!GRANTABLE_AREA_KEYS.includes(key)) {
+      bad.push(`${key} is not an access area`);
+      return;
+    }
+    if (!LEVEL_NAMES.includes(level)) {
+      bad.push(`${level} is not an access level`);
+      return;
+    }
+    if (level !== 'none' && !areaAllows(key, level)) {
+      const area = AREAS.find((a) => a.key === key);
+      bad.push(`${area.label} has no "${level}" level (it offers ${area.levels.join(', ')})`);
+    }
+  });
+  return bad;
 }
 
 function shapeRole(role, userCount) {
@@ -67,7 +120,9 @@ function shapeRole(role, userCount) {
     id: role.id,
     key: role.key,
     name: role.name,
-    permissions: Array.isArray(role.permissions) ? role.permissions : [],
+    // Always the canonical v2 map, whatever the row happens to hold — the
+    // UI never has to know that v1 arrays exist.
+    permissions: normalizePermissions(role.permissions),
     isSystem: role.isSystem,
     // The Admin role is fully locked (always full access); the UI disables
     // its edit/delete controls.
@@ -96,9 +151,9 @@ export function registerRoleRoutes(app) {
 
   app.post('/api/roles', adminOnly, validate(createSchema), asyncRoute(async (req, res) => {
     const { accountId } = req.user;
-    const bad = invalidAreas(req.body.permissions);
+    const bad = invalidEntries(req.body.permissions);
     if (bad.length) {
-      res.status(400).json({ error: `Unknown access areas: ${bad.join(', ')}` });
+      res.status(400).json({ error: bad.join('; ') });
       return;
     }
     const key = await uniqueKey(accountId, slugify(req.body.name));
@@ -107,7 +162,9 @@ export function registerRoleRoutes(app) {
         accountId,
         key,
         name: req.body.name,
-        permissions: req.body.permissions,
+        // Normalised on the way in as well as on the way out, so the
+        // database only ever holds the canonical shape.
+        permissions: normalizePermissions(req.body.permissions),
         isSystem: false,
       },
     });
@@ -133,9 +190,9 @@ export function registerRoleRoutes(app) {
       return;
     }
     if (req.body.permissions) {
-      const bad = invalidAreas(req.body.permissions);
+      const bad = invalidEntries(req.body.permissions);
       if (bad.length) {
-        res.status(400).json({ error: `Unknown access areas: ${bad.join(', ')}` });
+        res.status(400).json({ error: bad.join('; ') });
         return;
       }
     }
@@ -143,7 +200,9 @@ export function registerRoleRoutes(app) {
       where: { id: role.id },
       data: {
         ...(req.body.name !== undefined ? { name: req.body.name } : {}),
-        ...(req.body.permissions !== undefined ? { permissions: req.body.permissions } : {}),
+        ...(req.body.permissions !== undefined
+          ? { permissions: normalizePermissions(req.body.permissions) }
+          : {}),
       },
     });
     invalidateAccountRoles(accountId);

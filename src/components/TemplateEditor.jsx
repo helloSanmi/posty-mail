@@ -9,6 +9,7 @@ import { formatHtml } from '../utils/formatHtml';
 import { getImagesFromHtml, replaceImageSrc } from '../utils/htmlImages';
 import { getLinksFromHtml, removeLink, replaceLinkAttrs } from '../utils/htmlLinks';
 import { textFromHtml } from '../utils/textFromHtml';
+import { usePreference } from '../hooks/useViewState';
 
 export function TemplateEditor({
   template,
@@ -40,7 +41,12 @@ export function TemplateEditor({
   // panes stay mounted (display toggled in CSS) so state survives a switch.
   // Default to the Visual (WYSIWYG) editor — you edit the rendered email
   // directly. HTML is the code view for power users.
-  const [editorMode, setEditorMode] = useState('visual');
+  // Visual or code is how someone works, not where they are: a person who
+  // writes raw HTML wants the code pane next time too, and would not want it
+  // imposed on whoever they sent a link to. localStorage, not the URL.
+  const [editorMode, setEditorMode] = usePreference(
+    'posty.email.editorMode', 'visual', { allow: ['visual', 'html'] },
+  );
   const htmlRef = useRef(null);
 
   // Auto-format the HTML so the code view is always pretty-printed — no need
@@ -546,8 +552,8 @@ export function TemplateEditor({
               textareaRef={htmlRef}
             />
             <small className="muted html-field-hint">
-              Tab inserts two spaces. Visual and HTML edit the same content —
-              switch freely. Brevo wraps every <code>&lt;a href&gt;</code>{' '}
+              Tab inserts two spaces. Visual and HTML edit the same content,
+              so switch freely. Brevo wraps every <code>&lt;a href&gt;</code>{' '}
               with click tracking.
             </small>
           </div>

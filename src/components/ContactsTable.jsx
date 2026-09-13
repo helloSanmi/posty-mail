@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   Check, Download, FolderMinus, FolderPlus, Globe2, Pencil, Trash2, X,
 } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 import { countryName, otherCountryOptions, priorityCountryOptions } from '../data/countries';
 import { complianceIssues, validateContacts } from '../../shared/campaignUtils.js';
 import {
@@ -57,9 +58,23 @@ export function ContactsTable({
   viewingGroupId = null,
   onClearGroupView,
   onTotalChange,
+  // The page owns these, so this component writes no URL of its own — see
+  // the note in ContactsPage about one owner per search string.
+  filter,
+  // What the inputs show. Includes the debounce echo, so typing is smooth.
+  committedFilter,
+  // What the REQUEST uses. URL-only, so a fetch happens when typing settles.
+  updateFilter,
+  page,
+  setPage,
 }) {
-  const [filter, setFilter] = useState({ search: '', region: '', consent: '', excludeUnsubscribed: false });
-  const [page, setPage] = useState(1);
+  // Export and bulk delete take the whole audience off the platform or
+  // remove it. They are the `manage` rung, and the server now refuses them
+  // below it — so the buttons go away rather than sitting there ready to
+  // return a 403. A control that is always going to fail is worse than no
+  // control: it reads as a broken app rather than as access you do not have.
+  const { can } = useAuth();
+  const canManageContacts = can('contacts', 'manage');
   const [data, setData] = useState({ rows: [], total: 0, totalPages: 1 });
   const [selected, setSelected] = useState(new Set());
   const [groups, setGroups] = useState([]);
@@ -99,14 +114,14 @@ export function ContactsTable({
   }, [regionMenuOpen]);
 
   const params = useMemo(() => ({
-    ...filter,
-    excludeUnsubscribed: filter.excludeUnsubscribed || undefined,
-    region: filter.region || undefined,
-    consent: filter.consent || undefined,
-    search: filter.search || undefined,
+    ...committedFilter,
+    excludeUnsubscribed: committedFilter.excludeUnsubscribed || undefined,
+    region: committedFilter.region || undefined,
+    consent: committedFilter.consent || undefined,
+    search: committedFilter.search || undefined,
     page,
     pageSize: PAGE_SIZE,
-  }), [filter, page]);
+  }), [committedFilter, page]);
 
   async function refresh() {
     setLoading(true);
@@ -196,11 +211,6 @@ export function ContactsTable({
     } else {
       setSelected(new Set(data.rows.map((row) => row.email)));
     }
-  }
-
-  function updateFilter(patch) {
-    setFilter((prev) => ({ ...prev, ...patch }));
-    setPage(1);
   }
 
   // Groups are exclusive: moving a contact into group A also removes them from
@@ -431,6 +441,9 @@ export function ContactsTable({
                   </div>
                 )}
               </div>
+              {/* Bulk region is POST /contacts/bulk-update, which is the
+                  `manage` rung — same as bulk delete beside it. */}
+              {canManageContacts && (
               <div className="segment-menu" ref={regionMenuRef}>
                 <button
                   type="button"
@@ -471,14 +484,19 @@ export function ContactsTable({
                   </div>
                 )}
               </div>
-              <button type="button" className="danger" onClick={confirmBulkDelete}>
-                <Trash2 size={14} aria-hidden="true" /> Delete {selected.size}
-              </button>
+              )}
+              {canManageContacts && (
+                <button type="button" className="danger" onClick={confirmBulkDelete}>
+                  <Trash2 size={14} aria-hidden="true" /> Delete {selected.size}
+                </button>
+              )}
             </>
           )}
-          <button type="button" onClick={handleExport}>
-            <Download size={14} aria-hidden="true" /> Export CSV
-          </button>
+          {canManageContacts && (
+            <button type="button" onClick={handleExport}>
+              <Download size={14} aria-hidden="true" /> Export CSV
+            </button>
+          )}
         </div>
       </div>
 
@@ -556,6 +574,7 @@ export function ContactsTable({
                 onEdit={() => { setEditingEmail(contact.email); setEditContact({ ...contact }); }}
                 onOptIn={() => markOptIn(contact)}
                 onDelete={() => confirmDeleteOne(contact.email)}
+                canDelete={canManageContacts}
                 groups={groups}
                 onAddToGroup={(group) => addContactToGroup(contact.email, group)}
                 viewingGroupId={viewingGroupId}
@@ -615,6 +634,9 @@ function ContactReadRow({
   onEdit,
   onOptIn,
   onDelete,
+  // Deleting one contact is the `manage` rung server-side, same as bulk
+  // delete and export. Drawn only when it will work.
+  canDelete,
   groups = [],
   onAddToGroup,
   viewingGroupId,
@@ -761,7 +783,7 @@ function ContactReadRow({
                       disabled={isCurrent}
                       aria-label={
                         isCurrent
-                          ? `${group.name} — current group`
+                          ? `${group.name} (current group)`
                           : `Move to ${group.name}`
                       }
                       onClick={() => {
@@ -816,16 +838,18 @@ function ContactReadRow({
             <FolderMinus size={14} aria-hidden="true" />
           </button>
         )}
-        <button
-          type="button"
-          className="row-action row-action-danger"
-          onClick={onDelete}
-          title="Delete contact from audience"
-          aria-label="Delete contact"
-          data-tooltip="Delete contact"
-        >
-          <Trash2 size={14} aria-hidden="true" />
-        </button>
+        {canDelete && (
+          <button
+            type="button"
+            className="row-action row-action-danger"
+            onClick={onDelete}
+            title="Delete contact from audience"
+            aria-label="Delete contact"
+            data-tooltip="Delete contact"
+          >
+            <Trash2 size={14} aria-hidden="true" />
+          </button>
+        )}
       </div>
     </div>
   );

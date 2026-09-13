@@ -403,26 +403,90 @@ td.sm-trunc, th.sm-trunc { display: table-cell; }
    A role x area grid. The columns are narrow and centred because each cell
    holds one mark, and the answer people come for ("who can reach
    Connections?") is read down a column. */
-.roles-matrix { table-layout: auto; }
+/* Eight area columns plus a role name and a People count is wider than the
+   card below about 1000px, and a table that simply overflows its card loses
+   its last two columns with no way to reach them — which on this grid means
+   Connections and Unsubscribes, the two areas most worth checking. It
+   scrolls in its own frame instead.
+
+   tabIndex on the frame is not decoration: a scroll container that can only
+   be reached with a pointer is unreachable by keyboard, and this one holds
+   the answer to "who can send email from this account?". */
+.roles-frame {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.roles-frame:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.roles-matrix {
+  min-width: 760px;
+  table-layout: auto;
+}
+/* The role name carries a second line on the locked row. At the width the
+   columns would otherwise leave it, that note wrapped to four lines and made
+   the row three times the height of its neighbours. */
+.roles-matrix th:first-child,
+.roles-matrix td:first-child {
+  min-width: 168px;
+}
 .roles-area-col,
 .roles-cell {
   text-align: center;
-  width: 92px;
+  width: 84px;
 }
 .roles-note {
   color: var(--text-subtle);
   display: block;
   font-size: var(--text-xs);
 }
-.roles-mark {
+/* A level, not a tick. Four states have to be told apart at a glance and
+   read precisely on inspection, so each one is a word with its own weight —
+   colour alone would fail both for anyone who cannot separate the hues and
+   for anyone asking "is that Edit or Full?". */
+.roles-level {
   align-items: center;
+  border-radius: var(--radius-sm);
   color: var(--text-subtle);
   display: inline-flex;
+  flex-direction: column;
+  font-size: var(--text-xs);
+  gap: 1px;
   justify-content: center;
+  line-height: 1.2;
+  padding: 2px 6px;
 }
-/* Granted is the signal; denied is the ground. Colour carries it, and the
-   icon shape carries it again for anyone who cannot separate the two. */
-.roles-mark.is-on { color: var(--success); }
+/* No opacity here. A half-faded dash measured 2.1:1, and "this role has no
+   access to this area" is information — arguably the most consequential
+   thing the grid says. The glyph is quiet enough on its own. */
+.roles-level.is-none { color: var(--text-subtle); }
+.roles-level.is-read { color: var(--text-muted); }
+.roles-level.is-write {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+/* Full is the rung that exports, sends and deletes. It gets the only
+   saturated treatment in the grid, because scanning a column for "who can
+   do the irreversible things" should take one pass. */
+.roles-level.is-manage {
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-weight: 600;
+}
+/* Implied, not granted. Dimmed and captioned so it reads as consequence
+   rather than as a choice someone made. */
+.roles-level.is-implied {
+  background: none;
+  color: var(--text-subtle);
+  font-weight: 400;
+}
+.roles-via {
+  font-size: 10px;
+  letter-spacing: 0.01em;
+  opacity: 0.85;
+}
 .roles-actions {
   display: flex;
   gap: var(--s1);
@@ -563,3 +627,15 @@ td.sm-trunc, th.sm-trunc { display: table-cell; }
 .sm-audit:has(.al-col-when) { table-layout: auto; }
 .al-col-when { width: 128px; }
 .al-col-device, .al-col-ip { width: 104px; }
+
+/* Location on the team list, trailing the email on the same line. Optional
+   by design, so it is never a column: an empty column reads as missing data,
+   whereas an absent suffix reads as nobody having filled it in. */
+.sm-sep { color: var(--text-subtle); margin: 0 6px; }
+.sm-place {
+  align-items: center;
+  display: inline-flex;
+  gap: 3px;
+  vertical-align: baseline;
+}
+.sm-place svg { flex: none; opacity: 0.75; }

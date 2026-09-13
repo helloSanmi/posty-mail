@@ -6,12 +6,13 @@ import {
 } from '../../services/brevoApi';
 import { StatusPill } from './StatusPill';
 import { Loading } from '../Spinner';
+import { ReadOnlyNote } from './ReadOnlyNote';
 
 // Admin editor for the preference-center category list. Each row defines a
 // topic (id + label + optional description) that the public /unsubscribe
 // page renders as a checkbox so recipients can selectively unsubscribe
 // rather than leaving entirely. Empty list = legacy all-or-nothing flow.
-export function PreferenceCenterCard({ notify }) {
+export function PreferenceCenterCard({ notify, readOnly = false }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -136,13 +137,14 @@ export function PreferenceCenterCard({ notify }) {
           )}
 
           <div className="preference-actions">
-            <button type="button" onClick={addCategory}>
+            <button type="button" onClick={addCategory} disabled={readOnly}>
               <Plus size={14} aria-hidden="true" /> Add category
             </button>
-            <button type="button" className="primary" onClick={save} disabled={saving}>
+            <button type="button" className="primary" onClick={save} disabled={saving || readOnly}>
               {saving ? 'Saving…' : 'Save categories'}
             </button>
           </div>
+          {readOnly && <ReadOnlyNote area="the preference centre" />}
         </>
       )}
     </section>

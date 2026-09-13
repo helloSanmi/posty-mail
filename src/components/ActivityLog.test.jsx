@@ -18,7 +18,14 @@ const LOGS = [
 ];
 
 describe('ActivityLog', () => {
-  beforeEach(() => window.localStorage.clear());
+  beforeEach(() => {
+    window.localStorage.clear();
+    // The search and the two filters persist per TAB now (sessionStorage,
+    // deliberately not the URL — they hold emails and IPs). Without this,
+    // one test's filter leaks into the next and the failures point at the
+    // component rather than at the harness.
+    window.sessionStorage.clear();
+  });
   afterEach(cleanup);
 
   test('shows the browser, which the log could not record before', () => {

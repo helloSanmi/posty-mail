@@ -43,10 +43,10 @@
   gap: 14px;
   min-height: 0;
   min-width: 0;
-  /* The pane itself does NOT scroll. It is furniture: the brand belongs at
-     the top and the user row at the bottom, and .sh-user pins there with
-     margin-top:auto — which only holds while nothing here scrolls. If the
-     nav ever outgrows the space, the nav is what scrolls. */
+  /* The pane itself does NOT scroll. It is furniture: the brand at the top
+     and the nav below it. If the nav ever outgrows the space, the nav is
+     what scrolls, not the rail. (The account block used to pin to the
+     bottom here with margin-top:auto; it lives in the topbar now.) */
   overflow: hidden;
   padding: var(--s3) 10px;
 }
@@ -180,15 +180,6 @@
   white-space: nowrap;
 }
 
-.sh-user {
-  align-items: center;
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 9px;
-  margin-top: auto;
-  min-width: 0;
-  padding: 12px 4px 2px 6px;
-}
 .sh-avatar {
   align-items: center;
   background: var(--accent-soft);
@@ -202,26 +193,11 @@
   justify-content: center;
   width: 26px;
 }
-.sh-user-text { display: grid; min-width: 0; }
-.sh-user-text strong {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.sh-user-text span {
-  color: var(--text-subtle);
-  font-size: var(--text-2xs);
-  text-transform: capitalize;
-}
-.sh-user .sh-icon-btn { margin-left: auto; }
 
 /* Collapsed: icons only. Labels are removed from the flow rather than
    hidden with opacity, so nothing reserves width behind the rail. */
 .sh.is-collapsed .sh-brand-text,
-.sh.is-collapsed .sh-nav-label,
-.sh.is-collapsed .sh-user-text { display: none; }
+.sh.is-collapsed .sh-nav-label { display: none; }
 /* Collapsed, the brand stacks: logomark, then the expand button beneath
    it, both in normal flow. It used to be absolutely positioned at
    top:52px, which put it exactly on top of the first nav item — and since
@@ -239,9 +215,6 @@
 .sh.is-collapsed .sh-side { padding-top: 14px; position: relative; }
 .sh.is-collapsed .sh-nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
 .sh.is-collapsed .sh-nav-item.is-active::before { left: -10px; }
-.sh.is-collapsed .sh-user { justify-content: center; padding-left: 0; }
-.sh.is-collapsed .sh-user .sh-icon-btn { margin-left: 0; }
-.sh.is-collapsed .sh-avatar { display: none; }
 
 /* ---- topbar -----------------------------------------------------------
    Every control in this bar is the same height. They were not: the search
@@ -264,17 +237,7 @@
 }
 .sh-menu { display: none; }
 .sh-title { flex: 1; min-width: 0; }
-/* The eyebrow earns its place only when it names something the heading
-   does not already say. It used to repeat the heading verbatim. */
-.sh-eyebrow {
-  color: var(--text-subtle);
-  display: block;
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  letter-spacing: var(--tracking-label);
-  line-height: 1.3;
-  text-transform: uppercase;
-}
+
 /* The greeting stands where the page name used to. It is deliberately NOT
    in the area's colour: the sidebar carries that, and a greeting is about
    the person rather than the place — colouring it would make the same word
@@ -308,7 +271,18 @@
 }
 .sh-search:hover { border-color: var(--border-strong); color: var(--text-muted); }
 .sh-search:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
-.sh-search-label { min-width: 62px; text-align: left; }
+/* The search grows into the space between the greeting and the controls
+   instead of sitting at a fixed width. It is the one control up here you
+   TYPE into, so it should look like somewhere text goes — and at 114px, and
+   then at 148px, it still read as an icon button with a word in it.
+   The cap stops it dominating a wide monitor; the basis is what it settles
+   at when there is room. Height stays on --topbar-control with the bell and
+   the theme buttons, because those being the same size is the point. */
+.sh-search {
+  flex: 1 1 260px;
+  max-width: 340px;
+}
+.sh-search-label { flex: 1; min-width: 88px; text-align: left; }
 .sh-search kbd {
   background: var(--surface-raised);
   border: 1px solid var(--border);
@@ -491,3 +465,125 @@ html[data-theme='dark'] .sh-badge { color: var(--accent-contrast); }
   outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
+
+/* ---- account menu -------------------------------------------------------
+   Top right, last in the topbar row. It replaces the block that used to sit
+   at the bottom of the nav rail, where a bare sign-out button lived one
+   mis-click away from a navigation item. */
+/* align-self, and flex:none on the button. The topbar is a flex row with
+   the default stretch alignment, so this wrapper grew to the row's height
+   and dragged the button with it — a 34px circle came out 38x34, an ellipse
+   taller than everything beside it. A square control has to be told not to
+   stretch. */
+.sh-account {
+  align-self: center;
+  display: flex;
+  position: relative;
+}
+.sh-account-trigger {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  /* Same box as the bell and the theme buttons beside it — and the circle
+     FILLS it. It used to be a 26px avatar floating inside a 34px button,
+     which measured as the same size as its neighbours and looked visibly
+     smaller than all of them, because what the eye compares is the drawn
+     circle, not the invisible hit area around it. */
+  flex: none;
+  height: var(--topbar-control);
+  /* min-height as well as height: base.css sets a global
+     `button { min-height: 38px }`, and a min-height always beats a smaller
+     height. That is why the circle came out 38x34 — an ellipse — even with
+     an explicit 34px height on it. The other topbar controls escape the same
+     rule by each setting min-height themselves. */
+  min-height: var(--topbar-control);
+  min-width: var(--topbar-control);
+  padding: 0;
+  width: var(--topbar-control);
+}
+.sh-account-trigger .sh-avatar {
+  height: 100%;
+  transition: box-shadow var(--t-fast);
+  width: 100%;
+}
+/* A ring rather than a border, so hover does not resize the circle by two
+   pixels every time the pointer crosses it. */
+.sh-account-trigger:hover .sh-avatar,
+.sh-account-trigger[aria-expanded='true'] .sh-avatar {
+  box-shadow: 0 0 0 2px var(--border-strong);
+}
+.sh-account-trigger:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* Same shell as the notification panel next door: same radius, same
+   elevation, same 8px drop, same right edge. Two popovers a centimetre
+   apart that open differently is noticeable even when nobody can say why. */
+.sh-account-menu {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--e3);
+  margin-top: 8px;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  width: min(260px, calc(100vw - 32px));
+  z-index: 30;
+}
+.sh-account-head {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  margin-bottom: 4px;
+  padding: 8px 8px 12px;
+}
+.sh-avatar-lg {
+  font-size: var(--text-xs);
+  height: 34px;
+  width: 34px;
+}
+.sh-account-who { display: grid; gap: 1px; min-width: 0; }
+.sh-account-who strong {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sh-account-email {
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sh-account-role {
+  color: var(--text-subtle);
+  font-size: var(--text-2xs);
+  text-transform: capitalize;
+}
+.sh-account-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: var(--text-sm);
+  gap: 9px;
+  padding: 8px;
+  text-align: left;
+  width: 100%;
+}
+.sh-account-item:hover { background: var(--surface-hover); }
+.sh-account-item:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+/* Sign out is the one thing in here you cannot undo with another click, so
+   it is coloured — but only on hover, so the menu does not open shouting. */
+.sh-account-item.is-danger:hover { background: var(--danger-soft); color: var(--danger); }

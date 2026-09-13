@@ -29,7 +29,7 @@ export function GalleryModal({ onPick, onClose }) {
           <div>
             <h2>Start from a design</h2>
             <span className="muted">
-              Pick a starting point — it opens as a new, fully editable template.
+              Pick a starting point. It opens as a new, fully editable template.
             </span>
           </div>
           <button type="button" onClick={onClose} aria-label="Close">

@@ -17,6 +17,7 @@
 import { prisma } from './prisma.js';
 import { contactFromDb } from './contacts.js';
 import { enrollInSequence } from './sequences.js';
+import { assertOwnedOrNew } from './tenant.js';
 
 export function audienceFromDb(audience) {
   return {
@@ -147,11 +148,10 @@ export async function listAudienceContacts(accountId, id) {
 }
 
 export async function upsertAudience(accountId, audience) {
-  // Audience.id is the unique PK across all accounts (UUID). Using a
-  // straight upsert is safe — the id either belongs to THIS account (we
-  // got it back from a prior read) or it's brand-new (UUID minted by
-  // the caller). We still defensively set accountId on create so a
-  // misrouted id can't silently land in the wrong workspace.
+  await assertOwnedOrNew(prisma.audience, audience.id, accountId);
+  // The id arrives from the REQUEST, so "it either belongs to this account
+  // or it is brand-new" was not true — it could also be another workspace's.
+  // assertOwnedOrNew above is what makes the sentence true.
   return prisma.audience.upsert({
     where: { id: audience.id },
     create: {

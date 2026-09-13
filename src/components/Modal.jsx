@@ -94,13 +94,25 @@ export function Modal({
   // The inbox preview paints its own card (its own background and padding),
   // so it opts out rather than stacking `.surface` on top of that.
   surface = true,
-  // Defaults to FALSE, which is the conservative direction. None of the
-  // hand-rolled dialogs closed on a backdrop click, and switching them all
-  // on would mean a stray click beside a half-filled contact form throws
-  // the input away. Dialogs that hold nothing to lose — a confirm, a
-  // picker, a preview — opt in. Forgetting to opt in costs a convenience;
-  // forgetting to opt out would cost someone's work.
-  closeOnBackdrop = false,
+  // Defaults to TRUE: pressing outside a dialog closes it, everywhere.
+  //
+  // It used to default to false, on the reasoning that a stray click beside a
+  // half-filled form would throw the input away. That is a real cost, but it
+  // was being paid on every dialog in the app to avoid it on a few — and
+  // clicking away is the first thing people try, so the dialogs that did not
+  // respond read as stuck rather than as careful.
+  //
+  // The guard against the stray click is below: a press only counts when it
+  // both STARTS and ENDS on the backdrop itself, so releasing a text
+  // selection that began inside the dialog does not dismiss it.
+  closeOnBackdrop = true,
+  // 'center' (default) or 'side'. A side panel is the same dialog — same
+  // portal, same focus trap, same scroll lock, same stacking — pinned to the
+  // right edge instead of centred. Sharing the implementation matters more
+  // than the twenty lines it saves: a second dialog built from scratch is a
+  // second place for the transform/containing-block trap described above to
+  // come back.
+  variant = 'center',
   initialFocus,
   children,
   ...rest
@@ -186,7 +198,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop${variant === 'side' ? ' is-side' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label={label}

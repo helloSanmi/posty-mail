@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Check, ChevronDown, Eye, Send, Users,
 } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 import { CampaignTabs } from '../components/CampaignTabs';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DateTimePicker } from '../components/DateTimePicker';
@@ -51,6 +52,7 @@ const FREQUENCY_LABEL = {
 
 export function BuilderPage(props) {
   const { contacts: allContacts, template, setTemplate, setPage, notify, onCampaignScheduled, refreshContacts } = props;
+  const { can } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   // /builder is always a NEW campaign unless the user explicitly clicked
@@ -148,6 +150,13 @@ export function BuilderPage(props) {
   const held = heldList.length;
   const readyContacts = readyList.length;
   const canSchedule = readyContacts > 0;
+  // Building a campaign and sending it to real people are different acts,
+  // and they are now different rungs. A role with `write` can draft, name,
+  // pick an audience and save; sending, scheduling and the test email need
+  // `manage`. The button says why rather than disappearing, because the
+  // person CAN do everything else on this page — a missing button here
+  // would read as a bug, and they would look for it.
+  const canSend = can('campaigns', 'manage');
   // Combine template lint (from the backend) with send-readiness checks so
   // both show in one panel and both can block Send on error severity.
   // Severity order, not source order. These two lists were concatenated by
@@ -166,7 +175,8 @@ export function BuilderPage(props) {
   // AND the pre-send checklist has no error-severity rows. We keep validation
   // in requestSchedule() too so the click surfaces a clear error message,
   // but greying the button out is the first hint.
-  const readyToSchedule = canSchedule
+  const readyToSchedule = canSend
+    && canSchedule
     && Boolean(form.name.trim())
     && templateChosen
     && recipientsChosen
@@ -415,7 +425,9 @@ export function BuilderPage(props) {
 
   const sendLabel = submitting
     ? 'Scheduling…'
-    : !canSchedule
+    : !canSend
+      ? 'You cannot send campaigns'
+      : !canSchedule
       ? 'Add audience first'
       : form.sendMode === 'now'
         ? `Send to ${peopleLabel(readyContacts)}`
@@ -605,11 +617,18 @@ export function BuilderPage(props) {
   return (
     <div className="page-stack content-page">
       <CampaignTabs active="new" />
-      {/* The page needs its own h2. Without it the only heading on screen is
-          the rail's "Review", so heading navigation lands on the sidebar and
-          the form sits under a title naming something else. CampaignTabs
-          renders a <nav>, not a heading. */}
-      <h2 className="bd-page-title">Create campaign</h2>
+      {/* Present but not drawn. "Create campaign" was the third thing on
+          screen saying so — after the New campaign tab directly above it,
+          which is highlighted, and the Send button at the end of the form —
+          so as a visible title it was telling you something you had just
+          clicked to get to.
+
+          It stays in the markup because it is still the page's only real
+          heading: CampaignTabs renders a <nav>, not a heading, so deleting
+          this outright leaves the rail's "Review" as the first thing
+          heading navigation finds, and the form then sits under a title
+          naming something else entirely. */}
+      <h2 className="bd-page-title visually-hidden">Create campaign</h2>
       {/* The blocker sits above the card rather than inside it: a page-level
           warning, not a box nested in the form. */}
       {!canSchedule && <AudienceBlocker setPage={setPage} />}
@@ -793,7 +812,15 @@ export function BuilderPage(props) {
                       placeholder="you@example.com"
                     />
                   </label>
-                  <button type="button" className="bd-btn" onClick={requestTestEmail}>Send test</button>
+                  <button
+                    type="button"
+                    className="bd-btn"
+                    onClick={requestTestEmail}
+                    disabled={!canSend}
+                    title={canSend ? undefined : 'Sending needs full access to Campaigns'}
+                  >
+                    Send test
+                  </button>
                   <button
                     type="button"
                     className="bd-btn"
@@ -961,6 +988,12 @@ export function BuilderPage(props) {
             <Send size={15} aria-hidden="true" />
             {sendLabel}
           </button>
+          {!canSend && (
+            <p className="muted bd-send-note">
+              Your role can build and save this campaign. Sending and
+              scheduling need full access to Campaigns. Ask an admin.
+            </p>
+          )}
 
           <div className="actions-row send-secondary-actions">
             <button type="button" className="bd-btn" onClick={handleSaveDraft}>Save draft</button>

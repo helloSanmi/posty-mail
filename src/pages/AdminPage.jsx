@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Pencil, Plus, Trash2, UserPlus,
+  MapPin, Pencil, Plus, Trash2, UserPlus,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import {
@@ -16,10 +16,8 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ActivityLog } from '../components/ActivityLog';
 import { RolesManager } from '../components/RolesManager';
 import { CreateUserModal, EditUserModal } from '../components/UserModals';
+import { useViewState } from '../hooks/useViewState';
 
-// Mirrors the TABS list built inside the component. Kept at module scope so
-// the section eyebrow can be published before the early return for
-// non-admins, which sits above where TABS is defined.
 export function AdminPage({ notify }) {
   const { user, can } = useAuth();
   const [users, setUsers] = useState([]);
@@ -31,7 +29,14 @@ export function AdminPage({ notify }) {
   // the head belongs to this page rather than to RolesManager.
   const [creatingRole, setCreatingRole] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [tab, setTab] = useState('team'); // 'team' | 'roles' | 'activity'
+  // In the URL, not in useState. Refreshing on "Roles & access" used to drop
+  // you back on Team members, and there was no way to send anyone a link to
+  // the roles matrix — /admin always opened on Team.
+  const [view, setView] = useViewState({
+    tab: { fallback: 'team', allow: ['team', 'roles', 'activity'] },
+  });
+  const { tab } = view;
+  const setTab = (id) => setView({ tab: id });
   // Topbar already says "Admin"; the eyebrow names which tab is open.
   // No topbar eyebrow. It named the active section — and the section is
   // already named, in the tab strip directly below it, where the active
@@ -181,7 +186,34 @@ export function AdminPage({ notify }) {
                       {item.name || item.email}
                       {item.id === user.id && <span className="sm-chip">you</span>}
                     </span>
-                    <span className="sm-dim sm-trunc">{item.email}</span>
+                    {/* The second line carries the email and the location.
+                        The email only when there IS a name, because the line
+                        above falls back to the email when there is not — and
+                        printing it twice, one under the other, reads as a
+                        rendering fault rather than as a person who has not
+                        set a name.
+
+                        Location rides on this line rather than taking a
+                        column of its own: it is optional, so a column would
+                        be mostly empty, and an empty column reads as missing
+                        data rather than as a field nobody filled in. On the
+                        line, absent is simply absent — and when neither part
+                        is present the line does not render at all, instead
+                        of leaving a blank row of height under the name. */}
+                    {(item.name || item.location) && (
+                      <span className="sm-dim sm-trunc">
+                        {item.name && item.email}
+                        {item.name && item.location && (
+                          <span className="sm-sep" aria-hidden="true">·</span>
+                        )}
+                        {item.location && (
+                          <span className="sm-place">
+                            <MapPin size={11} aria-hidden="true" />
+                            {item.location}
+                          </span>
+                        )}
+                      </span>
+                    )}
                   </span>
                   <span className="sm-role">{roleName[item.role] || item.role}</span>
                   <span className="sm-rowactions">

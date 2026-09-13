@@ -23,7 +23,7 @@ function providerState(s) {
     return {
       tone: 'warn',
       label: 'Dry-run',
-      value: 'No API key — emails are logged, not delivered',
+      value: 'No API key: emails are logged, not delivered',
       hint: 'Add BREVO_API_KEY to the backend .env and restart.',
     };
   }
@@ -31,7 +31,7 @@ function providerState(s) {
     return {
       tone: 'warn',
       label: 'Dry-run',
-      value: 'DEMO_MODE is on — emails are logged, not delivered',
+      value: 'DEMO_MODE is on: emails are logged, not delivered',
     };
   }
   if (!s.provider.valid) {
@@ -39,16 +39,15 @@ function providerState(s) {
       tone: 'bad',
       label: 'Key rejected',
       value: s.provider.error || 'Brevo rejected the API key.',
-      hint: 'If the key looks set, a BREVO_API_KEY exported in your shell overrides .env — '
+      hint: 'If the key looks set, a BREVO_API_KEY exported in your shell overrides .env. '
         + 'run `unset BREVO_API_KEY` and restart.',
     };
   }
-  return {
-    tone: 'ok',
-    label: 'Connected',
-    value: `Brevo${s.provider.account ? ` · ${s.provider.account}` : ''}`
-      + `${s.provider.plan ? ` · ${s.provider.plan} plan` : ''}`,
-  };
+  // Just "Connected". The account email and plan tier were on screen because
+  // the status probe happens to return them, not because anyone comes to this
+  // card to read them — and the failure states below already say everything
+  // actionable. A working thing should say it is working and stop.
+  return { tone: 'ok', label: 'Connected' };
 }
 
 function senderState(s) {
@@ -60,7 +59,7 @@ function senderState(s) {
     return {
       tone: 'warn',
       label: 'Not verified',
-      hint: 'Not a verified Brevo sender — messages may bounce or land in spam. '
+      hint: 'Not a verified Brevo sender, so messages may bounce or land in spam. '
         + 'Verify it in Brevo, or use an authenticated domain.',
     };
   }

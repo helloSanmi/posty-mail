@@ -36,3 +36,24 @@ export async function forgotPasswordRequest(email, newPassword) {
   );
   return data;
 }
+
+// Self-service profile. Separate from the admin user routes in brevoApi:
+// these only ever act on the caller, and the server enforces that by scoping
+// every write to req.user.id rather than to an id in the payload.
+export async function updateProfile(payload) {
+  const { data } = await apiClient.patch('/api/auth/profile', payload);
+  return data;
+}
+
+export async function changeOwnPassword(currentPassword, newPassword, signOutOthers = false) {
+  // silent: the panel renders the failure inline, next to the field that
+  // caused it. Without this the axios interceptor ALSO fires the global
+  // error listener, so "Your current password is not correct." appears
+  // twice — once where it belongs and once as a toast that floats away.
+  const { data } = await apiClient.post('/api/auth/password', {
+    currentPassword,
+    newPassword,
+    signOutOthers,
+  }, { silent: true });
+  return data;
+}

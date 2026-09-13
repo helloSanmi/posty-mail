@@ -228,7 +228,9 @@ export async function deleteAdminUser(id) {
   return data;
 }
 
-// Roles (admin-only). Each role carries a `permissions` array of area keys.
+// Roles (admin-only). Each role carries a `permissions` map of area key →
+// level ({ v: 2, areas: { contacts: 'write' } }). The server normalises both
+// ways, so a role row saved before this release still arrives in that shape.
 export async function listRoles() {
   const { data } = await apiClient.get('/api/roles');
   return data;

@@ -2,9 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Admin probe</title>
-    <!-- The roles matrix and the audit table in real markup against the real
-         stylesheets. Dev-only; vite builds index.html alone. -->
+    <title>Access probe</title>
+    <!-- The access matrix and the audit table against the real stylesheets.
+         Dev-only; vite builds index.html alone.
+
+         This probe mounts the REAL AdminPage and stubs the axios adapter,
+         rather than reproducing its markup by hand. The hand-built version is
+         how a page once got "verified" while the component it was standing in
+         for threw on every render — the measurements were of CSS, and the CSS
+         was fine. A probe whose markup can drift from the component is a probe
+         that eventually measures something that does not ship. -->
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body style="margin:0">
@@ -12,58 +19,86 @@
     <script type="module">
       import { createRoot } from 'react-dom/client';
       import { createElement as h } from 'react';
+      import { apiClient } from '/src/services/apiClient.js';
+      import { MemoryRouter } from 'react-router-dom';
+      import { AuthProvider } from '/src/auth/AuthContext.jsx';
+      import { AdminPage } from '/src/pages/AdminPage.jsx';
       import { AppearanceControls } from '/src/components/AppearanceControls.jsx';
-      import { ActivityLog } from '/src/components/ActivityLog.jsx';
 
-      const AREAS = ['Audience','Email','Campaigns','Reports','Settings','Connections'];
       const ROLES = [
-        { name:'Admin', people:2, locked:true, perms:AREAS },
-        { name:'Editor', people:5, perms:['Audience','Email','Campaigns','Reports'] },
-        { name:'Viewer', people:11, perms:['Reports'] },
-        { name:'Ops', people:1, perms:['Connections','Settings'] },
+        { id:'1', key:'admin', name:'Admin', isSystem:true, locked:true, userCount:2,
+          permissions:{ v:2, areas:{} } },
+        { id:'2', key:'editor', name:'Editor', isSystem:true, locked:false, userCount:5,
+          permissions:{ v:2, areas:{ contacts:'write', templates:'write', campaigns:'manage',
+            analytics:'read', forms:'read', bounces:'read', unsubscribes:'read' } } },
+        { id:'3', key:'viewer', name:'Viewer', isSystem:true, locked:false, userCount:11,
+          permissions:{ v:2, areas:{ analytics:'read' } } },
+        { id:'4', key:'ops', name:'Ops', isSystem:false, locked:false, userCount:1,
+          permissions:{ v:2, areas:{ connections:'write', bounces:'write',
+            unsubscribes:'manage' } } },
+        // A row in the shape every install holds today, so the migration path
+        // is on screen next to the new one.
+        { id:'5', key:'legacy', name:'Legacy (v1 row)', isSystem:false, locked:false,
+          userCount:3, permissions:['contacts','analytics'] },
       ];
+
+      const ME = {
+        id:'u1', email:'sanmi@example.com', name:'Sanmi Idowu', location:'Lagos',
+        role:'admin', permissions:{ v:2, areas:{ admin:'manage' } },
+      };
+
+      // A team with location filled in on some rows and not others, because
+      // the field is optional and the mixed case is the one worth looking at.
+      const USERS = [
+        { ...ME },
+        { id:'u2', email:'ops@example.com', name:'Ada Ops', location:'Remote', role:'editor' },
+        { id:'u3', email:'view@example.com', name:'Ben Viewer', location:'', role:'viewer' },
+        { id:'u4', email:'no-name@example.com', name:'', location:'Manchester', role:'editor' },
+        // No name AND no location: the second line should not render at all
+        // rather than leave a blank row of height under the email.
+        { id:'u5', email:'bare@example.com', name:'', location:'', role:'viewer' },
+      ];
+
+      // Stub at the adapter, which is the seam axios itself uses — so the
+      // component's own request code, interceptors included, runs unchanged.
+      apiClient.defaults.adapter = async (config) => {
+        const url = config.url;
+        let data = [];
+        if (url.includes('/api/roles')) data = ROLES;
+        else if (url.includes('/api/admin/users')) data = USERS;
+        else if (url.includes('/api/admin/audit')) data = LOGS.map((l,i)=>({
+          id:String(i), createdAt:new Date().toISOString(), userEmail:l.who,
+          action:l.action, resource:l.res, resourceId:l.id,
+          metadata:{ note:l.meta }, ip:l.ip, userAgent:l.ua,
+        }));
+        else if (url.includes('/api/auth/me')) data = { user: ME };
+        else if (url.includes('/api/auth/status')) data = { hasUsers:true, openSignup:false };
+        return { data, status:200, statusText:'OK', headers:{}, config };
+      };
+      window.localStorage.setItem('campaign-suite-token', 'probe-token');
+
       const LOGS = [
-        { when:'2 min ago', who:'sanmi@example.com', action:'role.update', res:'role', id:'a1b2c3d4', meta:'Editor gained contacts', ip:'192.168.1.44', ua:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' },
-        { when:'1 hr ago', who:'ops@example.com', action:'user.invite', res:'user', id:'9f8e7d6c', meta:'invited new@example.com', ip:'10.0.0.8', ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0' },
-        { when:'Yesterday', who:'system', action:'campaign.send', res:'campaign', id:'44ab99cd', meta:'4120 recipients', ip:'-', ua:'curl/8.4.0' },
+        { who:'sanmi@example.com', action:'role.update', res:'role', id:'a1b2c3d4',
+          meta:'Editor gained contacts', ip:'192.168.1.44',
+          ua:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' },
+        { who:'ops@example.com', action:'user.invite', res:'user', id:'9f8e7d6c',
+          meta:'invited new@example.com', ip:'10.0.0.8',
+          ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0' },
+        { who:'system', action:'campaign.send', res:'campaign', id:'44ab99cd',
+          meta:'4120 recipients', ip:'-', ua:'curl/8.4.0' },
       ];
 
       function Probe() {
-        return h('main', { className:'sh' },
-          h('aside', { className:'sh-side' }, h('div', { className:'sh-brand' }, 'Posty')),
-          h('section', { className:'sh-main' },
-            h('header', { className:'sh-top' },
-              h('div', { className:'sh-title' }, h('h1', null, 'Admin')),
-              h(AppearanceControls)),
-            h('div', { className:'sh-content' },
-              h('div', { className:'page-stack content-page' },
-                h('section', { className:'sm-card' },
-                  h('div', { className:'sm-card-head' },
-                    h('div', { className:'sm-tabs' },
-                      h('button', { className:'sm-tab', type:'button' }, 'Team members'),
-                      h('button', { className:'sm-tab is-active', type:'button' }, 'Roles & access'),
-                      h('button', { className:'sm-tab', type:'button' }, 'Activity log')),
-                    h('button', { className:'sm-btn sm-btn-primary', type:'button' }, '+ New role')),
-                  h('table', { className:'sm-table roles-matrix' },
-                    h('thead', null, h('tr', null,
-                      h('th', null, 'Role'), h('th', { className:'sm-num' }, 'People'),
-                      ...AREAS.map(a=>h('th',{key:a,className:'roles-area-col'},a)),
-                      h('th', null, ''))),
-                    h('tbody', null, ROLES.map(r=>h('tr',{key:r.name,className:'sm-row'},
-                      h('td', null, h('strong', null, r.name),
-                        r.locked ? h('span',{className:'roles-note'},'Full access, including user & role management') : null),
-                      h('td', { className:'sm-num' }, r.people),
-                      ...AREAS.map(a=>h('td',{key:a,className:'roles-cell'},
-                        h('span',{className:'roles-mark'+(r.perms.includes(a)?' is-on':'')}, r.perms.includes(a)?'✓':'–'))),
-                      h('td', { className:'roles-actions' },
-                        h('button',{className:'sm-icon-btn',type:'button'},'E'),
-                        h('button',{className:'sm-icon-btn is-danger',type:'button'},'D'))))))),
-                h('section', { className:'sm-card', style:{marginTop:'16px'} },
-                  h(ActivityLog, { logs: LOGS.map((l,i)=>({
-                    id:String(i), createdAt:new Date().toISOString(), userEmail:l.who,
-                    action:l.action, resource:l.res, resourceId:l.id,
-                    metadata:{ note:l.meta }, ip:l.ip, userAgent:l.ua,
-                  })) }))))));
+        return h(MemoryRouter, { initialEntries: ['/admin'] },
+          h(AuthProvider, null,
+            h('main', { className:'sh', 'data-section':'admin' },
+              h('aside', { className:'sh-side' }, h('div', { className:'sh-brand' }, 'Posty')),
+              h('section', { className:'sh-main' },
+                h('header', { className:'sh-top' },
+                  h('div', { className:'sh-title' }, h('h1', null, 'Access')),
+                  h(AppearanceControls)),
+                h('div', { className:'sh-content' },
+                  h(AdminPage, { notify: (m) => console.log('[probe]', m) }))))));
       }
       createRoot(document.getElementById('root')).render(h(Probe));
     </script>

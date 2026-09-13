@@ -80,7 +80,7 @@ All listed in `.env.example` with inline notes. The ones that matter most:
 | `BREVO_WEBHOOK_TOKEN` *or* `BREVO_WEBHOOK_SECRET` | Verifies incoming Brevo webhooks. One is required in production. |
 | `CORS_ORIGIN` | Extra origins to allow. `PUBLIC_BASE_URL` is auto-allowed; in dev **any `localhost` / `127.0.0.1` port** is allowed automatically (so a shifted Vite port doesn't break sign-in). Only set this when you need *additional* origins. |
 | `ALLOW_OPEN_SIGNUP` | `false` (default) → only first user signs up freely; rest are admin-created. |
-| `ALLOW_PASSWORD_RESET` | `false` disables the public reset endpoint; admins reset via the user modal. |
+| `ALLOW_PASSWORD_RESET` | Off unless set to `true`. **`true` exposes an unauthenticated endpoint that sets any user's password from their email alone** — no token, no email, no ownership check. Admins reset passwords from Access instead. |
 
 ---
 

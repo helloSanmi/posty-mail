@@ -10,6 +10,7 @@ import {
   updateCampaign,
 } from '../services/brevoApi';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useViewState } from '../hooks/useViewState';
 import { EditCampaignModal } from '../components/EditCampaignModal';
 import { SkeletonCard } from '../components/Skeleton';
 
@@ -39,7 +40,24 @@ const STATUS_META = Object.fromEntries(
 
 export function CampaignsPage({ notify }) {
   const navigate = useNavigate();
-  const [page, setPage] = useState(1);
+  // Status and page live in the URL. Triaging a batch of failed sends used
+  // to mean re-clicking the Errors chip after every single campaign you
+  // opened, because coming back from a campaign reset the list to All.
+  const [view, setView] = useViewState({
+    status: {
+      fallback: 'all',
+      allow: STATUS_FILTERS.map((filter) => filter.key),
+    },
+    // No high-end clamp here — the total arrives with the fetch, and
+    // clamping eagerly would destroy a deep-linked ?page=4 before the rows
+    // it refers to have loaded.
+    page: { fallback: 1 },
+  });
+  const { page } = view;
+  const statusFilter = view.status;
+  const setPage = (next) => setView({
+    page: typeof next === 'function' ? next(page) : next,
+  });
   const [campaignData, setCampaignData] = useState({ rows: [], total: 0, totalPages: 1 });
   // Every campaign in the account, not just the current page. The status
   // chips carry counts, and a count taken from the visible page would read
@@ -48,7 +66,6 @@ export function CampaignsPage({ notify }) {
   // the total — and it doubles as the row source while a chip is active,
   // since page 2 of "Errors" can hold rows that live on page 5 of "All".
   const [allCampaigns, setAllCampaigns] = useState([]);
-  const [statusFilter, setStatusFilter] = useState('all');
   const [drafts, setDrafts] = useState([]);
   const [confirm, setConfirm] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -128,8 +145,9 @@ export function CampaignsPage({ notify }) {
   }, [campaigns, page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function selectFilter(key) {
-    setStatusFilter(key);
-    setPage(1);
+    // ONE patch, not two calls. As two, the status lands a render before the
+    // page reset, so the list paints page 4 of a filter that has one page.
+    setView({ status: key, page: 1 });
   }
 
   async function handleSaveEdit(payload) {

@@ -204,6 +204,23 @@ model User {
   email                   String   @unique
   passwordHash            String
   name                    String?
+  // Optional, self-service, and purely informational — "Lagos", "Remote",
+  // "Sales floor". It is shown next to a person in the team list so an admin
+  // looking at eleven rows has something human to anchor on. Nothing keys
+  // off it, nothing validates it, and it is never required.
+  location                String?
+  // When the password was last set. Null for rows that predate this column
+  // and for anyone who has not changed theirs since — which is why the UI
+  // says "not changed yet" rather than inventing createdAt as a stand-in.
+  passwordChangedAt       DateTime?
+  // Bumped to invalidate every token issued before now. JWTs are stateless,
+  // so there is nothing to delete from a session table — the token carries
+  // the version it was minted under and requireAuth refuses any token whose
+  // version is behind. An integer rather than a timestamp because `iat` has
+  // one-second resolution, and comparing timestamps would make "is the token
+  // I just issued still valid?" depend on which side of a second boundary
+  // the two operations landed.
+  tokenVersion            Int      @default(0)
   role                    String   @default("admin")
   // Install-level super-admin (distinct from `role`, which is the user's
   // role WITHIN their workspace). A super-admin can see + manage every

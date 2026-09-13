@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
 import {
@@ -8,6 +8,7 @@ import {
   getCampaignVariants,
 } from '../services/brevoApi';
 import { SkeletonCard } from '../components/Skeleton';
+import { useViewState } from '../hooks/useViewState';
 
 // 50-per-page matches the other paginated list endpoints. Picked so a
 // typical campaign of a few hundred recipients fits in 2-5 pages — few
@@ -28,13 +29,47 @@ export function CampaignDetailPage() {
   const [recipientsPage, setRecipientsPage] = useState({
     rows: [], total: 0, page: 1, totalPages: 1,
   });
-  const [page, setPage] = useState(1);
+  // Tab and page in the URL: reading the Links breakdown and refreshing used
+  // to dump you back on Recipients, and there was no way to send anyone "the
+  // links for this campaign".
+  //
+  // The allowlist is deliberately withheld until the variants fetch lands.
+  // Two traps here, and both produce a page that looks broken:
+  //   * the panel below falls through to the variants table for ANY value
+  //     that is not 'recipients' or 'links', so an unvalidated ?tab=typo
+  //     draws a headers-only table with no tab lit;
+  //   * but validating on the first frame is worse — variants arrive on
+  //     their own fetch, so a legitimate ?tab=variants would be judged
+  //     illegal and scrubbed on every single refresh.
+  // So: no allowlist while loading, the real one once we know.
   const [links, setLinks] = useState({ totalClicks: 0, links: [] });
   const [variants, setVariants] = useState({ variants: [] });
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [tab, setTab] = useState('recipients');
+  // The tabs actually on screen right now — not the ones the page could
+  // ever render. A/B variants only exists when the campaign has variants,
+  // so ?tab=variants on a campaign without them must resolve to Recipients
+  // rather than drawing an empty table under no highlighted tab.
+  const TAB_IDS = variants.variants.length > 0
+    ? ['recipients', 'links', 'variants']
+    : ['recipients', 'links'];
+
+  const [view, setView] = useViewState({
+    tab: {
+      fallback: 'recipients',
+      allow: loading ? undefined : TAB_IDS,
+    },
+    page: { fallback: 1 },
+  });
+  const { page } = view;
+  // Anything that survived an absent allowlist but is not a tab we render
+  // still has to resolve to something drawable on this frame.
+  const tab = TAB_IDS.includes(view.tab) ? view.tab : 'recipients';
+  const setTab = (id) => setView({ tab: id });
+  const setPage = (next) => setView({
+    page: typeof next === 'function' ? next(page) : next,
+  });
   // Timestamp of the last successful (manual or auto) data fetch, shown
   // next to the live indicator so the user knows the page is current.
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
@@ -86,9 +121,20 @@ export function CampaignDetailPage() {
     setLastUpdatedAt(new Date());
   }
 
-  // Reset to page 1 when the route id changes — guards against landing
-  // on "page 7" of a campaign that only has 2 pages.
-  useEffect(() => { setPage(1); }, [id]);
+  // Reset to page 1 when the route id CHANGES — guards against carrying
+  // "page 7" from one campaign to another that has two pages.
+  //
+  // The previous-id ref is load-bearing now that page lives in the URL. A
+  // plain [id] effect also fires on mount, which would reset the page before
+  // the first paint and quietly destroy a deep-linked ?page=4 — turning a
+  // shared link into a lie every time it was opened.
+  const previousId = useRef(id);
+  useEffect(() => {
+    if (previousId.current === id) return;
+    previousId.current = id;
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   // Summary refetch — links + variants + metrics. Only when id changes,
   // not on page changes (paging doesn't affect any of these).
@@ -158,7 +204,23 @@ export function CampaignDetailPage() {
           "Campaigns", and its .eyebrow is display:none above 900px — so
           dropping the h2 here would leave no visible campaign name at all. */}
       <div className="sm-detail-head">
-        <button type="button" className="sm-back" onClick={() => navigate('/campaigns')}>
+        {/* navigate(-1) rather than navigate('/campaigns'), so "All
+            campaigns" returns to the list EXACTLY as it was — the status
+            chip you were triaging under and the page you were on, both of
+            which now live in that URL. A hardcoded path would throw them
+            away, which is the same complaint one gesture along: filter to
+            Errors, open a campaign, come back, and you are staring at All
+            again with the row you were working through somewhere on page 3.
+            The fallback covers arriving here from a link, where there is no
+            list entry in history to go back to. */}
+        <button
+          type="button"
+          className="sm-back"
+          onClick={() => {
+            if (window.history.length > 1) navigate(-1);
+            else navigate('/campaigns');
+          }}
+        >
           <ArrowLeft size={14} aria-hidden="true" /> All campaigns
         </button>
         <h2 className="sm-detail-title sm-trunc">{metrics?.campaign?.name || 'Campaign'}</h2>

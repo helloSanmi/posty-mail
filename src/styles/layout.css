@@ -294,7 +294,20 @@ nav button.active, nav .nav-link.active {
   width: 40px;
 }
 .eyebrow { display: none; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
-.page-stack { display: grid; gap: 18px; margin: 0 auto; max-width: 1240px; padding: 24px clamp(20px, 4vw, 40px); }
+/* grid-template-columns is minmax(0, 1fr) rather than the implicit `auto`,
+   and that is load-bearing. An `auto` track takes an automatic minimum of
+   min-content, so ONE wide child — a table that does not want to shrink —
+   widens the track past the viewport and drags every other card on the page
+   out with it. The page then scrolls sideways as a whole instead of the wide
+   thing scrolling inside its own frame. minmax(0, …) removes that floor. */
+.page-stack {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0 auto;
+  max-width: 1240px;
+  padding: 24px clamp(20px, 4vw, 40px);
+}
 /* The Email page used to need the full width because the old layout put
    the list, editor and preview in one flat row. The redesign gives it a
    real three-column grid that works inside the shared measure, and opting

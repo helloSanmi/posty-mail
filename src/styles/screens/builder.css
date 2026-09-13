@@ -44,7 +44,24 @@
   width: 20px;
 }
 .bd-step-title { font-size: var(--text-md); font-weight: 600; letter-spacing: var(--tracking-tight); }
-.bd-step-body { display: grid; gap: var(--s3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* ONE content column, with the step numbers hanging in a gutter beside it.
+   --bd-gutter is the number (20px) plus the head's gap (--s2), which is
+   exactly how far the flex row pushes the title right of the circle. Without
+   this the card had two left edges 28px apart: the four step titles on one,
+   every field, control and disclosure below them on the other. Nothing was
+   wrong with any single row, which is why it reads as general untidiness
+   rather than as one thing to point at.
+
+   Derived rather than written as 28px so it cannot drift if the circle or
+   the gap is ever resized. */
+.bd-steps { --bd-gutter: calc(20px + var(--s2)); }
+.bd-step-body {
+  display: grid;
+  gap: var(--s3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-left: var(--bd-gutter);
+}
 
 .bd-field {
   color: var(--text-muted);
@@ -176,7 +193,16 @@
 .bd-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 /* ---- disclosures -------------------------------------------------------- */
-.bd-extras { border-top: 1px solid var(--border); margin-top: var(--s4); padding-top: var(--s3); }
+/* The disclosures are not numbered steps, but they are in the same card, so
+   they belong in the same column as everything else in it — otherwise they
+   re-create the ragged edge 28px to the left, at the very bottom of the
+   page where it is most obvious against the card's corner. */
+.bd-extras {
+  border-top: 1px solid var(--border);
+  margin-top: var(--s4);
+  padding-left: calc(20px + var(--s2));
+  padding-top: var(--s3);
+}
 .bd-disclose {
   align-items: center;
   background: transparent;
@@ -189,7 +215,7 @@
   font-size: var(--text-sm);
   font-weight: 500;
   gap: 6px;
-  padding: 5px 6px 5px 2px;
+  padding: 5px 6px 5px 0;
 }
 .bd-disclose:hover { color: var(--text); }
 .bd-disclose:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
@@ -279,6 +305,14 @@
 }
 .bd-send:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .bd-send:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* Sits directly under the disabled Send button and explains it. A disabled
+   control with no reason beside it is the most frustrating thing a UI can
+   do — the person tries it, nothing happens, and there is nowhere to look. */
+.bd-send-note {
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  margin: 8px 0 0;
+}
 
 @media (max-width: 1080px) {
   .bd-grid { grid-template-columns: minmax(0, 1fr); }
@@ -286,6 +320,11 @@
 }
 @media (max-width: 620px) {
   .bd-step-body, .bd-schedule, .bd-panel { grid-template-columns: minmax(0, 1fr); }
+  /* The gutter is NOT dropped here, though it is tempting on a phone. Zeroing
+     it puts the fields back under the number circle while the titles stay
+     28px right of it — which is precisely the ragged edge this is fixing,
+     just reintroduced on small screens where there is least room to absorb
+     it. 28px of a narrow viewport is a cheaper price than two left edges. */
   .bd-test { align-items: stretch; flex-direction: column; }
   .bd-btn { justify-content: center; }
 }

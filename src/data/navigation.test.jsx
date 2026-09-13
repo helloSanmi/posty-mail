@@ -5,7 +5,8 @@
 // third time on mobile.
 //
 // The eyebrow now shows only what a page publishes through
-// usePageSectionLabel, so a `label` here is redundant by construction. This
+// the tab strip or heading inside the page itself, so a `label` here is
+// redundant by construction. This
 // test fails if one is reintroduced.
 // Named .jsx with no JSX in it on purpose: `node --test` collects every
 // *.test.js in the repo, so the UI suite uses .jsx to stay out of the

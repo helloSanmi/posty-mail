@@ -58,7 +58,7 @@ export function SubscribeFormsCard({ notify }) {
         <div>
           <h3><UserPlus size={16} aria-hidden="true" /> Subscribe form widget</h3>
           <p className="muted">
-            Paste this snippet on your site — submissions land in your
+            Paste this snippet on your site. Submissions land in your
             audience (and a group, if you pick one).
           </p>
         </div>

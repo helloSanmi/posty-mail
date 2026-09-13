@@ -8,10 +8,19 @@ import {
   upsertCampaign,
 } from '../../lib/db.js';
 import { recordAudit } from '../../lib/audit.js';
+import { hasLevel } from '../../../shared/permissions.js';
 import { scheduleCampaignJob } from '../../lib/scheduler.js';
 import { validate, z } from '../../lib/validate.js';
 import { asyncRoute } from '../../utils/store.js';
 import { serializeCampaign } from './schemas.js';
+
+function requireCampaignManage(req, res, next) {
+  if (hasLevel(req.user?.permissions, 'campaigns', 'manage')) {
+    next();
+    return;
+  }
+  res.status(403).json({ error: 'This needs full access to Campaigns.' });
+}
 
 export function registerCrudRoutes(app) {
   app.get('/api/campaigns', asyncRoute(async (req, res) => {
@@ -63,6 +72,30 @@ export function registerCrudRoutes(app) {
         }
       }
 
+      // Arming the scheduler is a SEND, and sending needs `manage`.
+      //
+      // The rules table cannot see this: PATCH /api/campaigns/:id matches the
+      // general /campaigns rule and asks for `write`, which is right for a
+      // rename and wrong for anything that touches the clock. Setting
+      // scheduledAt to a past time with frequency 'once' makes
+      // scheduleCampaignJob fire runCampaign on the next tick of the event
+      // loop, and runCampaign mails the whole recipient list. A role holding
+      // campaigns:'write' — the exact role the area catalog invites an admin
+      // to create, whose manage rung is documented as "Send, schedule and
+      // delete" — could reach a real send in two ordinary API calls while
+      // being correctly refused by /campaigns/schedule.
+      //
+      // So the level is asserted where the send becomes possible, not where
+      // the path happens to match.
+      const touchesTheClock = req.body.scheduledAt !== undefined
+        || req.body.frequency !== undefined;
+      if (touchesTheClock && !hasLevel(req.user?.permissions, 'campaigns', 'manage')) {
+        res.status(403).json({
+          error: 'Scheduling a campaign needs full access to Campaigns.',
+        });
+        return;
+      }
+
       const updated = {
         ...campaign,
         name: req.body.name ?? campaign.name,
@@ -110,7 +143,11 @@ export function registerCrudRoutes(app) {
     res.json({ ok: true, id: req.params.id });
   }));
 
-  app.post('/api/campaigns/:id/clone', asyncRoute(async (req, res) => {
+  // A clone carries the original's resolved recipient list and batches
+  // verbatim, under a fresh id — so the send ledger is empty and every
+  // recipient would be mailed again. Duplicating a live audience is closer
+  // to sending than to editing, so it sits on the same rung as delete.
+  app.post('/api/campaigns/:id/clone', requireCampaignManage, asyncRoute(async (req, res) => {
     const { accountId } = req.user;
     const original = await getCampaign(accountId, req.params.id);
     if (!original) {

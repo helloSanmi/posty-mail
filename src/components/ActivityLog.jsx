@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Columns3, Search, X } from 'lucide-react';
 import { parseUserAgent } from '../../shared/userAgent.js';
+import { useSessionState } from '../hooks/useViewState';
 
 // The activity log.
 //
@@ -62,9 +63,22 @@ export function describeMetadata(metadata) {
 export function ActivityLog({ logs, onRefresh }) {
   const [visible, setVisible] = useState(readColumns);
   const [chooserOpen, setChooserOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [actor, setActor] = useState('all');
-  const [action, setAction] = useState('all');
+  // These three survive a refresh, but they go in sessionStorage rather than
+  // in the URL — the only place in the app that makes that choice, and it is
+  // deliberate.
+  //
+  // The search box is where people paste an IP address or a resource id, and
+  // the person filter holds an email. The address bar is a different
+  // transport with different retention from the audit table it is mirroring:
+  // browser history, the Referer header on any outbound click, whatever syncs
+  // tabs between devices. None of that is where an audit query belongs, and
+  // "I can link you to the suspicious login" is not worth it.
+  //
+  // sessionStorage survives the refresh, dies with the tab, and travels in
+  // no link — which is the whole requirement here and nothing more.
+  const [query, setQuery] = useSessionState('posty.audit.q', '');
+  const [actor, setActor] = useSessionState('posty.audit.actor', 'all');
+  const [action, setAction] = useSessionState('posty.audit.action', 'all');
 
   const shows = (key) => visible.includes(key);
 

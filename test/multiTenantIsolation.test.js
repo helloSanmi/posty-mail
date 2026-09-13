@@ -232,3 +232,73 @@ describe('multi-tenant data isolation', { skip: dbReachable ? false : 'no databa
     assert.equal(orphan, null, 'contact row must cascade-delete with its account');
   });
 });
+
+// --- upserts keyed on a caller-supplied id --------------------------------
+//
+// Four tables took a row id straight from the request body and passed it to
+// prisma.upsert({ where: { id } }). The create branch stamped accountId; the
+// update branch did not filter by it. So a caller in workspace A could name
+// workspace B's audience/segment/campaign/draft id and overwrite its
+// contents — a cross-tenant write on a shared install, reachable from an
+// ordinary authenticated request with no special role.
+describe('an upsert cannot be steered at another workspace', { skip: dbReachable ? false : 'no database reachable' }, () => {
+  // Its own pair of workspaces: the accounts above are created in a `before`
+  // that belongs to the other describe, and a foreign key does not care how
+  // obvious the intent was.
+  const OWNER = `up-own-${run}`;
+  const VICTIM = `up-vic-${run}`;
+
+  before(async () => {
+    await prisma.account.create({ data: { id: OWNER, name: `Owner ${run}` } });
+    await prisma.account.create({ data: { id: VICTIM, name: `Victim ${run}` } });
+  });
+
+  after(async () => {
+    await prisma.audience.deleteMany({ where: { accountId: { in: [OWNER, VICTIM] } } });
+    await prisma.account.deleteMany({ where: { id: { in: [OWNER, VICTIM] } } });
+  });
+
+  it('refuses an audience id that belongs to someone else', async () => {
+    const { upsertAudience } = await import('../backend/lib/db/audiences.js');
+    const victimId = `aud-${crypto.randomUUID()}`;
+    await prisma.audience.create({
+      data: {
+        id: victimId, name: 'Victim list', contactEmails: ['a@victim.test'], accountId: VICTIM,
+      },
+    });
+
+    await assert.rejects(
+      () => upsertAudience(OWNER, {
+        id: victimId, name: 'Owned', contactEmails: ['attacker@evil.test'],
+      }),
+      (error) => error.status === 404,
+      'workspace A must not be able to write workspace B\'s audience',
+    );
+
+    const after = await prisma.audience.findUnique({ where: { id: victimId } });
+    assert.equal(after.name, 'Victim list', 'the row must be untouched');
+    assert.deepEqual(after.contactEmails, ['a@victim.test']);
+    assert.equal(after.accountId, VICTIM);
+
+    await prisma.audience.delete({ where: { id: victimId } });
+  });
+
+  it('still allows a brand-new id, which is the honest case', async () => {
+    const { upsertAudience } = await import('../backend/lib/db/audiences.js');
+    const freshId = `aud-${crypto.randomUUID()}`;
+    await upsertAudience(OWNER, { id: freshId, name: 'Mine', contactEmails: [] });
+    const row = await prisma.audience.findUnique({ where: { id: freshId } });
+    assert.equal(row.accountId, OWNER);
+    await prisma.audience.delete({ where: { id: freshId } });
+  });
+
+  it('and still allows updating your own', async () => {
+    const { upsertAudience } = await import('../backend/lib/db/audiences.js');
+    const mineId = `aud-${crypto.randomUUID()}`;
+    await upsertAudience(OWNER, { id: mineId, name: 'First', contactEmails: [] });
+    await upsertAudience(OWNER, { id: mineId, name: 'Second', contactEmails: [] });
+    const row = await prisma.audience.findUnique({ where: { id: mineId } });
+    assert.equal(row.name, 'Second');
+    await prisma.audience.delete({ where: { id: mineId } });
+  });
+});

@@ -6,6 +6,7 @@ import {
   restoreUnsubscribe,
 } from '../../services/brevoApi';
 import { formatDate } from './formatDate';
+import { ReadOnlyNote } from './ReadOnlyNote';
 
 // Suppression list management. Lists everyone permanently skipped on every
 // campaign send, with an add-by-email input and a "Restore" action that
@@ -15,7 +16,7 @@ import { formatDate } from './formatDate';
 // Caps the visible list at 50 rows. The full list lives in the DB; for big
 // installs we just show the most recent 50 with a "Showing 50 of N" hint
 // rather than rendering thousands of rows.
-export function UnsubscribeListCard({ notify }) {
+export function UnsubscribeListCard({ notify, readOnly = false }) {
   const [items, setItems] = useState([]);
   const [email, setEmail] = useState('');
   const inputId = useId();
@@ -92,6 +93,10 @@ export function UnsubscribeListCard({ notify }) {
                   {item.reason ? ` · ${item.reason}` : ''}
                 </span>
               </div>
+              {/* Re-subscribing someone who opted out is the `manage` rung
+                  server-side, because putting a person back on a list they
+                  left is a compliance act rather than an edit. */}
+              {!readOnly && (
               <button
                 type="button"
                 className="text-button"
@@ -100,10 +105,12 @@ export function UnsubscribeListCard({ notify }) {
               >
                 <RotateCcw size={13} aria-hidden="true" /> Restore
               </button>
+              )}
             </li>
           ))}
         </ul>
       )}
+      {readOnly && <ReadOnlyNote area="the suppression list" />}
       {items.length > 50 && (
         <small className="muted">Showing 50 of {items.length}.</small>
       )}

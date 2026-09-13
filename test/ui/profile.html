@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Profile page probe</title>
+    <!-- The REAL ProfilePage in the real shell, network stubbed at the axios
+         adapter. Dev-only; vite builds index.html alone. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body style="margin:0">
+    <div id="root"></div>
+    <script type="module">
+      import { createRoot } from 'react-dom/client';
+      import { createElement as h } from 'react';
+      import { MemoryRouter } from 'react-router-dom';
+      import { apiClient } from '/src/services/apiClient.js';
+      import { AuthProvider } from '/src/auth/AuthContext.jsx';
+      import { ProfilePage } from '/src/pages/ProfilePage.jsx';
+
+      // An Editor: the access card is the interesting half, and an admin's
+      // would just say "everything".
+      const USER = {
+        id: 'u1', email: 'sanmi.idowu@example.com', name: 'Sanmi Idowu',
+        location: 'Lagos', role: 'editor',
+        permissions: { v: 2, areas: {
+          contacts: 'write', templates: 'write', campaigns: 'manage',
+          analytics: 'read', forms: 'read', bounces: 'read', unsubscribes: 'read',
+        } },
+      };
+
+      apiClient.defaults.adapter = async (config) => {
+        if (config.url.includes('/auth/status')) {
+          return { data: { hasUsers: true, openSignup: false }, status: 200, headers: {}, config };
+        }
+        return { data: { user: USER }, status: 200, statusText: 'OK', headers: {}, config };
+      };
+      window.localStorage.setItem('campaign-suite-token', 'probe-token');
+
+      function Probe() {
+        return h(MemoryRouter, { initialEntries: ['/profile'] },
+          h(AuthProvider, null,
+            h('main', { className: 'sh', 'data-section': 'home' },
+              h('aside', { className: 'sh-side' }, h('div', { className: 'sh-brand' }, 'Posty')),
+              h('section', { className: 'sh-main' },
+                h('header', { className: 'sh-top' },
+                  h('div', { className: 'sh-title' },
+                    h('p', { className: 'sh-greeting' }, 'Good morning, Sanmi'))),
+                h('div', { className: 'sh-content' },
+                  h(ProfilePage, { notify: (m) => console.log('[probe]', m) }))))));
+      }
+      createRoot(document.getElementById('root')).render(h(Probe));
+    </script>
+  </body>
+</html>

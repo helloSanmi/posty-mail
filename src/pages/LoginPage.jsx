@@ -89,7 +89,16 @@ export function LoginPage() {
       // Resume a deep-link if there was one, but never drop someone onto a
       // page their role can't use (a stale ?redirect=/admin from a prior
       // session, say) — fall back to Home in that case.
-      let target = searchParams.get('redirect') || '/';
+      // Must be a path on THIS site. `redirect` comes out of the address
+      // bar, so /login?redirect=https://evil.example is a link anyone can
+      // send — and a login page that forwards to it after a successful
+      // sign-in is a credible phishing hop, wearing our domain in the part
+      // of the URL people actually read. A single leading slash, and not a
+      // second one (protocol-relative //evil.example is still off-site).
+      const requested = searchParams.get('redirect') || '/';
+      let target = (requested.startsWith('/') && !requested.startsWith('//'))
+        ? requested
+        : '/';
       const privileged = (
         (target.startsWith('/admin') && authedUser?.role !== 'admin')
         || (target.startsWith('/workspaces') && !authedUser?.isSuperAdmin)

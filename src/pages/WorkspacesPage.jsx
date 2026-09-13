@@ -50,7 +50,7 @@ export function WorkspacesPage({ notify }) {
   function confirmDelete(workspace) {
     setConfirm({
       title: `Delete "${workspace.name}"?`,
-      message: `This permanently deletes the workspace and ALL of its data — `
+      message: `This permanently deletes the workspace and ALL of its data: `
         + `${workspace.contacts} contacts, ${workspace.campaigns} campaigns, `
         + `${workspace.users} user${workspace.users === 1 ? '' : 's'}. This cannot be undone.`,
       confirmLabel: 'Delete workspace',
@@ -94,7 +94,7 @@ export function WorkspacesPage({ notify }) {
                       {isDefault && <span className="sm-chip">default</span>}
                       {isCurrent && <span className="sm-chip is-accent">you</span>}
                     </span>
-                    <span className="sm-dim">{ws.senderEmail || '—'}</span>
+                    <span className="sm-dim">{ws.senderEmail || '-'}</span>
                   </span>
                   {/* Three columns of one number each became one cell. The
                       labels are inline, so they survive the narrow breakpoint

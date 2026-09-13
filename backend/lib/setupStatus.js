@@ -82,11 +82,11 @@ export async function logProviderStatus() {
   try {
     const s = await getSetupStatus();
     if (!s.provider.configured) {
-      console.log('[setup] Email provider: no BREVO_API_KEY — DRY-RUN (emails are logged, not sent).');
+      console.log('[setup] Email provider: no BREVO_API_KEY, DRY-RUN (emails are logged, not sent).');
       return;
     }
     if (s.provider.dryRun) {
-      console.log('[setup] Email provider: DEMO_MODE on — DRY-RUN (emails are logged, not sent).');
+      console.log('[setup] Email provider: DEMO_MODE on, DRY-RUN (emails are logged, not sent).');
       return;
     }
     if (s.provider.valid) {

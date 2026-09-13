@@ -33,6 +33,7 @@ const CampaignDetailPage = named(() => import('./pages/CampaignDetailPage'), 'Ca
 const AnalyticsPage = named(() => import('./pages/AnalyticsPage'), 'AnalyticsPage');
 const SettingsPage = named(() => import('./pages/SettingsPage'), 'SettingsPage');
 const AdminPage = named(() => import('./pages/AdminPage'), 'AdminPage');
+const ProfilePage = named(() => import('./pages/ProfilePage'), 'ProfilePage');
 const WorkspacesPage = named(() => import('./pages/WorkspacesPage'), 'WorkspacesPage');
 
 function RequireAuth({ children }) {
@@ -44,9 +45,12 @@ function RequireAuth({ children }) {
   }
 
   if (!token || !user) {
-    const search = location.pathname !== '/'
-      ? `?redirect=${encodeURIComponent(location.pathname)}`
-      : '';
+    // The full location, not just the pathname. Now that the view lives in
+    // the query string, dropping it means an expired session returns you to
+    // /campaigns instead of the Errors filter on page 3 you were working
+    // through — the same complaint, reached by a different door.
+    const here = location.pathname + location.search + location.hash;
+    const search = here !== '/' ? `?redirect=${encodeURIComponent(here)}` : '';
     return <Navigate to={`/login${search}`} replace />;
   }
 
@@ -70,6 +74,7 @@ function Guard({
 function ProtectedShell() {
   const navigate = useNavigate();
   const { notify } = useUi();
+  const { can } = useAuth();
   const [contacts, setContacts] = useState([]);
   const [invalidRows, setInvalidRows] = useState([]);
   const [template, setTemplate] = useState(blankTemplate);
@@ -80,14 +85,31 @@ function ProtectedShell() {
   // stale after a CSV import / contact add on a different route.
   const refreshContacts = useCallback(() => setRefreshTick((value) => value + 1), []);
 
+  // Only asked for by a role that can read contacts.
+  //
+  // This fetch runs for EVERY signed-in user on mount, and reads are gated
+  // now — so a Viewer (analytics only) got a 403 within a second of signing
+  // in. The local .catch does not help: the axios interceptor fires the
+  // global error listener first, so what they actually saw was a red "Not
+  // permitted" toast on the dashboard, for something they never did. Then
+  // the Contacts tile sat at 0 forever, because `contacts` stayed empty.
+  //
+  // Asking first is both quieter and more honest than swallowing the error:
+  // a role without the area has no business requesting it.
+  const canReadContacts = can('contacts');
   useEffect(() => {
+    if (!canReadContacts) {
+      setContacts([]);
+      setInvalidRows([]);
+      return;
+    }
     getSavedContacts()
       .then((saved) => {
         setContacts(saved);
         setInvalidRows([]);
       })
       .catch(() => {});
-  }, [refreshTick]);
+  }, [refreshTick, canReadContacts]);
 
   const audienceProps = {
     contacts,
@@ -180,12 +202,16 @@ function ProtectedShell() {
         />
         <Route
           path="/settings"
-          element={<Guard anyOf={['settings', 'connections']}><SettingsPage notify={notify} /></Guard>}
+          element={<Guard anyOf={['forms', 'bounces', 'unsubscribes', 'connections']}><SettingsPage notify={notify} /></Guard>}
         />
         <Route
           path="/admin"
           element={<Guard area="admin"><AdminPage notify={notify} /></Guard>}
         />
+        {/* No Guard. Everyone signed in has a profile, by definition — it is
+            the one page whose contents are the viewer. RequireAuth above is
+            the only gate it needs. */}
+        <Route path="/profile" element={<ProfilePage notify={notify} />} />
         <Route
           path="/workspaces"
           element={<Guard superAdmin><WorkspacesPage notify={notify} /></Guard>}
@@ -198,27 +224,46 @@ function ProtectedShell() {
 }
 
 function App() {
-  const navigate = useNavigate();
-  const handleUnauthorized = useCallback(() => {
-    navigate('/login', { replace: true });
-  }, [navigate]);
-
   return (
     <AuthProvider>
-      <UiProvider onUnauthorized={handleUnauthorized}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/*"
-            element={
-              <RequireAuth>
-                <ProtectedShell />
-              </RequireAuth>
-            }
-          />
-        </Routes>
-      </UiProvider>
+      <Session />
     </AuthProvider>
+  );
+}
+
+// Inside the provider on purpose. A 401 has to END the session, and only
+// something under AuthProvider can do that — which is why the handler used to
+// live in App and clear the persisted view state and nothing else.
+function Session() {
+  const navigate = useNavigate();
+  const { endSession } = useAuth();
+
+  // A 401 mid-use ends the session rather than only redirecting.
+  //
+  // It used to purge the view state and navigate, leaving the token in
+  // localStorage, the Authorization header on the axios client, and `user`
+  // populated in context. So the app stayed signed in behind the login
+  // screen: anything already mounted carried on making requests with the
+  // dead credential, and whoever sat down next inherited that state.
+  const handleUnauthorized = useCallback(() => {
+    endSession();
+    navigate('/login', { replace: true });
+  }, [endSession, navigate]);
+
+  return (
+    <UiProvider onUnauthorized={handleUnauthorized}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/*"
+          element={
+            <RequireAuth>
+              <ProtectedShell />
+            </RequireAuth>
+          }
+        />
+      </Routes>
+    </UiProvider>
   );
 }
 

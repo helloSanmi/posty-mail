@@ -12,14 +12,14 @@ export function readinessToChecks(readiness) {
     checks.push({
       code: 'provider_rejected',
       severity: 'error',
-      message: 'The email provider rejected its API key — sends will fail.',
+      message: 'The email provider rejected its API key. Sends will fail.',
       hint: 'An admin can check Settings → Connections → Setup status.',
     });
   } else if (readiness.provider === 'dryRun') {
     checks.push({
       code: 'provider_dryrun',
       severity: 'info',
-      message: 'Dry-run mode — this send will be logged, not delivered.',
+      message: 'Dry-run mode: this send will be logged, not delivered.',
       hint: 'Set BREVO_API_KEY on the backend to send for real.',
     });
   }
@@ -28,14 +28,14 @@ export function readinessToChecks(readiness) {
     checks.push({
       code: 'sender_missing',
       severity: 'error',
-      message: 'No sender is configured — set a From address before sending.',
+      message: 'No sender is configured. Set a From address before sending.',
       hint: 'Settings → Connections → Sender.',
     });
   } else if (readiness.sender && readiness.sender.verified === false) {
     checks.push({
       code: 'sender_unverified',
       severity: 'warn',
-      message: 'Your sender isn’t verified with the provider — messages may bounce or land in spam.',
+      message: 'Your sender isn’t verified with the provider, so messages may bounce or land in spam.',
       hint: 'Verify the sender in Brevo, or use an authenticated domain.',
     });
   }

@@ -103,6 +103,22 @@ function mergeVariant(baseTemplate, variant) {
 }
 
 export async function runCampaign(campaign, onUpdate) {
+  // Defence in depth, and the last one. This function mails everybody in
+  // campaign.batches and had no precondition of any kind — its first
+  // statement set status to 'running' and it went. Every guard that keeps a
+  // send deliberate lives somewhere upstream, which means one upstream
+  // mistake reaches real inboxes and cannot be taken back.
+  //
+  // A campaign that is not armed is not sendable. 'draft' in particular
+  // must never reach here: a clone lands as a draft, and that was the first
+  // step of a confirmed escalation from campaigns:'write' to a full send.
+  if (campaign.status !== 'scheduled') {
+    console.warn(
+      `[send] refusing to run campaign ${campaign.id}: status is `
+      + `"${campaign.status}", expected "scheduled"`,
+    );
+    return campaign;
+  }
   campaign.status = 'running';
   campaign.startedAt = new Date().toISOString();
   campaign.progress = {

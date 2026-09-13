@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext, useCallback, useContext, useEffect, useMemo, useState,
+} from 'react';
 import {
   authStatus,
   forgotPasswordRequest,
@@ -7,7 +9,8 @@ import {
   signupRequest,
 } from '../services/authApi';
 import { setAuthHeader } from '../services/apiClient';
-import { hasArea, hasAnyArea } from '../../shared/permissions.js';
+import { clearPersistedViewState } from '../hooks/useViewState';
+import { hasAnyArea, hasLevel } from '../../shared/permissions.js';
 
 const TOKEN_KEY = 'campaign-suite-token';
 
@@ -50,8 +53,13 @@ export function AuthProvider({ children }) {
           if (!cancelled) setUser(me.user);
         } catch {
           if (!cancelled) {
-            setToken(null);
-            setUser(null);
+            // An expired token found at PAGE LOAD is the shared-machine case
+            // the purge exists for, and it was the one path that skipped it.
+            // User A leaves a tab open overnight with an IP typed into the
+            // audit search; the token expires; user B reloads that tab in the
+            // morning and the search term is still there, because nothing
+            // between "token rejected" and the login screen cleared it.
+            endSession();
           }
         }
       }
@@ -78,10 +86,36 @@ export function AuthProvider({ children }) {
     return result.user;
   }
 
-  function logout() {
+  // Everything that ends a session goes through here: the sign-out button,
+  // a token rejected at boot, and a 401 mid-use. Before, each did a different
+  // subset — sign-out cleared the token and the view state, boot cleared the
+  // token only, and the 401 handler cleared the view state but left the token,
+  // the Authorization header and `user` in place, so the app stayed signed in
+  // behind the login screen.
+  // useCallback with no deps: it only touches state setters, which React
+  // guarantees are stable. The identity matters because the 401 handler is
+  // built from it and handed to UiProvider, which subscribes in an effect —
+  // an unstable identity would tear down and re-register that subscription
+  // on every single render.
+  const endSession = useCallback(() => {
     setToken(null);
     setUser(null);
+    clearPersistedViewState();
+  }, []);
+
+  // After a self-service profile save. The server returns the updated user,
+  // so this takes it rather than refetching — and it has to go through the
+  // provider, or the topbar keeps showing the old name until a reload.
+  function applyUser(next) {
+    setUser(next);
   }
+
+  // The theme and the sidebar width are deliberately kept by endSession:
+  // those belong to the screen someone is sitting at, not to the account.
+  // Stable for the same reason endSession is: the context value is memoised,
+  // and an unstable member would rebuild it on every render, which defeats
+  // the memo for every consumer.
+  const logout = useCallback(() => { endSession(); }, [endSession]);
 
   async function forgotPassword(email, newPassword) {
     return forgotPasswordRequest(email, newPassword);
@@ -97,12 +131,30 @@ export function AuthProvider({ children }) {
     login,
     signup,
     logout,
+    endSession,
+    applyUser,
     forgotPassword,
-    // Area-level access checks, driven by the permissions the backend
-    // resolved for this user's role. can('dashboard') is always true.
-    can: (area) => hasArea(user?.permissions, area),
+    // Access checks, driven by the permissions the backend resolved for this
+    // user's role. can('dashboard') is always true.
+    //
+    // `can(area)` still means "can open this at all" (read or better), so
+    // every existing call site keeps its meaning. `can(area, 'write')` and
+    // `can(area, 'manage')` are the new question — used to hide a Send
+    // button from someone who can build a campaign but not send it.
+    //
+    // These only decide what is DRAWN. The server decides what is allowed;
+    // a hidden button is a courtesy, not a control.
+    can: (area, level = 'read') => hasLevel(user?.permissions, area, level),
     canAny: (areas) => hasAnyArea(user?.permissions, areas),
-  }), [token, user, hasUsers, openSignup, passwordResetEnabled, bootstrapping]);
+    // endSession is stable (useCallback, no deps) so listing it changes
+    // nothing; logout is not, but it only ever calls endSession, so its
+    // identity carries no state. Both are listed rather than suppressed,
+    // because a suppressed dependency list is where a genuinely stale
+    // closure hides next time.
+  }), [
+    token, user, hasUsers, openSignup, passwordResetEnabled, bootstrapping,
+    endSession, logout,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

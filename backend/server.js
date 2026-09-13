@@ -8,7 +8,12 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { prisma } from './lib/db.js';
 import { requireAuth } from './lib/auth.js';
-import { attachPermissions, permissionGate, ensureAllAccountsSeeded } from './lib/permissions.js';
+import {
+  assertEveryRouteIsGated,
+  attachPermissions,
+  ensureAllAccountsSeeded,
+  permissionGate,
+} from './lib/permissions.js';
 import { logProviderStatus } from './lib/setupStatus.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
@@ -160,6 +165,15 @@ registerAudienceRoutes(app);
 registerCampaignRoutes(app);
 registerTemplateRoutes(app);
 registerIntegrationRoutes(app, { logoRoot, publicBaseUrl });
+
+// Every /api route must be covered by a permission rule or named in the
+// OPEN list — checked here, at boot, with the router fully populated.
+//
+// The holes this release closed were all one bug: a route was added and
+// nobody updated the table, so /api/events served the whole event stream and
+// /api/assets/logo accepted uploads from anyone signed in. A comment asking
+// people to remember does not work. A failed start does.
+assertEveryRouteIsGated(app);
 
 // Serve the built frontend (single-process deploy). When `npm run build`
 // has produced ../dist, the backend serves it directly so the whole app

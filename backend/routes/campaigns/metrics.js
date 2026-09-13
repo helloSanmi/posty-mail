@@ -15,11 +15,34 @@ import {
   listEventsForCampaign,
 } from '../../lib/db.js';
 import { asyncRoute } from '../../utils/store.js';
+import { hasLevel } from '../../../shared/permissions.js';
 import { isBounce, isClick, isOpen } from './event-classifiers.js';
 import { serializeCampaign } from './schemas.js';
 
+// Two of these endpoints return recipient EMAIL ADDRESSES, one row per
+// person. That is the contact list by another name, and the rules table
+// cannot tell them apart from the aggregate metrics beside them because all
+// four live under /campaigns/:id/.
+//
+// The built-in Viewer is { analytics: 'read' } and nothing else. Reports
+// needs campaigns:read to name its rows, so IMPLIED_READS grants it — and
+// that grant, intended to let a chart show campaign names, also opened every
+// recipient address on the install to a role that is refused GET /api/contacts
+// outright and needs contacts:'manage' for the CSV export. The export hole
+// this release closed had a second door.
+//
+// So: aggregates stay on campaigns:read; anything listing people needs the
+// same read on `contacts` that the audience list itself requires.
+function requireContactsRead(req, res, next) {
+  if (hasLevel(req.user?.permissions, 'contacts', 'read')) {
+    next();
+    return;
+  }
+  res.status(403).json({ error: 'Not permitted' });
+}
+
 export function registerMetricsRoutes(app) {
-  app.get('/api/campaigns/:id/sends', asyncRoute(async (req, res) => {
+  app.get('/api/campaigns/:id/sends', requireContactsRead, asyncRoute(async (req, res) => {
     const { accountId } = req.user;
     // Confirm the campaign belongs to this account before exposing its
     // ledger. listCampaignSends has no accountId column to filter on
@@ -43,7 +66,7 @@ export function registerMetricsRoutes(app) {
     })));
   }));
 
-  app.get('/api/campaigns/:id/recipients', asyncRoute(async (req, res) => {
+  app.get('/api/campaigns/:id/recipients', requireContactsRead, asyncRoute(async (req, res) => {
     const { accountId } = req.user;
     const campaign = await getCampaign(accountId, req.params.id);
     if (!campaign) {

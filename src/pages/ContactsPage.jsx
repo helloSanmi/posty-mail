@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import {
+  useEffect, useMemo, useRef, useState,
+} from 'react';
 import Papa from 'papaparse';
 import {
   Filter, Upload, UserPlus, Users,
@@ -7,6 +9,7 @@ import { AddContactModal } from '../components/AddContactModal';
 import { ContactsTable } from '../components/ContactsTable';
 import { GroupsPanel } from '../components/GroupsPanel';
 import { SegmentsPanel } from '../components/SegmentsPanel';
+import { useViewState } from '../hooks/useViewState';
 import { validateContacts } from '../../shared/campaignUtils.js';
 import {
   getGroups,
@@ -36,11 +39,87 @@ function rowHasContent(row) {
 export function ContactsPage({ onParsed, refreshContacts, notify }) {
   const [refreshTick, setRefreshTick] = useState(0);
   const [groupsTick, setGroupsTick] = useState(0);
-  const [viewingGroupId, setViewingGroupId] = useState(null);
+  // Which group you drilled into, in the URL. It is the thing you were
+  // looking at, so a refresh should keep it and a link should carry it.
+  //
+  // No allowlist: the legal group ids arrive with a fetch, so validating on
+  // the first frame would throw away a perfectly good ?group= on every
+  // refresh. A group that has since been deleted resolves to no rows and the
+  // "Viewing group" chip simply does not render, which is the right answer
+  // for a link to something that is gone.
   const [totalContacts, setTotalContacts] = useState(0);
   const [addOpen, setAddOpen] = useState(false);
   const [groups, setGroups] = useState([]);
-  const [tab, setTab] = useState('contacts'); // 'contacts' | 'segments'
+  // ONE owner for this page's URL, including the table's filters. The table
+  // is the only component that reads them, but it must not write the search
+  // string itself: two components writing the same URLSearchParams in one
+  // tick can silently drop a write, because a functional setSearchParams
+  // resolves against the params its owner last rendered rather than against
+  // one still in flight. One owner makes that unreachable rather than rare,
+  // and it leaves ContactsTable renderable in a test with no router at all.
+  const [view, setView, committed] = useViewState({
+    tab: { fallback: 'contacts', allow: ['contacts', 'segments'] },
+    // No allowlist on the ids: the legal groups arrive with a fetch, so
+    // judging on the first frame would scrub a perfectly good ?group= on
+    // every refresh. A group deleted since resolves to no rows and the
+    // "Viewing group" chip simply does not render — the right answer for a
+    // link to something that is gone.
+    group: { fallback: '' },
+    q: { fallback: '', debounce: 250 },
+    region: { fallback: '', normalize: (value) => value.toUpperCase() },
+    consent: { fallback: '', allow: ['', 'yes', 'no'] },
+    unsub: { fallback: false },
+    page: { fallback: 1 },
+  });
+  const { tab } = view;
+  const viewingGroupId = view.group || null;
+  const setTab = (id) => setView({ tab: id });
+  const setViewingGroupId = (id) => setView({ group: id || '', page: 1 });
+
+  // The shape ContactsTable already expects, so nothing inside it changes.
+  //
+  // useMemo is NOT an optimisation here, it is correctness. `view` is a fresh
+  // object every render by design, so building `filter` from it unmemoised
+  // gives it a new identity every render — and ContactsTable memoises its
+  // request params on [filter, page] and refetches when they change. A new
+  // identity every render therefore means a fetch every render, each of
+  // which sets state and causes the next render: the contacts list would
+  // hammer the API forever without ever looking broken on screen.
+  //
+  // Keyed on the PRIMITIVES, never on `view` itself, for the same reason.
+  const filter = useMemo(() => ({
+    search: view.q,
+    region: view.region,
+    consent: view.consent,
+    excludeUnsubscribed: view.unsub,
+  }), [view.q, view.region, view.consent, view.unsub]);
+  const KEY_BY_FIELD = {
+    search: 'q', region: 'region', consent: 'consent', excludeUnsubscribed: 'unsub',
+  };
+  // Any filter change resets to page 1 IN THE SAME PATCH. As two writes the
+  // filter lands a render before the reset, so the table fetches page 4 of a
+  // filter that has one page and paints empty.
+  const updateFilter = (patch) => {
+    const changes = { page: 1 };
+    Object.entries(patch).forEach(([field, value]) => {
+      changes[KEY_BY_FIELD[field]] = value;
+    });
+    setView(changes);
+  };
+  const setPage = (next) => setView({
+    page: typeof next === 'function' ? next(view.page) : next,
+  });
+
+  // What the TABLE FETCHES with. Identical to `filter` except that the search
+  // term is the committed one, so a request goes out when typing settles
+  // rather than on every keystroke. The input above still reads `filter`, or
+  // it would lag 250ms behind the keyboard and drop characters.
+  const committedFilter = useMemo(() => ({
+    search: committed.q,
+    region: committed.region,
+    consent: committed.consent,
+    excludeUnsubscribed: committed.unsub,
+  }), [committed.q, committed.region, committed.consent, committed.unsub]);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -358,6 +437,11 @@ export function ContactsPage({ onParsed, refreshContacts, notify }) {
             viewingGroupId={viewingGroupId}
             onClearGroupView={() => setViewingGroupId(null)}
             onTotalChange={setTotalContacts}
+            filter={filter}
+            committedFilter={committedFilter}
+            updateFilter={updateFilter}
+            page={view.page}
+            setPage={setPage}
           />
         </div>
       )}

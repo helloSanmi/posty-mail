@@ -6,6 +6,7 @@
 // is a UUID minted by the route so cross-account collisions are not
 // expected, but we still AND accountId into deletes / lookups defensively.
 import { prisma } from './prisma.js';
+import { assertOwnedOrNew } from './tenant.js';
 
 export function draftFromDb(draft) {
   return {
@@ -25,6 +26,7 @@ export async function listDrafts(accountId) {
 }
 
 export async function upsertDraft(accountId, draft) {
+  await assertOwnedOrNew(prisma.draft, draft.id, accountId);
   return prisma.draft.upsert({
     where: { id: draft.id },
     create: {

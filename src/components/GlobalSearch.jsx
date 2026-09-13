@@ -14,6 +14,15 @@
 //     the existing /api/contacts?search= endpoint, debounced as the user
 //     types — same path the contacts table uses.
 //
+// EVERY RESULT OPENS THE THING IT NAMES. Four of the five groups used to
+// navigate to a bare page path — a contact result went to /contacts, a
+// template result to /templates, a segment to /contacts, a draft to
+// /campaigns — so searching for one specific thing and pressing enter put
+// you on a list of everything, with the term you had just typed thrown
+// away. Only campaigns carried an id. Now that tabs, filters and the
+// selected template all live in the URL, each result can address its own
+// destination, which is the difference between a search box and a search.
+//
 // Keyboard nav (arrow up/down, enter) walks the flattened result list.
 // Esc or clicking the backdrop closes the palette. Rendered into
 // document.body via createPortal so it escapes any parent's overflow.
@@ -36,21 +45,50 @@ import {
   getSavedTemplates,
   getSegments,
 } from '../services/brevoApi';
+import { useAuth } from '../auth/AuthContext';
 
 const RESULT_LIMIT = 5; // per group
 
 // Map between an entity group and its lucide icon + display label. Kept
 // declarative so adding a new entity type later is one line.
+// `area` is the access area a group belongs to. Reads are enforced on the
+// server now, so searching an area the role cannot open would fetch a 403,
+// swallow it, and show nothing — working by accident. Asking first means no
+// pointless request, and no group heading that can only ever be empty.
 const GROUP_DEFS = [
-  { key: 'campaigns', label: 'Campaigns', icon: Inbox },
-  { key: 'templates', label: 'Templates', icon: MailCheck },
-  { key: 'contacts', label: 'Contacts', icon: Users },
-  { key: 'segments', label: 'Segments', icon: Filter },
-  { key: 'drafts', label: 'Drafts', icon: FileText },
+  { key: 'campaigns', label: 'Campaigns', icon: Inbox, area: 'campaigns' },
+  { key: 'templates', label: 'Templates', icon: MailCheck, area: 'templates' },
+  { key: 'contacts', label: 'Contacts', icon: Users, area: 'contacts' },
+  { key: 'segments', label: 'Segments', icon: Filter, area: 'contacts' },
+  { key: 'drafts', label: 'Drafts', icon: FileText, area: 'campaigns' },
 ];
 
 export function GlobalSearch({ open, onClose }) {
   const navigate = useNavigate();
+  const { can } = useAuth();
+  // Keyed on a signature of the ANSWERS, not on the identity of `can`.
+  //
+  // This distinction is load-bearing. The fetch effects below depend on
+  // allowedKeys, so if its identity changed every render they would refetch
+  // every render, each fetch setting state and causing the next render —
+  // the palette would spin forever the moment it opened. `can` happens to be
+  // stable today because AuthContext builds it inside a useMemo, but that is
+  // a property of a different file that nothing forces to stay true, and
+  // "works as long as nobody touches AuthContext" is not a guarantee.
+  //
+  // Five cheap calls per render buys independence from that. The signature is
+  // a string of 1s and 0s, so the memo recomputes exactly when the answers
+  // change and never because a function was rebuilt.
+  const permissionSignature = GROUP_DEFS.map((def) => (can(def.area) ? '1' : '0')).join('');
+  const allowedKeys = useMemo(
+    () => new Set(GROUP_DEFS.filter((def) => can(def.area)).map((def) => def.key)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [permissionSignature],
+  );
+  const allowed = useMemo(
+    () => GROUP_DEFS.filter((def) => allowedKeys.has(def.key)),
+    [allowedKeys],
+  );
   const inputRef = useRef(null);
   const [query, setQuery] = useState('');
   const [data, setData] = useState({
@@ -75,11 +113,12 @@ export function GlobalSearch({ open, onClose }) {
   useEffect(() => {
     if (!open) return undefined;
     let cancelled = false;
+    const none = () => Promise.resolve([]);
     Promise.all([
-      getCampaigns().catch(() => []),
-      getSavedTemplates().catch(() => []),
-      getSegments().catch(() => []),
-      getDrafts().catch(() => []),
+      allowedKeys.has('campaigns') ? getCampaigns().catch(() => []) : none(),
+      allowedKeys.has('templates') ? getSavedTemplates().catch(() => []) : none(),
+      allowedKeys.has('segments') ? getSegments().catch(() => []) : none(),
+      allowedKeys.has('drafts') ? getDrafts().catch(() => []) : none(),
     ]).then(([campaigns, templates, segments, drafts]) => {
       if (cancelled) return;
       setData((prev) => ({
@@ -87,7 +126,7 @@ export function GlobalSearch({ open, onClose }) {
       }));
     });
     return () => { cancelled = true; };
-  }, [open]);
+  }, [open, allowedKeys]);
 
   // Contacts: server-side search, debounced. Skips the call when the
   // query is empty so the palette doesn't accidentally show "all
@@ -95,7 +134,7 @@ export function GlobalSearch({ open, onClose }) {
   useEffect(() => {
     if (!open) return undefined;
     const trimmed = query.trim();
-    if (!trimmed) {
+    if (!trimmed || !allowedKeys.has('contacts')) {
       setData((prev) => ({ ...prev, contacts: [] }));
       return undefined;
     }
@@ -110,7 +149,7 @@ export function GlobalSearch({ open, onClose }) {
         .catch(() => setData((prev) => ({ ...prev, contacts: [] })));
     }, 180);
     return () => clearTimeout(handle);
-  }, [query, open]);
+  }, [query, open, allowedKeys]);
 
   // Build the grouped + filtered result list. Each entity type defines
   // its own matchers + how a row should render — keeps the JSX below
@@ -137,7 +176,9 @@ export function GlobalSearch({ open, onClose }) {
           id: `template-${t.id}`,
           label: t.name || 'Untitled template',
           subtitle: t.subject || '',
-          path: '/templates',
+          // Opens THAT template, not the Email page with whatever was last
+          // selected still loaded.
+          path: `/templates?template=${encodeURIComponent(t.id)}`,
         })),
       contacts: data.contacts
         .slice(0, RESULT_LIMIT)
@@ -145,7 +186,11 @@ export function GlobalSearch({ open, onClose }) {
           id: `contact-${c.email}`,
           label: c.email,
           subtitle: [c.firstname, c.lastname].filter(Boolean).join(' '),
-          path: '/contacts',
+          // Carries the term through, so the list arrives already narrowed
+          // to the person you searched for instead of showing all of them
+          // and making you type it a second time. There is no per-contact
+          // page to land on, so the filtered list IS the destination.
+          path: `/contacts?q=${encodeURIComponent(c.email)}`,
         })),
       segments: data.segments
         .filter((s) => includes(s.name))
@@ -154,7 +199,9 @@ export function GlobalSearch({ open, onClose }) {
           id: `segment-${s.id}`,
           label: s.name || 'Untitled segment',
           subtitle: '',
-          path: '/contacts',
+          // Segments live behind Audience's second tab, so a bare /contacts
+          // landed on the Contacts tab with the segment nowhere in sight.
+          path: '/contacts?tab=segments',
         })),
       drafts: data.drafts
         .filter((d) => includes(d.name))
@@ -163,16 +210,18 @@ export function GlobalSearch({ open, onClose }) {
           id: `draft-${d.id}`,
           label: d.name || 'Untitled draft',
           subtitle: '',
-          // Resume the draft via the builder, same handler the Drafts
-          // panel on the Campaigns page uses.
-          path: '/campaigns',
+          // The comment here used to promise it resumed the draft in the
+          // builder; the path was '/campaigns'. Drafts are reached through
+          // the Draft filter on the campaigns list, which is addressable
+          // now, so this at least lands among the drafts.
+          path: '/campaigns?status=draft',
         })),
     };
 
-    return GROUP_DEFS
+    return allowed
       .map((def) => ({ ...def, items: rawGroups[def.key] }))
       .filter((group) => group.items.length > 0);
-  }, [data, query]);
+  }, [data, query, allowed]);
 
   // Flat list of items for keyboard navigation. Reset active index
   // whenever the query changes so we don't end up highlighted on a

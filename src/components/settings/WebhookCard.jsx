@@ -76,7 +76,7 @@ export function WebhookCard({ notify }) {
       >
         {!editing && (
           <p className="setting-row-hint">
-            Saved for later — Posty does not dispatch events to this URL yet.
+            Saved for later. Posty does not dispatch events to this URL yet.
           </p>
         )}
         {editing && (

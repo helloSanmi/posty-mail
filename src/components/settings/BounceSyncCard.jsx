@@ -1,11 +1,12 @@
 import { useEffect, useId, useState } from 'react';
 import { getBounceSync, setBounceSync } from '../../services/brevoApi';
 import { StatusPill } from './StatusPill';
+import { ReadOnlyNote } from './ReadOnlyNote';
 
 // Toggle for "when Brevo reports a hard bounce / spam complaint, add the
 // recipient to our suppression list automatically." Stored as a single
 // boolean in the Setting table. Self-fetches the initial value on mount.
-export function BounceSyncCard({ notify }) {
+export function BounceSyncCard({ notify, readOnly = false }) {
   const [enabled, setEnabled] = useState(false);
   const checkboxId = useId();
 
@@ -42,10 +43,15 @@ export function BounceSyncCard({ notify }) {
           id={checkboxId}
           type="checkbox"
           checked={enabled}
+          disabled={readOnly}
           onChange={(event) => toggle(event.target.checked)}
         />
         Enable bounce auto-sync
       </label>
+      {/* Said, not just disabled. A control that does nothing with no reason
+          beside it is the most frustrating thing a page can do — this one
+          used to flip, 403, and flip back. */}
+      {readOnly && <ReadOnlyNote area="bounce handling" />}
     </section>
   );
 }

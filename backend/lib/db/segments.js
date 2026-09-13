@@ -5,6 +5,7 @@
 // Multi-tenant scope: scoped by accountId on every read/write. Segment.id
 // is a UUID.
 import { prisma } from './prisma.js';
+import { assertOwnedOrNew } from './tenant.js';
 
 export async function listSegments(accountId) {
   const rows = await prisma.segment.findMany({
@@ -21,6 +22,7 @@ export async function listSegments(accountId) {
 }
 
 export async function upsertSegment(accountId, segment) {
+  await assertOwnedOrNew(prisma.segment, segment.id, accountId);
   return prisma.segment.upsert({
     where: { id: segment.id },
     create: {

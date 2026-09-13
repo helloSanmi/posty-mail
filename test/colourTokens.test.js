@@ -229,3 +229,76 @@ test('the asset inspectors stay capped, so the settings band cannot grow', () =>
   assert.match(rule[1], /max-height:\s*\d+px/, 'the inspector cap was removed');
   assert.match(rule[1], /overflow-y:\s*auto/, 'capped without a scroll hides rows instead of scrolling them');
 });
+
+// --- the access matrix's level colours ------------------------------------
+//
+// Four levels on a grid have to be told apart at a glance AND read precisely
+// on inspection, at 10.875px. The rendered ratios are measured in the browser
+// probe (test/ui/admin.html); what this file can hold is the two rules that
+// made a measurement fail, so they cannot come back silently.
+test('no level in the access matrix is dimmed with opacity', () => {
+  // A dash at opacity 0.5 measured 2.09:1 in light and 2.38:1 in dark — and
+  // "this role has no access to this area" is arguably the most consequential
+  // thing the grid says. Fade it with a token, not with opacity, which
+  // multiplies against whatever happens to be behind it.
+  const small = css('screens/small.css');
+  const block = small.slice(small.indexOf('.roles-level'), small.indexOf('.roles-actions'));
+  assert.equal(
+    /\.roles-level[^{]*\{[^}]*opacity:/.test(block),
+    false,
+    'a .roles-level rule sets opacity; use a --text-* token instead',
+  );
+});
+
+test('every level state carries a colour AND a word', () => {
+  // Colour alone fails for anyone who cannot separate the hues, and for
+  // anyone asking "is that Edit or Full?" from across a desk. The words come
+  // from LEVEL_LABEL in RolesManager.jsx.
+  const manager = readFileSync(
+    fileURLToPath(new URL('../src/components/RolesManager.jsx', import.meta.url)),
+    'utf8',
+  );
+  ['none', 'read', 'write', 'manage'].forEach((level) => {
+    assert.match(
+      manager,
+      new RegExp(`${level}:\\s*'[^']+'`),
+      `LEVEL_LABEL is missing a word for "${level}"`,
+    );
+  });
+});
+
+// --- the campaign subtab strip -------------------------------------------
+//
+// These shipped as raw browser hyperlinks — underlined, #0000EE — above every
+// campaign page, because there was a `.page-tab.active` rule and no `.page-tab`
+// rule at all. Two things make that invisible to every other check we have:
+// the markup is correct (NavLink with the right classes), and the active rule
+// LOOKS like it styles the element, so reading the stylesheet reassures you.
+//
+// It also could not work even in principle: .active set border-bottom-COLOR on
+// an element whose border-bottom-width was 0.
+test('.page-tab has a base rule, not only an .active one', () => {
+  const pages = css('pages.css');
+  const base = pages.match(/\n\.page-tab\s*\{([^}]*)\}/);
+  assert.ok(base, '.page-tab has no base rule — the tabs render as raw links');
+  assert.match(
+    base[1],
+    /text-decoration:\s*none/,
+    '.page-tab must clear the default link underline',
+  );
+  assert.match(
+    base[1],
+    /border-bottom:\s*\d+px/,
+    '.page-tab must declare a border-bottom WIDTH, or .page-tab.active has '
+    + 'nothing to colour and the active indicator can never appear',
+  );
+});
+
+test('the active subtab is distinguished by more than colour', () => {
+  // Colour alone would leave "which tab am I on?" unanswerable for anyone who
+  // cannot separate the accent from the muted text.
+  const active = css('pages.css').match(/\.page-tab\.active\s*\{([^}]*)\}/);
+  assert.ok(active, '.page-tab.active is missing');
+  assert.match(active[1], /border-bottom-color/, 'needs the underline indicator');
+  assert.match(active[1], /font-weight/, 'needs a weight change as well as a colour');
+});

@@ -150,7 +150,13 @@ export function registerAdminRoutes(app) {
 
       await prisma.user.update({
         where: { id: req.params.id },
-        data: { passwordHash: await hashPassword(req.body.password) },
+        // The third and last place a password is written. All three stamp
+        // the same field, or "last changed" is a half-truth that depends on
+        // which route happened to be used.
+        data: {
+          passwordHash: await hashPassword(req.body.password),
+          passwordChangedAt: new Date(),
+        },
       });
       await recordAudit(req, 'user.password_reset', 'user', target.id);
       res.json({ ok: true });

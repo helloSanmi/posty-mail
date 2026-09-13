@@ -63,7 +63,7 @@ export function EmailPreview({
       <div className={`preview-subject${subject ? '' : ' is-empty'}`}>
         <span className="preview-subject-label muted">Subject</span>
         <span className="preview-subject-text">
-          {subject || <span className="muted">No subject yet — set one in the Subject field above.</span>}
+          {subject || <span className="muted">No subject yet. Set one in the Subject field above.</span>}
         </span>
       </div>
       <div className={`email-device ${previewDevice}`}>

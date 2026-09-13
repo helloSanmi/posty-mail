@@ -205,8 +205,8 @@ export function SegmentsPanel({ notify }) {
     <div className="segments-panel">
       <div className="segments-panel-head">
         <p className="muted">
-          Saved filters that always reflect whoever currently matches your rules —
-          handy as a campaign audience.
+          Saved filters that always reflect whoever currently matches your
+          rules. Handy as a campaign audience.
         </p>
         <button type="button" className="primary" onClick={startNew}>
           <Plus size={14} aria-hidden="true" /> New segment

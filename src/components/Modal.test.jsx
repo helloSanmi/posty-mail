@@ -45,14 +45,30 @@ describe('Modal', () => {
     expect(closed).toBe(1);
   });
 
-  it('ignores a backdrop press by default, so a form cannot lose its input', () => {
+  it('closes on a backdrop press by default', () => {
+    // The default used to be the other way, on the reasoning that a stray
+    // click beside a half-filled form would throw the input away. That cost
+    // was being paid on every dialog to avoid it on a few — and pressing
+    // outside is the first thing people try, so the ones that did not
+    // respond read as stuck rather than as careful.
     let closed = 0;
     render(<Modal label="D" onClose={() => { closed += 1; }}><p>body</p></Modal>);
+    fireEvent.mouseDown(screen.getByRole('dialog'));
+    expect(closed).toBe(1);
+  });
+
+  it('can still be opted OUT, for a dialog that must not be dismissed', () => {
+    let closed = 0;
+    render(
+      <Modal label="D" onClose={() => { closed += 1; }} closeOnBackdrop={false}>
+        <p>body</p>
+      </Modal>,
+    );
     fireEvent.mouseDown(screen.getByRole('dialog'));
     expect(closed).toBe(0);
   });
 
-  it('closes on a backdrop press when the dialog opts in', () => {
+  it('closes on a backdrop press when the dialog opts in explicitly', () => {
     let closed = 0;
     render(
       <Modal label="D" onClose={() => { closed += 1; }} closeOnBackdrop>

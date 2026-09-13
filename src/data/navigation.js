@@ -28,10 +28,14 @@ export const navItems = [
     id: 'analytics', path: '/analytics', label: 'Reports', section: 'reports', icon: BarChart3, permission: 'analytics',
   },
   {
-    id: 'integrations', path: '/settings', label: 'Settings', section: 'settings', icon: PlugZap, anyPermission: ['settings', 'connections'],
+    id: 'integrations', path: '/settings', label: 'Settings', section: 'settings', icon: PlugZap, anyPermission: ['forms', 'bounces', 'unsubscribes', 'connections'],
   },
   {
-    id: 'admin', path: '/admin', label: 'Admin', section: 'admin', icon: ShieldCheck, permission: 'admin',
+    // "Access", not "Admin". The page is about who can reach what — people,
+    // roles and the record of what they did. "Admin" named the audience
+    // rather than the subject, and every other item in this list is named
+    // for the thing it manages.
+    id: 'admin', path: '/admin', label: 'Access', section: 'admin', icon: ShieldCheck, permission: 'admin',
   },
   // Install-level super-admin only — cross-workspace management.
   {
@@ -43,9 +47,9 @@ export const navItems = [
 // more: every entry used to carry one identical to `title`, and the topbar
 // rendered both, so the eyebrow said "SETTINGS" directly above the heading
 // "Settings" (three times over on Settings, which added its own h2 as well).
-// A page with a genuine second level publishes it through
-// usePageSectionLabel instead, which is the only thing the eyebrow now
-// shows.
+// The eyebrow mechanism that was going to carry a page's second level is
+// gone: nothing ever opted into it, so it rendered nothing on every route
+// while four comments described it as live.
 export const pageTitles = {
   '/': { title: 'Home' },
   '/contacts': { title: 'Audience' },
@@ -54,6 +58,7 @@ export const pageTitles = {
   '/campaigns': { title: 'Campaigns' },
   '/analytics': { title: 'Reports' },
   '/settings': { title: 'Settings' },
-  '/admin': { title: 'Admin' },
+  '/admin': { title: 'Access' },
+  '/profile': { title: 'Your profile' },
   '/workspaces': { title: 'Workspaces' },
 };

@@ -1,34 +1,22 @@
 import { useEffect, useState } from 'react';
 import {
-  LogOut, PanelLeft, PanelLeftClose, PanelLeftOpen, Search, X,
+  PanelLeft, PanelLeftClose, PanelLeftOpen, Search, X,
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { navItems, pageTitles } from '../data/navigation';
 import { useAuth } from '../auth/AuthContext';
-import { PageSectionContext } from './PageSectionContext';
 import { greeting } from '../utils/greeting';
 import { DemoBanner } from './DemoBanner';
+import { AccountMenu } from './AccountMenu';
 import { GlobalSearch } from './GlobalSearch';
 import { AppearanceControls } from './AppearanceControls';
 import { NotificationBell } from './NotificationBell';
+import { prettyRole } from '../utils/roleName';
 
 // localStorage key for the collapsed-sidebar preference. Persisted so the
 // admin's choice survives reloads. Keyed under the same `posty.*` prefix
 // other UI prefs use.
 const SIDEBAR_COLLAPSED_KEY = 'posty.sidebar.collapsed';
-
-// Initials for the sidebar avatar. Derived from the signed-in user, never
-// stored: name first ("Sanmi Idowu" -> "SI"), falling back to the local
-// part of the email ("sanmi.idowu@..." -> "SI") so the row still reads as a
-// person for accounts that never set a display name.
-function userInitials(user) {
-  const source = String(user?.name || user?.email || '').trim();
-  if (!source) return '?';
-  const local = source.split('@')[0];
-  const parts = local.split(/[\s._-]+/).filter(Boolean);
-  const letters = parts.slice(0, 2).map((part) => part[0]).join('');
-  return (letters || local[0]).toUpperCase();
-}
 
 export function AppShell({ children }) {
   const location = useLocation();
@@ -57,10 +45,6 @@ export function AppShell({ children }) {
   // Cmd/Ctrl+K opens the global search palette. Also toggled by the
   // search button in the topbar.
   const [searchOpen, setSearchOpen] = useState(false);
-  // The section the current page has open, published by the page itself via
-  // usePageSectionLabel. Drives the topbar eyebrow; null means the page has
-  // no second level and the eyebrow is not rendered at all.
-  const [section, setSection] = useState(null);
   // Resolve a page title for the current route. Exact match wins; otherwise
   // strip the trailing segments one at a time and try again so dynamic
   // routes like /campaigns/:id fall back to /campaigns ("Campaigns"). This
@@ -215,24 +199,9 @@ export function AppShell({ children }) {
             );
           })}
         </nav>
-        {user && (
-          <div className="sh-user">
-            <span className="sh-avatar" aria-hidden="true">{userInitials(user)}</span>
-            <span className="sh-user-text">
-              <strong>{user.name || user.email}</strong>
-              <span>{user.role}</span>
-            </span>
-            <button
-              type="button"
-              className="sh-icon-btn"
-              onClick={handleLogout}
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOut size={15} aria-hidden="true" />
-            </button>
-          </div>
-        )}
+        {/* The account block used to live here, pinned to the bottom of the
+            rail. It is in the topbar now — where people look for it, and
+            where a sign-out is not one mis-click away from a nav item. */}
       </aside>
       {drawerOpen && (
         <button
@@ -261,7 +230,6 @@ export function AppShell({ children }) {
                 away was the same word twice. The visible line is the
                 greeting, which nothing else on screen says. */}
             <h1 className="visually-hidden">{meta.title}</h1>
-            {section && <span className="sh-eyebrow">{section}</span>}
             <p className="sh-greeting">
               {greeting()}
               {firstName ? `, ${firstName}` : ''}
@@ -290,11 +258,24 @@ export function AppShell({ children }) {
               and it is judged by looking — so the page has to stay in
               front of you while you pick. */}
           <AppearanceControls />
+          {/* Last in the row, which is where every app of this shape puts
+              it. Sign-out now takes two deliberate clicks instead of one. */}
+          {/* roleName was declared on AccountMenu and never passed, so the
+              menu always fell through to the raw role KEY — a custom role
+              called "Campaign Ops" showed as "Campaign-ops", because the
+              roles route slugifies names into keys. The friendly name lives
+              on an admin-only endpoint, so for anyone else the key IS the
+              best available answer; prettifying it is honest where inventing
+              a name would not be. */}
+          <AccountMenu
+            user={user}
+            roleName={prettyRole(user?.role)}
+            onSignOut={handleLogout}
+            onOpenProfile={() => navigate('/profile')}
+          />
         </header>
         <div id="main-content" className="sh-content" tabIndex={-1}>
-          <PageSectionContext.Provider value={setSection}>
-            {children}
-          </PageSectionContext.Provider>
+          {children}
         </div>
       </section>
       {user && (

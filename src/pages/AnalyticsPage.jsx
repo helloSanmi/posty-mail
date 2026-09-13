@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight, ChevronDown, ExternalLink, RefreshCw, Search, X,
 } from 'lucide-react';
@@ -9,6 +9,7 @@ import { ActivityChart } from '../components/analytics/ActivityChart';
 import { TopLinks } from '../components/analytics/TopLinks';
 import { eventLabel, isBotEvent } from '../utils/brevoEvents';
 import { isBounceEvent, isClickEvent, isOpenEvent } from '../../shared/eventNames.js';
+import { useViewState } from '../hooks/useViewState';
 
 // Date-range presets for the Reports filter. Each one returns
 // `{ since, until }` Date objects (or null for "everything").
@@ -94,6 +95,17 @@ function withinRange(value, since, until) {
 // carry on Home and in the campaign table, so they are learned once. The
 // summary column, its drill panel's top edge and the event pills inside it
 // all read from this one map.
+// The sortable columns, named once. The table header maps over this and the
+// URL validates against it, so a column added in one place cannot quietly
+// become a ?sort= value the other half rejects.
+const TABLE_COLUMNS = [
+  { key: 'date', label: 'Campaign', num: false },
+  { key: 'sent', label: 'Sent', num: true },
+  { key: 'opens', label: 'Opened', num: true },
+  { key: 'clicks', label: 'Clicked', num: true },
+  { key: 'bounces', label: 'Bounced', num: true },
+];
+
 const METRIC_DEFINITIONS = {
   opens: { label: 'Opens', tone: 'accent', empty: 'No opens yet.', match: (e) => isOpenEvent(e) },
   clicks: { label: 'Clicks', tone: 'success', empty: 'No clicks yet.', match: (e) => isClickEvent(e) },
@@ -126,7 +138,7 @@ const METRIC_DEFINITIONS = {
 
 export function AnalyticsPage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+
   const [campaigns, setCampaigns] = useState([]);
   const [events, setEvents] = useState([]);
   // Events from the period preceding the selected window. Used to compute
@@ -134,12 +146,24 @@ export function AnalyticsPage() {
   const [prevEvents, setPrevEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  // Which KPI is currently expanded into the drill-down panel below the grid.
-  const [drilledMetric, setDrilledMetric] = useState(null);
-  // Selected time window. URL-backed so a refresh / share preserves the view.
-  const rangeId = RANGES.some((r) => r.id === searchParams.get('range'))
-    ? searchParams.get('range')
-    : DEFAULT_RANGE;
+  // Everything that says which report you are looking at, in one place.
+  // `range` was already URL-backed by hand; the rest — the search box, the
+  // sort, the expanded KPI panel, the Sent/All scope — were useState, so a
+  // refresh threw them away while the range survived. Half a page that
+  // remembers is more confusing than none of it.
+  const [view, setView] = useViewState({
+    range: { fallback: DEFAULT_RANGE, allow: RANGES.map((r) => r.id) },
+    scope: { fallback: 'sent', allow: ['sent', 'all'] },
+    q: { fallback: '', debounce: 250 },
+    sort: { fallback: 'date', allow: TABLE_COLUMNS.map((c) => c.key) },
+    dir: { fallback: 'desc', allow: ['desc', 'asc'] },
+    // An allowlist here is not cosmetic: ?metric=bogus reaches
+    // METRIC_DEFINITIONS[bogus].match() below, which is a TypeError and a
+    // white page rather than an odd-looking panel.
+    metric: { fallback: '', allow: ['', ...Object.keys(METRIC_DEFINITIONS), 'all'] },
+  });
+  const rangeId = view.range;
+  const drilledMetric = view.metric || null;
   const range = useMemo(() => resolveRange(rangeId), [rangeId]);
   const prevRange = useMemo(() => resolvePreviousRange(range), [range]);
 
@@ -177,10 +201,7 @@ export function AnalyticsPage() {
   useEffect(() => { refresh(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [rangeId]);
 
   function setRange(id) {
-    const next = new URLSearchParams(searchParams);
-    if (id === DEFAULT_RANGE) next.delete('range');
-    else next.set('range', id);
-    setSearchParams(next, { replace: true });
+    setView({ range: id });
   }
 
   const campaignsById = useMemo(() => {
@@ -247,12 +268,14 @@ export function AnalyticsPage() {
   // The campaign table's own controls. They exist because the table is the
   // one thing on this page whose length is unbounded, and 200 rows is not a
   // report unless you can narrow and order it.
-  const [scope, setScope] = useState('sent');
-  const [query, setQuery] = useState('');
+  const scope = view.scope;
+  const setScope = (next) => setView({ scope: next });
+  const query = view.q;
+  const setQuery = (next) => setView({ q: next });
   // Newest first, which is the order the page opened in before and the
   // order the date on every row implies. Sorting is an answer to a
   // question, not the resting state.
-  const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
+  const sort = { key: view.sort, dir: view.dir };
 
   // withinRange passes a campaign with no date at all, so drafts and
   // scheduled sends land in the report as "Sent 0 / — / — / —". They are
@@ -305,11 +328,12 @@ export function AnalyticsPage() {
   );
 
   function toggleSort(key) {
-    setSort((current) => (
-      current.key === key
-        ? { key, dir: current.dir === 'desc' ? 'asc' : 'desc' }
-        : { key, dir: key === 'name' ? 'asc' : 'desc' }
-    ));
+    // One patch, so key and direction land as a single location — as two
+    // writes the second can resolve against the params the first has not
+    // committed yet, and the direction is silently dropped.
+    setView(sort.key === key
+      ? { sort: key, dir: sort.dir === 'desc' ? 'asc' : 'desc' }
+      : { sort: key, dir: key === 'name' ? 'asc' : 'desc' });
   }
 
 
@@ -385,7 +409,11 @@ export function AnalyticsPage() {
   }, [realEvents, drilledMetric]);
 
   function toggleDrill(metric) {
-    setDrilledMetric((current) => (current === metric ? null : metric));
+    // push, uniquely on this page: the drill-down is a panel you OPENED, and
+    // Back meaning "close it" is what people expect from a thing that opened.
+    // Everywhere else in the app a view change replaces, because Back should
+    // leave the page rather than walk you through the filters you tried.
+    setView({ metric: drilledMetric === metric ? '' : metric }, { push: true });
   }
 
   // The only two numbers the engagement funnel had that the band above did
@@ -479,11 +507,11 @@ export function AnalyticsPage() {
         <div className="rp-dropoff">
           <span>
             Sent <ArrowRight size={12} aria-hidden="true" /> Opened
-            {' '}<b>{sentToOpened != null ? `${sentToOpened}%` : '—'}</b>
+            {' '}<b>{sentToOpened != null ? `${sentToOpened}%` : '-'}</b>
           </span>
           <span>
             Opened <ArrowRight size={12} aria-hidden="true" /> Clicked
-            {' '}<b>{openedToClicked != null ? `${openedToClicked}%` : '—'}</b>
+            {' '}<b>{openedToClicked != null ? `${openedToClicked}%` : '-'}</b>
           </span>
           <span className="rp-spacer" />
           <button
@@ -503,7 +531,7 @@ export function AnalyticsPage() {
           events={drillEvents}
           campaignsById={campaignsById}
           loading={loading}
-          onClose={() => setDrilledMetric(null)}
+          onClose={() => setView({ metric: '' })}
           onCampaignClick={(id) => navigate(`/campaigns/${id}`)}
         />
       )}
@@ -619,13 +647,7 @@ export function AnalyticsPage() {
             <table className="rp-table">
               <thead>
                 <tr>
-                  {[
-                    { key: 'date', label: 'Campaign', num: false },
-                    { key: 'sent', label: 'Sent', num: true },
-                    { key: 'opens', label: 'Opened', num: true },
-                    { key: 'clicks', label: 'Clicked', num: true },
-                    { key: 'bounces', label: 'Bounced', num: true },
-                  ].map((column) => (
+                  {TABLE_COLUMNS.map((column) => (
                     <th
                       key={column.key}
                       className={column.num ? 'rp-num' : undefined}
@@ -663,7 +685,7 @@ export function AnalyticsPage() {
                     key={campaign.id}
                     className="rp-row is-interactive"
                     tabIndex={0}
-                    aria-label={`${campaign.name} — open campaign`}
+                    aria-label={`${campaign.name}, open campaign`}
                     onClick={open}
                     onKeyDown={(e) => {
                       if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -764,7 +786,7 @@ function RateCell({ count, sent, tone }) {
   return (
     <td className="rp-num">
       <span className={`rp-figure${tone ? ` is-${tone}` : ''}`}>
-        {rate != null ? `${rate}%` : '—'}
+        {rate != null ? `${rate}%` : '-'}
       </span>
       <span className="rp-sub">{count.toLocaleString()}</span>
     </td>

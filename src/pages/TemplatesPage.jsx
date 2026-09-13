@@ -16,6 +16,7 @@ import {
 import { API_URL } from '../services/apiClient';
 import { buildEmailPreviewDocument } from '../utils/emailPreview';
 import { textFromHtml } from '../utils/textFromHtml';
+import { usePreference, useViewState } from '../hooks/useViewState';
 
 // Pointer to the last-viewed template id. Survives page refreshes so the user
 // lands back where they were instead of always seeing the first template.
@@ -25,10 +26,30 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   // Which pane of the editor column is showing. Both stay mounted and are
   // toggled with `hidden`, so switching does not remount the editor or
   // reload the preview iframe.
-  const [activeTab, setActiveTab] = useState('edit');
-  const [previewDevice, setPreviewDevice] = useState('desktop');
-  const [previewClient, setPreviewClient] = useState('gmail');
-  const [previewDark, setPreviewDark] = useState(false);
+  // Which pane you are looking at is WHERE YOU ARE, so it goes in the URL:
+  // refresh on Preview used to drop you back into Edit.
+  const [view, setView] = useViewState({
+    tab: { fallback: 'edit', allow: ['edit', 'preview'] },
+    // Which template is open. No allowlist — the ids arrive with a fetch, so
+    // judging on the first frame would scrub a deep link before the thing it
+    // points at exists. This is what makes a template result in global
+    // search able to open THAT template rather than the Email page.
+    template: { fallback: '' },
+  });
+  const activeTab = view.tab;
+  const setActiveTab = (id) => setView({ tab: id });
+
+  // These three are HOW YOU LIKE TO WORK, not where you are — someone who
+  // checks every email on mobile in dark mode wants that on Monday too, and
+  // would not want it forced onto whoever they sent the link to. So:
+  // localStorage, per person, per device, and deliberately NOT in the URL.
+  const [previewDevice, setPreviewDevice] = usePreference(
+    'posty.email.previewDevice', 'desktop', { allow: ['desktop', 'tablet', 'mobile'] },
+  );
+  const [previewClient, setPreviewClient] = usePreference(
+    'posty.email.previewClient', 'gmail', { allow: ['gmail', 'outlook', 'apple'] },
+  );
+  const [previewDark, setPreviewDark] = usePreference('posty.email.previewDark', false);
   const [categories, setCategories] = useState([]);
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
@@ -77,13 +98,17 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
   // with the parent's default id and overwrite the persisted value before this
   // restore effect could read it.
   useEffect(() => {
-    const persistedId = readSelectedTemplateId();
-    if (!persistedId) return;
+    // The URL wins over the remembered one. A link naming a template is
+    // someone saying "open this"; the stored id is only a default for when
+    // nobody said anything. Getting this the wrong way round would make
+    // every shared link silently open the recipient's last template instead.
+    const wantedId = view.template || readSelectedTemplateId();
+    if (!wantedId) return;
     const all = [...defaultTemplates, ...savedTemplates];
-    const match = all.find((item) => item.id === persistedId);
+    const match = all.find((item) => item.id === wantedId);
     if (match && match.id !== template.id) setTemplate(match);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedTemplates]);
+  }, [savedTemplates, view.template]);
 
   async function handleSaveTemplate() {
     try {
@@ -97,8 +122,10 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
         text: finalText,
       });
       // If we generated the text, reflect it back into the editor so the user sees what was saved.
-      setTemplate({ ...saved, text: finalText });
-      writeSelectedTemplateId(saved.id);
+      // The id changes on a first save (custom-<uuid> becomes the server's),
+      // so this has to go through openTemplate or the URL keeps naming an id
+      // that no longer exists.
+      openTemplate({ ...saved, text: finalText });
       setSavedTemplates((items) => [saved, ...items.filter((item) => item.id !== saved.id)]);
       setSaveStatus('Saved');
       notify('Email saved');
@@ -109,12 +136,25 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
     }
   }
 
+  // Opening a template is THREE things — the editor's state, the remembered
+  // id, and the URL — and they have to move together. Doing it at each call
+  // site meant five places to remember, and the sixth one added later would
+  // silently leave the URL naming a template that is no longer on screen;
+  // the restore effect would then snap the user back to it the next time the
+  // saved list refreshed. One function, so there is no sixth place.
+  //
+  // URL and localStorage both, not either: the URL so the address bar always
+  // names what is open and stays copyable, storage so a bare /templates
+  // comes back to where you left off.
+  function openTemplate(next) {
+    setTemplate(next);
+    writeSelectedTemplateId(next.id);
+    setView({ template: next.id });
+  }
+
   function selectTemplate(templateId) {
     const selected = templateOptions.find((item) => item.id === templateId);
-    if (selected) {
-      setTemplate(selected);
-      writeSelectedTemplateId(selected.id);
-    }
+    if (selected) openTemplate(selected);
   }
 
   function createTemplate() {
@@ -126,8 +166,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
       text: '',
       logoUrl: '',
     };
-    setTemplate(newTemplate);
-    writeSelectedTemplateId(newTemplate.id);
+    openTemplate(newTemplate);
     setSaveStatus('');
   }
 
@@ -144,8 +183,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
       text: '',
       logoUrl: '',
     };
-    setTemplate(newTemplate);
-    writeSelectedTemplateId(newTemplate.id);
+    openTemplate(newTemplate);
     setSaveStatus('');
     setGalleryOpen(false);
   }
@@ -179,10 +217,18 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
         );
         const stillVisibleCustom = savedTemplates.filter((t) => t.id !== templateId);
         const fallback = [...stillVisibleBuiltins, ...stillVisibleCustom][0];
-        if (fallback) setTemplate(fallback);
-        // Clear the pointer so a refresh after delete doesn't try to restore
-        // a now-missing template id.
-        clearSelectedTemplateId();
+        // Both pointers, not just the stored one.
+        //
+        // ?template= now names the open template as well, so clearing only
+        // localStorage left the URL naming a deleted id — copyable, and on
+        // reload the restore effect would find nothing and leave the editor
+        // on whatever the parent's default happened to be. openTemplate
+        // moves the URL and storage together, which is exactly why it exists.
+        if (fallback) openTemplate(fallback);
+        else {
+          clearSelectedTemplateId();
+          setView({ template: '' });
+        }
       }
     } catch (error) {
       const message = getError(error, 'Delete failed');
@@ -206,8 +252,7 @@ export function TemplatesPage({ template, setTemplate, contacts, notify }) {
       id: `custom-${crypto.randomUUID()}`,
       name: `${base.name || 'Untitled template'} (copy)`,
     };
-    setTemplate(copy);
-    writeSelectedTemplateId(copy.id);
+    openTemplate(copy);
     setSaveStatus('');
     notify('Duplicated. Review and click Save to keep it');
   }

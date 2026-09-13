@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { currentTokenVersion } from './sessions.js';
 import jwt from 'jsonwebtoken';
 import { prisma } from './db.js';
 
@@ -25,7 +26,10 @@ export async function verifyPassword(password, hash) {
   return bcrypt.compare(password, hash);
 }
 
-export function signToken(user) {
+// `tokenVersion` may be passed explicitly: when you sign out your other
+// devices the column is bumped FIRST, and the replacement token has to carry
+// the new version or it would revoke itself along with the rest.
+export function signToken(user, tokenVersion) {
   // Embed accountId in the JWT so every authenticated request carries
   // the tenant scope without an extra DB round-trip. Old tokens issued
   // before multi-tenancy lack this claim — requireAuth falls back to
@@ -38,6 +42,7 @@ export function signToken(user) {
       role: user.role,
       accountId: user.accountId,
       isSuperAdmin: Boolean(user.isSuperAdmin),
+      tv: tokenVersion ?? user.tokenVersion ?? 0,
     },
     getJwtSecret(),
     { expiresIn: TOKEN_TTL },
@@ -53,6 +58,12 @@ export function publicUser(user) {
     id: user.id,
     email: user.email,
     name: user.name || '',
+    location: user.location || '',
+    // ISO string or null. Null means "we do not know", which is honest for
+    // rows predating the column — the UI says so rather than guessing.
+    passwordChangedAt: user.passwordChangedAt
+      ? user.passwordChangedAt.toISOString()
+      : null,
     role: user.role,
     accountId: user.accountId,
     // Workspace name, when the account relation is loaded by the caller.
@@ -84,7 +95,24 @@ export function requireAuth(req, res, next) {
       accountId: payload.accountId || 'default',
       isSuperAdmin: Boolean(payload.isSuperAdmin),
     };
-    next();
+
+    // Has this token been revoked? A JWT is valid because it verifies, not
+    // because the server remembers issuing it — so "sign out my other
+    // devices" is expressed as a version on the user that every token
+    // carries a copy of.
+    //
+    // A token minted before the column existed has no `tv` claim and reads
+    // as 0, which matches every existing row's default: the deploy that adds
+    // this signs nobody out.
+    currentTokenVersion(payload.sub)
+      .then((version) => {
+        if ((payload.tv ?? 0) !== version) {
+          res.status(401).json({ error: 'Invalid or expired token' });
+          return;
+        }
+        next();
+      })
+      .catch(next);
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' });
   }

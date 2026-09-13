@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Builder probe</title>
+    <!-- The REAL Create campaign page against the real stylesheets, with the
+         network stubbed at the axios adapter so the component's own request
+         code runs unchanged. Dev-only; vite builds index.html alone.
+
+         Hand-built markup standing in for a component is how a page once got
+         "verified" while the component it mimicked threw on every render, so
+         this mounts BuilderPage itself and lets the layout be measured rather
+         than described. -->
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body style="margin:0">
+    <div id="root"></div>
+    <script type="module">
+      import { createRoot } from 'react-dom/client';
+      import { createElement as h, useState } from 'react';
+      import { MemoryRouter } from 'react-router-dom';
+      import { apiClient } from '/src/services/apiClient.js';
+      import { AuthProvider } from '/src/auth/AuthContext.jsx';
+      import { BuilderPage } from '/src/pages/BuilderPage.jsx';
+      import { blankTemplate, defaultTemplates } from '/src/templates/defaultTemplates.js';
+
+      const USER = {
+        id: 'u1', email: 'sanmi@example.com', name: 'Sanmi', role: 'admin',
+        permissions: { v: 2, areas: { campaigns: 'manage', contacts: 'manage', templates: 'write' } },
+      };
+
+      // 297 contacts, six of them non-compliant, so the review rail shows the
+      // same "291 people / 6 not included" split as the screenshot.
+      const CONTACTS = Array.from({ length: 297 }, (_, i) => ({
+        email: `person${i}@example.com`,
+        firstname: `Person ${i}`,
+        region: 'GB',
+        consent: i < 6 ? 'no' : 'yes',
+      }));
+
+      const ROUTES = [
+        [/\/api\/auth\/status/, { hasUsers: true, openSignup: false, passwordResetEnabled: true }],
+        [/\/api\/auth\/me/, { user: USER }],
+        [/\/api\/audiences/, [{ id: 'g1', name: 'Everyone', count: 297 }]],
+        [/\/api\/segments/, []],
+        [/\/api\/templates\/hidden-builtins/, []],
+        [/\/api\/templates/, []],
+        [/\/api\/campaigns\/send-readiness/, { senderConfigured: true, providerConfigured: true }],
+        [/\/api\/campaigns\/preflight/, { checks: [] }],
+        [/\/api\/campaigns\/drafts/, { id: 'd1' }],
+      ];
+
+      // Unmatched URLs are loud rather than silently {} — a stub that
+      // answers everything with an empty object turns a wrong path into a
+      // render crash three components away.
+      apiClient.defaults.adapter = async (config) => {
+        const hit = ROUTES.find(([re]) => re.test(config.url));
+        if (!hit) console.warn('[probe] unstubbed', config.method, config.url);
+        return {
+          data: hit ? hit[1] : [], status: 200, statusText: 'OK', headers: {}, config,
+        };
+      };
+      window.localStorage.setItem('campaign-suite-token', 'probe-token');
+
+      function Probe() {
+        const [template, setTemplate] = useState(defaultTemplates[0] || blankTemplate);
+        return h(MemoryRouter, { initialEntries: ['/builder'] },
+          h(AuthProvider, null,
+            h('main', { className: 'sh', 'data-section': 'campaigns' },
+              h('aside', { className: 'sh-side' }, h('div', { className: 'sh-brand' }, 'Posty')),
+              h('section', { className: 'sh-main' },
+                h('header', { className: 'sh-top' },
+                  h('div', { className: 'sh-title' }, h('h1', null, 'Good morning, Sanmi'))),
+                h('div', { className: 'sh-content' },
+                  h(BuilderPage, {
+                    contacts: CONTACTS,
+                    template,
+                    setTemplate,
+                    setPage: () => {},
+                    notify: () => {},
+                    refreshContacts: () => {},
+                    onCampaignScheduled: () => {},
+                  }))))));
+      }
+      createRoot(document.getElementById('root')).render(h(Probe));
+    </script>
+  </body>
+</html>

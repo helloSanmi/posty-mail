@@ -17,6 +17,7 @@
 // accept accountId and stamp it on writes; the background send loop
 // (lib/scheduler/) reads campaign.accountId once and passes it down.
 import { prisma } from './prisma.js';
+import { assertOwnedOrNew } from './tenant.js';
 
 export function campaignFromDb(campaign) {
   return {
@@ -63,10 +64,10 @@ export async function listCampaignsPaged({ accountId, page = 1, pageSize = 8 } =
 }
 
 export async function upsertCampaign(accountId, campaign) {
-  // Campaign.id is globally unique (random) so a straight upsert is safe:
-  // either the id already exists in THIS account (we read it back) or
-  // it's brand-new. We set accountId on create so even a misrouted id
-  // can't silently land in the wrong workspace.
+  await assertOwnedOrNew(prisma.campaign, campaign.id, accountId);
+  // The id arrives from the REQUEST, so "it either belongs to this account
+  // or it is brand-new" was not true — it could also be another workspace's.
+  // assertOwnedOrNew above is what makes the sentence true.
   return prisma.campaign.upsert({
     where: { id: campaign.id },
     create: {
